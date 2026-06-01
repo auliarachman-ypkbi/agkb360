@@ -1,0 +1,69 @@
+version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: ktb_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./public_html:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - ktb_network
+
+  php:
+    build: ./docker/php
+    container_name: ktb_php
+    volumes:
+      - ./public_html:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=ktb_evaluation
+      - DB_USER=ktb_user
+      - DB_PASS=ktb_pass_2024
+    depends_on:
+      - mysql
+    networks:
+      - ktb_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: ktb_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass_2024
+      MYSQL_DATABASE: ktb_evaluation
+      MYSQL_USER: ktb_user
+      MYSQL_PASSWORD: ktb_pass_2024
+    ports:
+      - "3306:3306"
+    volumes:
+      - ktb_mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./database/dummy_data.sql:/docker-entrypoint-initdb.d/02_dummy.sql
+    networks:
+      - ktb_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: ktb_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: ktb_user
+      PMA_PASSWORD: ktb_pass_2024
+    depends_on:
+      - mysql
+    networks:
+      - ktb_network
+
+networks:
+  ktb_network:
+    driver: bridge
+
+volumes:
+  ktb_mysql_data:
