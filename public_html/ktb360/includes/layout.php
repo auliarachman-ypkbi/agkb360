@@ -7,7 +7,7 @@ function renderHead(string $title = '', string $extraCss = ''): void {
 <head>
 <meta charset='UTF-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<title>{$t}KTB 360 Evaluation</title>
+<title>{$t}AKGB 360</title>
 <link rel='preconnect' href='https://fonts.googleapis.com'>
 <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
 <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap'>
@@ -55,10 +55,13 @@ function renderNav(): void {
 <nav class='navbar navbar-expand-lg navbar-dark ktb-navbar'>
   <div class='container-fluid'>
     <a class='navbar-brand d-flex align-items-center gap-2' href='{$base}/dashboard/'>
-      <div class='ktb-logo-sm'>360</div>
+      <img src='{$base}/assets/img/logoAKGB360.png' alt='AKGB 360'
+           style='height:36px;width:auto;object-fit:contain;mix-blend-mode:screen;filter:brightness(1.2)'
+           onerror='this.style.display=\"none\";this.nextElementSibling.style.display=\"flex\"'>
+      <div class='ktb-logo-sm' style='display:none'>360</div>
       <div>
-        <div class='fw-bold lh-1'>KTB 360</div>
-        <div class='small opacity-75 lh-1' style='font-size:.65rem'>Evaluation Platform</div>
+        <div class='fw-bold lh-1'>AKGB <span style='color:var(--ktb-gold)'>360°</span></div>
+        <div class='small opacity-75 lh-1' style='font-size:.6rem'>Platform Evaluasi Kinerja</div>
       </div>
     </a>
     <button class='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navMain'>
@@ -67,7 +70,12 @@ function renderNav(): void {
     <div class='collapse navbar-collapse' id='navMain'>
       <ul class='navbar-nav me-auto'>
         <li class='nav-item'><a class='nav-link' href='{$base}/dashboard/'><i class='bi bi-house me-1'></i>Dashboard</a></li>
+        " . (in_array($role, ['admin','foundation','leader']) ? "
+        <li class='nav-item'><a class='nav-link' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-1'></i>Laporan</a></li>
+        <li class='nav-item'><a class='nav-link' href='{$base}/admin/progress.php'><i class='bi bi-activity me-1'></i>Progress</a></li>
+        " : "
         <li class='nav-item'><a class='nav-link' href='{$base}/survey/'><i class='bi bi-clipboard-check me-1'></i>Kuesioner Saya</a></li>
+        ") . "
         {$adminMenu}
       </ul>
       <ul class='navbar-nav'>
@@ -94,7 +102,7 @@ function renderFooter(): void {
     echo "
 <footer class='ktb-footer mt-auto py-3'>
   <div class='container-fluid text-center small'>
-    <span class='opacity-50'>KTB 360 Evaluation Platform v1.0 &copy; 2025 SMA Kemala Taruna Bhayangkara</span>
+    <span class='opacity-50'>AKGB 360 — Platform Evaluasi Kinerja 360 Derajat</span>
   </div>
 </footer>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js'></script>

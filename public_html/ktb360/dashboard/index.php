@@ -94,7 +94,7 @@ $traitRaw = Database::fetchAll("
     ORDER BY t.code, ep.start_date
 ");
 
-// Individual trend per period
+// Individual trend per period (tetap untuk list individu & ranking)
 $individualRaw = Database::fetchAll("
     SELECT u.id, u.name, u.role, ep.id as period_id,
            ROUND(AVG(r.grade),2) as avg_score
@@ -112,14 +112,27 @@ $individualRaw = Database::fetchAll("
 // School: { period_id: avg }
 $jsSchool = $schoolAvgByPid;
 
-// Domain: { et_code: { name, domains: { domain_name: { period_id: avg } } } }
+// Domain: struktur baru untuk memudahkan pembuatan chart dengan sumbu X = domain
+// Kita ubah: per et_code, kita simpan daftar domain dan matriks skor [domain][period_id]
 $jsDomain = [];
 foreach ($domainRaw as $r) {
     $et = $r['et_code'];
     $dn = $r['domain_name'];
-    if (!isset($jsDomain[$et])) $jsDomain[$et] = ['name'=>$r['et_name'],'domains'=>[]];
-    if (!isset($jsDomain[$et]['domains'][$dn])) $jsDomain[$et]['domains'][$dn] = [];
-    $jsDomain[$et]['domains'][$dn][$r['period_id']] = (float)$r['avg_score'];
+    $pid = $r['period_id'];
+    if (!isset($jsDomain[$et])) {
+        $jsDomain[$et] = [
+            'name' => $r['et_name'],
+            'domains' => [],         // daftar nama domain (urutan unik)
+            'scores' => []           // scores[domain_name][period_id]
+        ];
+    }
+    if (!in_array($dn, $jsDomain[$et]['domains'])) {
+        $jsDomain[$et]['domains'][] = $dn;
+    }
+    if (!isset($jsDomain[$et]['scores'][$dn])) {
+        $jsDomain[$et]['scores'][$dn] = [];
+    }
+    $jsDomain[$et]['scores'][$dn][$pid] = (float)$r['avg_score'];
 }
 
 // Trait: { trait_id: { name, data: { period_id: avg } } }
@@ -157,9 +170,9 @@ ob_start(); ?>
 .dash-g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .dash-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .mcard{background:#ffffff;border-radius:10px;padding:.9rem 1.1rem;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
-.mval{font-size:24px;font-weight:500;color:var(--color-text-primary);line-height:1.1}
-.mlbl{font-size:12px;color:var(--color-text-secondary);margin-top:3px}
-.msub{font-size:11px;color:var(--color-text-secondary);margin-top:6px}
+.mval{font-size:24px;font-weight:500;color:#1e293b;line-height:1.1}
+.mlbl{font-size:12px;color:#64748b;margin-top:3px}
+.msub{font-size:11px;color:#64748b;margin-top:6px}
 .dcard{background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
 .dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#1e293b;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
 .dcard-body{padding:14px;background:#ffffff}
@@ -174,25 +187,24 @@ ob_start(); ?>
 .section-label::after{content:"";flex:1;height:1px;background:#e2e8f0}
 /* Tabs */
 .tab-group{display:flex;gap:4px;flex-wrap:wrap}
-.tab-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;transition:all .12s}
-.tab-btn.active{background:var(--color-text-primary)!important;color:var(--color-background-primary)!important;border-color:transparent}
+.tab-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;transition:all .12s}
+.tab-btn.active{background:#185FA5!important;color:#ffffff!important;border-color:transparent}
 .tab-panel{display:none}.tab-panel.active{display:block}
 /* Slider */
 .period-slider-wrap{background:#ffffff;border:1px solid #e2e8f0;border-left:3px solid #2C5282;border-radius:12px;padding:12px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
-.slider-track{position:relative;height:6px;background:var(--color-background-secondary);border-radius:3px;margin:20px 0 8px}
+.slider-track{position:relative;height:6px;background:#f1f5f9;border-radius:3px;margin:20px 0 8px}
 .slider-wrap-inner{width:75%;margin:0 auto}
-/* slider-track defined above */
 .slider-fill{position:absolute;height:100%;background:#185FA5;border-radius:3px;pointer-events:none}
 .slider-handle{position:absolute;top:-7px;width:20px;height:20px;border-radius:50%;background:white;border:2px solid #185FA5;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.15);transform:translateX(-50%);transition:box-shadow .1s}
 .slider-handle:active{cursor:grabbing;box-shadow:0 2px 8px rgba(24,95,165,.3)}
-.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-secondary);margin-top:4px}
-.period-info{font-size:13px;font-weight:500;text-align:center;color:var(--color-text-primary)}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:4px}
+.period-info{font-size:13px;font-weight:500;text-align:center;color:#1e293b}
 /* Rank rows */
 .rank-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9}
 .rank-row:last-child{border-bottom:none}
 .av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#E6F1FB;color:#0C447C}
 .rank-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500}
-.rank-role{font-size:10px;color:var(--color-text-secondary)}
+.rank-role{font-size:10px;color:#64748b}
 .score-chip{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;flex-shrink:0}
 .sline{display:flex;align-items:flex-end;gap:2px;height:18px;flex-shrink:0}
 .sb{width:8px;border-radius:2px 2px 0 0}
@@ -235,7 +247,7 @@ ob_start(); ?>
 <!-- PERIOD SLIDER -->
 <div class="period-slider-wrap">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <span style="font-size:12px;font-weight:500;color:var(--color-text-secondary)">
+    <span style="font-size:12px;font-weight:500;color:#64748b">
       <i class="bi bi-sliders me-1"></i>Rentang Periode
     </span>
     <span class="period-info" id="sliderInfo">—</span>
@@ -253,22 +265,6 @@ ob_start(); ?>
   </div>
   <div class="slider-labels" id="sliderLabels"></div>
   </div>
-</div>
-
-<!-- PERSON FILTER -->
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-  <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary);white-space:nowrap">
-    <i class="bi bi-person-fill me-1"></i>Filter orang:
-  </label>
-  <select id="personFilter"
-    style="height:34px;border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:0 10px;font-size:12px;background:var(--color-background-primary);color:var(--color-text-primary);flex:1;max-width:280px;outline:none">
-    <option value="">Semua orang</option>
-  </select>
-  <button onclick="clearPersonFilter()"
-    id="btnClearFilter"
-    style="display:none;height:34px;padding:0 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);font-size:12px;cursor:pointer;color:var(--color-text-secondary)">
-    ✕ Reset
-  </button>
 </div>
 
 <!-- SCHOOL TREND + INDIVIDUAL TREND -->
@@ -301,7 +297,7 @@ ob_start(); ?>
     <div class="dcard-body" id="domainPanels">
       <?php foreach ($jsDomain as $etCode => $etData): ?>
       <div class="tab-panel" id="dpanel-<?= $etCode ?>">
-        <div style="position:relative;height:200px">
+        <div style="position:relative;height:260px">
           <canvas id="domainChart_<?= $etCode ?>"></canvas>
         </div>
       </div>
@@ -359,7 +355,7 @@ ob_start(); ?>
 // ── DATA ──────────────────────────────────────────────────────
 const PERIODS     = <?= json_encode(array_values($closedPeriods)) ?>;
 const SCHOOL_AVG  = <?= json_encode($jsSchool) ?>;
-const DOMAIN_DATA = <?= json_encode($jsDomain) ?>;
+const DOMAIN_DATA = <?= json_encode($jsDomain) ?>;  // struktur baru
 const TRAIT_DATA  = <?= json_encode($jsTrait) ?>;
 const INDIVIDUAL  = <?= json_encode($jsIndividual) ?>;
 
@@ -371,7 +367,6 @@ let rightIdx      = PERIODS.length - 1;
 let schoolChart   = null;
 let activeDomainEt  = null;
 let activeTraitId   = null;
-let activePersonUid = null; // null = semua orang
 const domainCharts  = {};
 const traitCharts   = {};
 
@@ -399,32 +394,27 @@ function renderSlider() {
 }
 
 function formatPeriodLabel(name) {
-  // Split "Evaluasi Semester X TA Y1/Y2" → 2 lines
-  // Try split on " TA "
   if (name.includes(' TA ')) {
     const parts = name.split(' TA ');
     return [parts[0].trim(), 'TA ' + parts[1].trim()];
   }
-  // Try split on "Semester"
   const semMatch = name.match(/^(.*Semester\s*\d+)(.*)$/i);
   if (semMatch) {
     return [semMatch[1].trim(), semMatch[2].trim() || ''];
   }
-  // Fallback: split at midpoint
   const words = name.split(' ');
   const mid = Math.ceil(words.length / 2);
   return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
 }
 
 function renderLabels() {
-  // Dynamic font size: fewer periods = bigger, more = smaller
   const fs = Math.max(8, Math.min(11, 13 - Math.floor(PERIODS.length / 3)));
   sliderLabels.innerHTML = PERIODS.map((p,i) => {
     const pos = pct(i);
     const [line1, line2] = formatPeriodLabel(p.name);
     return `<span style="position:absolute;left:${pos}%;transform:translateX(-50%);text-align:center;line-height:1.3;white-space:nowrap">
-      <span style="display:block;font-size:${fs}px;font-weight:500;color:var(--color-text-primary)">${line1}</span>
-      ${line2 ? `<span style="display:block;font-size:${Math.max(7,fs-1)}px;color:var(--color-text-secondary)">${line2}</span>` : ''}
+      <span style="display:block;font-size:${fs}px;font-weight:500;color:#1e293b">${line1}</span>
+      ${line2 ? `<span style="display:block;font-size:${Math.max(7,fs-1)}px;color:#64748b">${line2}</span>` : ''}
     </span>`;
   }).join('');
   sliderLabels.style.position = 'relative';
@@ -450,8 +440,6 @@ function setupDrag(handle, isLeft) {
     updateAll();
   });
   document.addEventListener('mouseup', () => { dragging = false; });
-
-  // Touch support
   handle.addEventListener('touchstart', e => { dragging = true; e.preventDefault(); }, {passive:false});
   document.addEventListener('touchmove', e => {
     if (!dragging) return;
@@ -477,8 +465,11 @@ function filteredPids() {
 function filteredLabels() {
   return PERIODS.slice(leftIdx, rightIdx + 1).map(p => p.name);
 }
+function filteredPeriodNames() {
+  return PERIODS.slice(leftIdx, rightIdx + 1).map(p => p.name);
+}
 
-// ── SCHOOL CHART ──────────────────────────────────────────────
+// ── SCHOOL CHART (tetap) ──────────────────────────────────────
 function updateSchoolChart() {
   const pids   = filteredPids();
   const labels = filteredLabels();
@@ -513,7 +504,6 @@ function updateSchoolChart() {
     schoolChart.update();
   }
 
-  // Metric card
   const valid = data.filter(v=>v!==null);
   if (valid.length > 0) {
     const last  = valid[valid.length-1];
@@ -526,7 +516,7 @@ function updateSchoolChart() {
   }
 }
 
-// ── DOMAIN CHARTS ─────────────────────────────────────────────
+// ── DOMAIN CHARTS (BAR CHART dengan sumbu X = domain, dataset = periode) ──
 function buildDomainTabs() {
   const tabs = document.getElementById('domainTabs');
   let first = true;
@@ -555,9 +545,9 @@ function setTabActive(btn) {
   btn.style.boxShadow = '0 2px 6px rgba(24,95,165,0.35)';
 }
 function setTabInactive(btn) {
-  btn.style.background = 'var(--color-background-secondary)';
-  btn.style.color = 'var(--color-text-secondary)';
-  btn.style.borderColor = 'var(--color-border-secondary)';
+  btn.style.background = '#f8fafc';
+  btn.style.color = '#64748b';
+  btn.style.borderColor = '#e2e8f0';
   btn.style.fontWeight = '400';
   btn.style.boxShadow = 'none';
 }
@@ -572,41 +562,64 @@ function switchDomainTab(etCode) {
 }
 
 function updateDomainChart(etCode) {
-  const pids   = filteredPids();
-  const labels = filteredLabels();
-  const et     = DOMAIN_DATA[etCode];
+  const et = DOMAIN_DATA[etCode];
   if (!et) return;
 
-  const domainNames = Object.keys(et.domains);
-  const datasets = domainNames.map((dn, i) => ({
-    label: dn,
-    data: pids.map(pid => et.domains[dn]?.[pid] ?? null),
-    backgroundColor: COLORS[i % COLORS.length] + 'BB',
-    borderColor:     COLORS[i % COLORS.length],
-    borderWidth: 1, borderRadius: 3,
-  }));
+  const pids = filteredPids();
+  const periodNames = filteredPeriodNames();
+  const domains = et.domains; // array of domain names
+  
+  if (domains.length === 0) return;
+  
+  // Siapkan datasets: setiap periode menjadi satu dataset
+  // Datasets = array of { label: nama_periode, data: array skor per domain }
+  const datasets = periodNames.map((periodName, idx) => {
+    const periodId = pids[idx];
+    const dataPerDomain = domains.map(domainName => {
+      const score = et.scores[domainName]?.[periodId];
+      return score !== undefined ? score : null;
+    });
 
+const intensity = 0.3 + (idx / Math.max(1, periodNames.length - 1)) * 0.5; // range 0.3 - 0.8
+const blueShade = `rgba(24, 95, 165, ${intensity})`;
+const borderShade = `rgba(24, 95, 165, 0.8)`;
+
+return {
+  label: periodName,
+  data: dataPerDomain,
+  backgroundColor: blueShade,
+  borderColor: borderShade,
+  borderWidth: 1,
+  borderRadius: 4,
+};
+
+  });
+  
   const canvas = document.getElementById('domainChart_' + etCode);
   if (!canvas) return;
-
+  
   if (!domainCharts[etCode]) {
     domainCharts[etCode] = new Chart(canvas, {
       type: 'bar',
-      data: { labels, datasets },
+      data: {
+        labels: domains,
+        datasets: datasets,
+      },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { display:true, position:'bottom', labels:{font:{size:10},boxWidth:12,padding:8} },
-          tooltip: { callbacks: { label: c => ' '+c.dataset.label+': '+parseFloat(c.raw).toFixed(2) } }
+          legend: { display: true, position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toFixed(2)} / 4.00` } }
         },
         scales: {
-          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
-          x: { ticks:{font:{size:10}}, grid:{display:false} }
+          y: { min: 1.5, max: 4.0, ticks: { stepSize: 0.5, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+          x: { ticks: { font: { size: 6 }, maxRotation: 45 }, grid: { display: false } }
         }
       }
     });
   } else {
-    domainCharts[etCode].data.labels = labels;
+    domainCharts[etCode].data.labels = domains;
     domainCharts[etCode].data.datasets = datasets;
     domainCharts[etCode].update();
   }
@@ -616,7 +629,7 @@ function updateAllDomainCharts() {
   if (activeDomainEt) updateDomainChart(activeDomainEt);
 }
 
-// ── TRAIT CHARTS ──────────────────────────────────────────────
+// ── TRAIT CHARTS (tetap line chart) ──────────────────────────────
 function buildTraitTabs() {
   const tabs = document.getElementById('traitTabs');
   tabs.style.display = 'flex';
@@ -693,7 +706,7 @@ function updateAllTraitCharts() {
   if (activeTraitId) updateTraitChart(activeTraitId);
 }
 
-// ── INDIVIDUAL LIST ───────────────────────────────────────────
+// ── INDIVIDUAL LIST (tanpa filter orang) ─────────────────────
 function updateIndividualList() {
   const pids = filteredPids();
   const el = document.getElementById('individualList');
@@ -701,7 +714,6 @@ function updateIndividualList() {
 
   let html = '';
   for (const uid in INDIVIDUAL) {
-    if (activePersonUid && uid != activePersonUid) continue;
     const p = INDIVIDUAL[uid];
     const vals = pids.map(pid => p.scores[pid]).filter(v => v !== undefined);
     if (!vals.length) continue;
@@ -717,17 +729,17 @@ function updateIndividualList() {
       return `<div style="width:8px;height:${h}%;border-radius:2px 2px 0 0;background:${color};opacity:${op.toFixed(2)};align-self:flex-end"></div>`;
     }).join('');
     const nm = p.name.split(' ').slice(0,2).join(' ');
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--color-border-tertiary)">
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #e2e8f0">
       <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#E6F1FB;color:#0C447C">${initials(p.name)}</div>
       <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500">${nm}</div>
       <div style="display:flex;align-items:flex-end;gap:2px;height:20px">${bars}</div>
       ${badge}
     </div>`;
   }
-  el.innerHTML = html || '<p style="font-size:12px;color:var(--color-text-secondary);text-align:center;padding:1rem">Tidak ada data</p>';
+  el.innerHTML = html || '<p style="font-size:12px;color:#64748b;text-align:center;padding:1rem">Tidak ada data</p>';
 }
 
-// ── TOP 5 / BOTTOM 5 ──────────────────────────────────────────
+// ── TOP 5 / BOTTOM 5 (tanpa filter orang) ────────────────────
 function initials(name) {
   const w = name.split(' ');
   return w.length >= 2 ? (w[0][0]+w[1][0]).toUpperCase() : name.substring(0,2).toUpperCase();
@@ -747,15 +759,12 @@ function updateRankings() {
   const lastPid = pids[pids.length - 1];
   const lastPeriodName = PERIODS[rightIdx]?.name || '';
 
-  // Score per person di periode terakhir
   const scores = [];
   for (const uid in INDIVIDUAL) {
-    if (activePersonUid && uid != activePersonUid) continue;
     const p = INDIVIDUAL[uid];
     const v = p.scores[lastPid];
     if (v === undefined) continue;
 
-    // Trend vals across full range
     const vals = pids.map(pid => p.scores[pid]).filter(v=>v!==undefined);
     const first = vals[0]||v, diff = v - first;
     const barColor = diff > 0.05 ? '#185FA5' : diff < -0.05 ? '#E24B4A' : '#888780';
@@ -772,7 +781,6 @@ function updateRankings() {
   const top5    = scores.slice(0, 5);
   const bottom5 = scores.slice(-5).reverse();
 
-  // Format 2-baris: "Sem 1 • TA 2024/2025"
   const [ln1, ln2] = formatPeriodLabel(lastPeriodName);
   const shortLabel = ln2 ? ln1 + ' · ' + ln2 : ln1;
   document.getElementById('rankPeriodLabel').textContent  = shortLabel;
@@ -781,7 +789,7 @@ function updateRankings() {
   function renderList(items, el) {
     el.innerHTML = items.map((p,i) => `
       <div class="rank-row">
-        <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);min-width:14px">${i+1}</div>
+        <div style="font-size:11px;font-weight:500;color:#64748b;min-width:14px">${i+1}</div>
         <div class="av">${initials(p.name)}</div>
         <div style="flex:1;min-width:0">
           <div class="rank-nm" title="${p.name}">${p.name.split(' ').slice(0,2).join(' ')}</div>
@@ -795,7 +803,6 @@ function updateRankings() {
   renderList(top5, document.getElementById('top5List'));
   renderList(bottom5, document.getElementById('bottom5List'));
 
-  // Metric: perlu perhatian
   const attn = scores.filter(s => s.score < 2.75).length;
   const attnEl = document.getElementById('metricNeedAttn');
   if (attnEl) {
@@ -813,40 +820,13 @@ function updateAll() {
   updateRankings();
 }
 
-// ── PERSON FILTER ─────────────────────────────────────────────
-function buildPersonFilter() {
-  const sel = document.getElementById('personFilter');
-  if (!sel) return;
-  for (const uid in INDIVIDUAL) {
-    const opt = document.createElement('option');
-    opt.value = uid;
-    opt.textContent = INDIVIDUAL[uid].name + ' (' + (INDIVIDUAL[uid].role === 'leader' ? 'Pimpinan' : 'Guru') + ')';
-    sel.appendChild(opt);
-  }
-  sel.addEventListener('change', () => {
-    activePersonUid = sel.value || null;
-    document.getElementById('btnClearFilter').style.display = sel.value ? 'block' : 'none';
-    updateIndividualList();
-    updateRankings();
-  });
-}
-function clearPersonFilter() {
-  activePersonUid = null;
-  document.getElementById('personFilter').value = '';
-  document.getElementById('btnClearFilter').style.display = 'none';
-  updateIndividualList();
-  updateRankings();
-}
-
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   renderLabels();
   renderSlider();
   buildDomainTabs();
   buildTraitTabs();
-  buildPersonFilter();
 
-  // Init first domain & trait chart
   const firstEt = Object.keys(DOMAIN_DATA)[0];
   if (firstEt) updateDomainChart(firstEt);
   const firstTid = Object.keys(TRAIT_DATA)[0];
@@ -977,3 +957,4 @@ ob_start(); ?>
 <?php
 $content = ob_get_clean();
 pageWrapper('Dashboard', $content);
+?>
