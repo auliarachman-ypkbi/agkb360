@@ -52,7 +52,6 @@ services:
     volumes:
       - ktb_mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./database/dummy_data.sql:/docker-entrypoint-initdb.d/02_dummy.sql
     networks:
       - ktb_network
     healthcheck:
