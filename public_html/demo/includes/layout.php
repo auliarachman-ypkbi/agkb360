@@ -55,6 +55,7 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-2'></i>Laporan</a></li>
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/foundation.php'><i class='bi bi-diagram-3 me-2'></i>Domain / Standard / Trait</a></li>
+            <li><a class='dropdown-item' href='{$base}/admin/matrix.php'><i class='bi bi-grid me-2'></i>Matriks Mapping</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/questions_master.php'><i class='bi bi-clipboard-check me-2'></i>Master Pertanyaan</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/questions_packages.php'><i class='bi bi-folder me-2'></i>Paket Pertanyaan</a></li>
             <li><hr class='dropdown-divider'></li>
