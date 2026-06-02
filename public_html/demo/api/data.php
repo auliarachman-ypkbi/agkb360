@@ -15,7 +15,7 @@ if ($action === 'export') {
     $type = $_GET['type'] ?? 'full';
 
     header('Content-Type: application/json');
-    header('Content-Disposition: attachment; filename="ktb360_' . $type . '_' . date('Ymd_His') . '.json"');
+    header('Content-Disposition: attachment; filename="demo_' . $type . '_' . date('Ymd_His') . '.json"');
 
     $export = [
         'meta' => [

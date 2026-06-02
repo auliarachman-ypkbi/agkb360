@@ -7,7 +7,7 @@
 define('APP_NAME', 'KTB 360° Evaluation');
 define('APP_VERSION', '1.0.0');
 define('APP_SCHOOL', 'SMA Kemala Taruna Bhayangkara');
-define('APP_URL', '/ktb360'); // Subfolder deployment
+define('APP_URL', '/demo'); // Subfolder deployment
 
 // ── DATABASE ─────────────────────────────────────────────────
 // Update these with your cPanel database credentials
@@ -18,7 +18,7 @@ define('DB_PASS', 'ktb_pass_2024');   // Your database password
 define('DB_CHARSET', 'utf8mb4');
 
 // ── SESSION ───────────────────────────────────────────────────
-define('SESSION_NAME', 'ktb360_session');
+define('SESSION_NAME', 'demo_session');
 define('SESSION_LIFETIME', 7200); // 2 hours
 
 // ── CLAUDE AI API ─────────────────────────────────────────────

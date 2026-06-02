@@ -1,7 +1,7 @@
 <?php
 /**
  * KTB 360° — Seed Dummy Data 2024
- * Jalankan sekali: http://localhost/ktb360/seed_dummy.php
+ * Jalankan sekali: http://localhost/demo/seed_dummy.php
  * HAPUS file ini setelah dijalankan!
  */
 require_once __DIR__ . '/config/config.php';
@@ -289,7 +289,7 @@ foreach ($createdPeriods as $pd) {
 <p style="margin-top:1.5rem;padding:1rem;background:#fef2f2;border-radius:6px">
   <strong>⚠️ PENTING:</strong> Hapus file <code>seed_dummy.php</code> dari server sekarang!
 </p>
-<a href="/ktb360/admin/reports.php" style="background:#001f3e;color:white;padding:.6rem 1.5rem;text-decoration:none;border-radius:6px">
+<a href="/demo/admin/reports.php" style="background:#001f3e;color:white;padding:.6rem 1.5rem;text-decoration:none;border-radius:6px">
   Lihat Laporan →
 </a>
 </body></html>
