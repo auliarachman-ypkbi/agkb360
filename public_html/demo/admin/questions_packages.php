@@ -41,7 +41,7 @@ $allPackages = Database::fetchAll("
     JOIN eval_types et ON et.id = p.eval_type_id
     LEFT JOIN package_weights pw ON pw.package_id = p.id
     LEFT JOIN package_questions pq ON pq.package_id = p.id
-    WHERE p.is_self_reflection = 0
+    WHERE p.period_id IS NULL AND p.is_self_reflection = 0
     GROUP BY p.id, p.code, p.name, p.eval_type_id, p.respondent_type,
              p.description, p.is_self_reflection, et.name, et.code
     ORDER BY et.id, p.id
