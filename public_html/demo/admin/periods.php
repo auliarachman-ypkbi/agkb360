@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['admin','foundation']);
+requireRole(['superadmin','admin','foundation']);
 
 // Buat periode baru → langsung ke wizard
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_period'])) {

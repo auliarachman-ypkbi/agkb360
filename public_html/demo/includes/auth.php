@@ -58,14 +58,22 @@ function currentUser(): ?array {
     return Database::fetchOne("SELECT * FROM users WHERE id = ?", [$_SESSION['user_id']]);
 }
 
-function isAdmin(): bool    { return isLoggedIn() && $_SESSION['user_role'] === 'admin'; }
+function isAdmin(): bool    { return isLoggedIn() && in_array($_SESSION['user_role'], ['superadmin','admin']); }
 function isLeader(): bool   { return isLoggedIn() && in_array($_SESSION['user_role'], ['admin','leader','foundation']); }
 function isTeacher(): bool  { return isLoggedIn() && $_SESSION['user_role'] === 'teacher'; }
 function isStudent(): bool  { return isLoggedIn() && $_SESSION['user_role'] === 'student'; }
 function isFoundation(): bool { return isLoggedIn() && in_array($_SESSION['user_role'], ['admin','foundation']); }
 
 function canAccessAdmin(): bool {
-    return isLoggedIn() && in_array($_SESSION['user_role'], ['admin','foundation']);
+    return isLoggedIn() && in_array($_SESSION['user_role'], ['superadmin','admin','foundation']);
+}
+
+function isSuperAdmin(): bool {
+    return isLoggedIn() && $_SESSION['user_role'] === 'superadmin';
+}
+
+function isTester(): bool {
+    return isLoggedIn() && $_SESSION['user_role'] === 'tester';
 }
 
 function csrfToken(): string {

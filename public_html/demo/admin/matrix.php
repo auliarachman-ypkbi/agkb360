@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['admin','foundation']);
+requireRole(['superadmin','admin','foundation']);
 
 $tab = $_GET['tab'] ?? '';
 $evalTypes = Database::fetchAll("SELECT * FROM eval_types ORDER BY id");

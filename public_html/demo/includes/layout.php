@@ -27,7 +27,18 @@ function renderNav(): void {
     $base     = APP_URL;
 
     $adminMenu = '';
-    if (in_array($role, ['admin','foundation'])) {
+    // Tester banner
+    $testerBanner = $role === 'tester' ? "
+<div style='background:#7c3aed;color:white;text-align:center;padding:6px;font-size:12px;font-weight:600;letter-spacing:.05em'>
+  <i class='bi bi-bug-fill me-1'></i>MODE TESTER — Aktivitas tidak dihitung dalam evaluasi
+</div>" : '';
+
+    // Superadmin extra menu
+    $superAdminExtra = $role === 'superadmin' ? "
+        <li><hr class='dropdown-divider'></li>
+        <li><a class='dropdown-item text-warning fw-semibold' href='{$base}/admin/hard_reset.php'><i class='bi bi-radiation me-2'></i>Hard Reset</a></li>" : '';
+
+    if (in_array($role, ['superadmin','admin','foundation'])) {
         $adminMenu = "
         <li class='nav-item dropdown'>
           <a class='nav-link dropdown-toggle' href='#' data-bs-toggle='dropdown'>
@@ -44,14 +55,16 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-2'></i>Laporan</a></li>
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/foundation.php'><i class='bi bi-diagram-3 me-2'></i>Domain / Standard / Trait</a></li>
-            <li><a class='dropdown-item' href='{$base}/admin/questions.php'><i class='bi bi-clipboard-check me-2'></i>Editor Kuesioner</a></li>
+            <li><a class='dropdown-item' href='{$base}/admin/questions_master.php'><i class='bi bi-clipboard-check me-2'></i>Master Pertanyaan</a></li>
+            <li><a class='dropdown-item' href='{$base}/admin/questions_packages.php'><i class='bi bi-folder me-2'></i>Paket Pertanyaan</a></li>
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/settings.php'><i class='bi bi-sliders me-2'></i>Pengaturan</a></li>
+            {$superAdminExtra}
           </ul>
         </li>";
     }
 
-    echo "
+    echo $testerBanner . "
 <nav class='navbar navbar-expand-lg navbar-dark ktb-navbar'>
   <div class='container-fluid'>
     <a class='navbar-brand d-flex align-items-center gap-2' href='{$base}/dashboard/'>
@@ -70,12 +83,14 @@ function renderNav(): void {
     <div class='collapse navbar-collapse' id='navMain'>
       <ul class='navbar-nav me-auto'>
         <li class='nav-item'><a class='nav-link' href='{$base}/dashboard/'><i class='bi bi-house me-1'></i>Dashboard</a></li>
-        " . (in_array($role, ['admin','foundation','leader']) ? "
+        " . (in_array($role, ['superadmin','admin','foundation','leader']) ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-1'></i>Laporan</a></li>
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/progress.php'><i class='bi bi-activity me-1'></i>Progress</a></li>
+        " : ($role === 'tester' ? "
+        <li class='nav-item'><a class='nav-link' href='{$base}/tester/'><i class='bi bi-eye me-1'></i>Preview Kuesioner</a></li>
         " : "
         <li class='nav-item'><a class='nav-link' href='{$base}/survey/'><i class='bi bi-clipboard-check me-1'></i>Kuesioner Saya</a></li>
-        ") . "
+        ")) . "
         {$adminMenu}
       </ul>
       <ul class='navbar-nav'>

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['admin','foundation']);
+requireRole(['superadmin','admin','foundation']);
 
 $tab    = $_GET['tab'] ?? 'classes';
 $action = $_POST['action'] ?? '';

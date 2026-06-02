@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['admin','foundation']);
+requireRole(['superadmin','admin','foundation']);
 
 $pid = (int)($_GET['id'] ?? 0);
 $period = Database::fetchOne("SELECT * FROM eval_periods WHERE id=?", [$pid]);

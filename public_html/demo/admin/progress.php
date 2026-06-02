@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['admin','foundation','leader']);
+requireRole(['superadmin','admin','foundation','leader']);
 
 $period = getPeriod();
 if (!$period) {

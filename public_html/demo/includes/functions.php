@@ -46,12 +46,14 @@ function showFlash(): string {
 // ── ROLE & RESPONDENT LABELS ──────────────────────────────────
 function roleLabel(string $role): string {
     return match($role) {
+        'superadmin' => 'Super Administrator',
         'admin'      => 'Administrator',
-        'foundation' => 'Pengurus Yayasan (YPKBI/YPKTB)',
+        'foundation' => 'Pengurus Yayasan',
         'leader'     => 'Pimpinan Sekolah',
         'teacher'    => 'Guru',
         'student'    => 'Siswa',
         'parent'     => 'Orang Tua / Wali',
+        'tester'     => 'Tester',
         default      => ucfirst($role),
     };
 }
