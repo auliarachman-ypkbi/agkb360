@@ -19,3 +19,4 @@ build/
 .composer/
 ktb_mysql_data/
 .git/
+docker/nginx/default.conf
