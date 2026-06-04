@@ -184,12 +184,13 @@ ob_start(); ?>
 .dcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
 .dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#1e293b;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center}
 .dcard-body{padding:14px}
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .bar-row:last-child{margin-bottom:0}
-.bar-lbl{font-size:11px;color:#64748b;width:90px;flex-shrink:0}
-.bar-track{flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.bar-lbl{font-size:11px;color:#64748b;width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{width:120px;flex-shrink:0;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .6s}
-.bar-val{font-size:11px;font-weight:500;color:#1e293b;width:36px;text-align:right}
+.bar-val{font-size:11px;font-weight:500;color:#1e293b;width:32px;text-align:right;flex-shrink:0}
+.bar-chip{font-size:10px;font-weight:500;padding:1px 7px;border-radius:20px;width:80px;text-align:center;flex-shrink:0;white-space:nowrap}
 .self-banner{background:#f5f3ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .accordion-domain{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:8px}
 .accordion-hdr{padding:10px 14px;background:#f8fafc;cursor:pointer;font-size:13px;font-weight:500;color:#1e293b;display:flex;justify-content:space-between;align-items:center;border:none;width:100%;text-align:left}
@@ -363,7 +364,7 @@ ob_start(); ?>
             <div class="bar-fill" style="width:<?= round(($t['avg']/4)*100) ?>%;background:#533AB7"></div>
           </div>
           <div class="bar-val"><?= number_format($t['avg'],2) ?></div>
-          <span class="chip" style="background:<?= $tl['bg'] ?>;color:<?= $tl['color'] ?>;border:1px solid <?= $tl['color'] ?>;font-size:10px;white-space:nowrap"><?= $tl['label_id'] ?></span>
+          <span class="bar-chip" style="background:<?= $tl['bg'] ?>;color:<?= $tl['color'] ?>;border:1px solid <?= $tl['color'] ?>"><?= $tl['label_id'] ?></span>
         </div>
         <?php endforeach; ?>
         <?php else: ?>
@@ -385,7 +386,7 @@ ob_start(); ?>
             <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#854F0B"></div>
           </div>
           <div class="bar-val"><?= number_format($d['avg'],2) ?></div>
-          <span class="chip" style="background:<?= $dl['bg'] ?>;color:<?= $dl['color'] ?>;border:1px solid <?= $dl['color'] ?>;font-size:10px;white-space:nowrap"><?= $dl['label_id'] ?></span>
+          <span class="bar-chip" style="background:<?= $dl['bg'] ?>;color:<?= $dl['color'] ?>;border:1px solid <?= $dl['color'] ?>"><?= $dl['label_id'] ?></span>
         </div>
         <?php endforeach; ?>
         <?php else: ?>
@@ -509,7 +510,7 @@ ob_start(); ?>
             <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#7c3aed"></div>
           </div>
           <div class="bar-val"><?= number_format($d['avg'],2) ?></div>
-          <span class="chip" style="background:<?= $sdl['bg'] ?>;color:<?= $sdl['color'] ?>;border:1px solid <?= $sdl['color'] ?>;font-size:10px;white-space:nowrap"><?= $sdl['label_id'] ?></span>
+          <span class="bar-chip" style="background:<?= $sdl['bg'] ?>;color:<?= $sdl['color'] ?>;border:1px solid <?= $sdl['color'] ?>"><?= $sdl['label_id'] ?></span>
         </div>
         <?php endforeach; ?>
       </div>
