@@ -1,0 +1,41 @@
+Options -Indexes
+Options -MultiViews
+
+# ── Rewrite Engine ─────────────────────────────────────────────
+RewriteEngine On
+
+# Force trailing slash on directories
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_URI} !/$
+RewriteRule ^(.+)$ /$1/ [R=301,L]
+
+# Block direct access to sensitive dirs
+RewriteRule ^config/ - [F,L]
+RewriteRule ^includes/ - [F,L]
+RewriteRule ^sql/ - [F,L]
+
+# ── Security Headers ───────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ── PHP Settings ───────────────────────────────────────────────
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_value upload_max_filesize 20M
+    php_value post_max_size 20M
+    php_value max_execution_time 120
+    php_value session.cookie_httponly 1
+</IfModule>
+
+# ── Cache static assets ────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+</IfModule>
