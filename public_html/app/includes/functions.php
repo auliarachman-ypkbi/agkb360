@@ -64,10 +64,11 @@ function respondentLabel(string $type): string {
         'leader'        => 'Pimpinan Sekolah',
         'peer'          => 'Rekan Sejawat',
         'guru'          => 'Guru',
+        'teacher'       => 'Rekan Sejawat (Guru)',
         'ortu'          => 'Komite Orang Tua',
         'siswa'         => 'OSIS / Siswa',
         'student_class' => 'Murid yang Diajar',
-        'self'          => 'Self Evaluation',
+        'self'          => 'Refleksi Mandiri',
         default         => ucfirst($type),
     };
 }

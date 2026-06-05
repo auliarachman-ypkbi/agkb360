@@ -18,28 +18,22 @@ foreach ($evalTypes as $et) {
 }
 
 // ── KOLOM RESPONDEN DARI DB (dinamis) ─────────────────────────
-// Baca dari tabel groups is_fixed=1, ordered by order_num
-$fixedGroups = Database::fetchAll("
-    SELECT id, name, respondent_type, order_num
-    FROM `groups`
-    WHERE is_fixed = 1 AND respondent_type IS NOT NULL
-    ORDER BY order_num
-");
-
-// Peta: respondent_type → label
+// Ambil distinct respondent_type dari standard_respondent_mapping
+// sesuai eval_type yang aktif, lalu label dari fungsi respondentLabel()
 $allRespondentTypes = [];
-foreach ($fixedGroups as $g) {
-    $allRespondentTypes[$g['respondent_type']] = $g['name'];
+if ($currentEt) {
+    $rtRows = Database::fetchAll("
+        SELECT DISTINCT srm.respondent_type
+        FROM standard_respondent_mapping srm
+        JOIN standards s ON s.id = srm.standard_id
+        JOIN domains d ON d.id = s.domain_id
+        WHERE d.eval_type_id = ? AND srm.period_id IS NULL
+        ORDER BY srm.respondent_type
+    ", [$currentEt['id']]);
+    foreach ($rtRows as $r) {
+        $allRespondentTypes[$r['respondent_type']] = respondentLabel($r['respondent_type']);
+    }
 }
-
-// Peta peer: eval_type_code → respondent_type yang merupakan peer
-// Guru (guru) adalah peer untuk eval_type 'teacher'
-// Leader (leader) adalah peer untuk eval_type 'leader'
-// Peer (peer) = alias lama untuk rekan sejawat
-$peerMap = [
-    'leader'  => ['leader', 'peer'],
-    'teacher' => ['guru',   'peer'],
-];
 
 // ── HANDLE SAVE ───────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_matrix'])) {
