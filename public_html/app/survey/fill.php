@@ -13,7 +13,8 @@ $viewMode = !empty($_GET['view']);
 
 $assignment = Database::fetchOne("
     SELECT a.*, u_ee.name as evaluatee_name, u_ee.role as evaluatee_role,
-           p.name as pkg_name, p.code as pkg_code, p.is_self_reflection, p.respondent_type
+           p.name as pkg_name, p.code as pkg_code, p.is_self_reflection,
+           p.respondent_type, p.question_lang
     FROM assignments a
     JOIN users u_ee ON a.evaluatee_id = u_ee.id
     JOIN packages p ON a.package_id = p.id
@@ -24,31 +25,10 @@ if (!$assignment || ($assignment['evaluator_id'] != $user['id'] && !canAccessAdm
     http_response_code(403); die('Akses ditolak.');
 }
 
-// ── GUARD: cek periode masih aktif ───────────────────────────
-$period = Database::fetchOne(
-    "SELECT status FROM eval_periods WHERE id = ?",
-    [$assignment['period_id']]
-);
-if ($period && $period['status'] === 'closed' && !$viewMode) {
-    ob_start(); ?>
-    <div class="card">
-      <div class="card-body text-center py-5">
-        <i class="bi bi-archive display-4 mb-3 d-block text-muted"></i>
-        <h5 class="fw-bold text-navy mb-2">Periode Evaluasi Sudah Ditutup</h5>
-        <p class="text-muted">
-          Kuesioner ini tidak bisa diisi lagi karena periode evaluasi sudah berakhir.<br>
-          Data yang sebelumnya belum di-submit tidak dihitung.
-        </p>
-        <a href="<?= APP_URL ?>/survey/" class="btn btn-outline-secondary mt-2">
-          <i class="bi bi-arrow-left me-1"></i>Kembali ke Daftar Kuesioner
-        </a>
-      </div>
-    </div>
-    <?php
-    $content = ob_get_clean();
-    pageWrapper('Periode Sudah Ditutup', $content);
-    exit;
-}
+// Tentukan mode bahasa dari paket (default: both)
+$questionLang = $assignment['question_lang'] ?? 'both';
+$showId = in_array($questionLang, ['both', 'id']);
+$showEn = in_array($questionLang, ['both', 'en']);
 
 // ── PERUBAHAN UTAMA: pakai COALESCE untuk teks override ───────
 // Jika package_questions punya override → pakai override
@@ -198,14 +178,17 @@ ob_start();
             <?php endif; ?>
           </div>
 
-          <!-- Pertanyaan ID — dengan COALESCE sudah otomatis pakai override jika ada -->
+          <?php if ($showId && !empty($q['question_id_text'])): ?>
           <p class="fw-semibold mb-3" style="line-height:1.6">
             <?= str_replace('[Nama]',
                 '<strong class="text-navy">' . h($assignment['evaluatee_name']) . '</strong>',
                 h($q['question_id_text'])) ?>
           </p>
-          <?php if (!empty($q['question_en_text'])): ?>
-          <p class="text-muted mb-3" style="line-height:1.6;font-style:italic;font-size:.9rem">
+          <?php endif; ?>
+
+          <?php if ($showEn && !empty($q['question_en_text'])): ?>
+          <p class="<?= $showId ? 'text-muted' : 'fw-semibold' ?> mb-3"
+             style="line-height:1.6;<?= $showId ? 'font-style:italic;font-size:.9rem' : '' ?>">
             <?= str_replace('[Name]',
                 '<strong>' . h($assignment['evaluatee_name']) . '</strong>',
                 h($q['question_en_text'])) ?>
@@ -223,9 +206,16 @@ ob_start();
               <?= $viewMode ? 'disabled' : '' ?>>
             <label for="g<?= $q['id'] ?>_<?= $g ?>">
               <span class="badge bg-<?= $gradeColors[$g] ?> me-2"><?= $g ?></span>
+              <?php if ($showId): ?>
               <strong><?= h($desc['label_id'] ?? "Grade $g") ?></strong>
-              <?php if ($desc): ?>
+              <?php if ($desc && !empty($desc['description_id'])): ?>
               <br><small class="text-muted ms-4"><?= h($desc['description_id']) ?></small>
+              <?php endif; ?>
+              <?php else: ?>
+              <strong><?= h($desc['label_en'] ?? "Grade $g") ?></strong>
+              <?php if ($desc && !empty($desc['description_en'])): ?>
+              <br><small class="text-muted ms-4"><?= h($desc['description_en']) ?></small>
+              <?php endif; ?>
               <?php endif; ?>
             </label>
           </div>
@@ -233,14 +223,16 @@ ob_start();
         </div>
 
         <div class="col-md-4">
-          <label class="form-label small text-muted fw-semibold">Catatan (opsional):</label>
+          <label class="form-label small text-muted fw-semibold">
+            <?= $showId ? 'Catatan (opsional):' : 'Notes (optional):' ?>
+          </label>
           <textarea name="notes[<?= $q['id'] ?>]" class="form-control form-control-sm" rows="4"
-            placeholder="Contoh atau bukti pendukung..."
+            placeholder="<?= $showId ? 'Contoh atau bukti pendukung...' : 'Supporting evidence or examples...' ?>"
             <?= $viewMode ? 'readonly' : '' ?>><?= h($saved['notes'] ?? '') ?></textarea>
           <?php if ($saved): ?>
           <div class="mt-1">
             <span class="badge bg-success-subtle text-success border border-success-subtle">
-              ✓ Dijawab
+              ✓ <?= $showId ? 'Dijawab' : 'Answered' ?>
             </span>
           </div>
           <?php endif; ?>
@@ -270,16 +262,20 @@ ob_start();
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          <?php if ($showId && !empty($stdData['elaboration_id'])): ?>
           <p style="line-height:1.8"><?= nl2br(h($stdData['elaboration_id'])) ?></p>
-          <?php if ($stdData['elaboration_en']): ?>
-          <hr>
-          <p class="text-muted" style="line-height:1.8;font-style:italic">
+          <?php endif; ?>
+          <?php if ($showEn && !empty($stdData['elaboration_en'])): ?>
+          <?php if ($showId): ?><hr><?php endif; ?>
+          <p class="<?= $showId ? 'text-muted' : '' ?>" style="line-height:1.8;<?= $showId ? 'font-style:italic' : '' ?>">
             <?= nl2br(h($stdData['elaboration_en'])) ?>
           </p>
           <?php endif; ?>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <?= $showId ? 'Tutup' : 'Close' ?>
+          </button>
         </div>
       </div>
     </div>
@@ -293,26 +289,36 @@ ob_start();
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
         <div class="text-muted small">
           <i class="bi bi-info-circle me-1"></i>
-          <?= $answeredCount ?>/<?= $totalQ ?> pertanyaan terjawab.
+          <?= $answeredCount ?>/<?= $totalQ ?>
+          <?= $showId ? 'pertanyaan terjawab.' : 'questions answered.' ?>
           <?php if ($answeredCount < $totalQ): ?>
-          Masih ada <?= $totalQ - $answeredCount ?> pertanyaan yang belum dijawab.
+          <?= $showId
+              ? 'Masih ada ' . ($totalQ - $answeredCount) . ' pertanyaan yang belum dijawab.'
+              : ($totalQ - $answeredCount) . ' question(s) remaining.' ?>
           <?php else: ?>
-          <strong class="text-success">Semua pertanyaan sudah dijawab!</strong>
+          <strong class="text-success">
+            <?= $showId ? 'Semua pertanyaan sudah dijawab!' : 'All questions answered!' ?>
+          </strong>
           <?php endif; ?>
         </div>
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-outline-secondary">
-            <i class="bi bi-save me-1"></i>Simpan Progres
+            <i class="bi bi-save me-1"></i>
+            <?= $showId ? 'Simpan Progres' : 'Save Progress' ?>
           </button>
           <?php if ($answeredCount >= $totalQ): ?>
           <button type="submit" name="submit_final" value="1" class="btn btn-navy"
-            onclick="return confirm('Yakin ingin menyelesaikan? Jawaban tidak dapat diubah setelah dikumpulkan.')">
-            <i class="bi bi-check-circle me-1"></i>Selesai & Kumpulkan
+            onclick="return confirm('<?= $showId
+              ? 'Yakin ingin menyelesaikan? Jawaban tidak dapat diubah setelah dikumpulkan.'
+              : 'Are you sure? Answers cannot be changed after submission.' ?>')">
+            <i class="bi bi-check-circle me-1"></i>
+            <?= $showId ? 'Selesai & Kumpulkan' : 'Submit' ?>
           </button>
           <?php else: ?>
           <button type="button" class="btn btn-secondary" disabled
-            title="Jawab semua pertanyaan terlebih dahulu">
-            <i class="bi bi-lock me-1"></i>Selesai & Kumpulkan
+            title="<?= $showId ? 'Jawab semua pertanyaan terlebih dahulu' : 'Answer all questions first' ?>">
+            <i class="bi bi-lock me-1"></i>
+            <?= $showId ? 'Selesai & Kumpulkan' : 'Submit' ?>
           </button>
           <?php endif; ?>
         </div>
@@ -322,7 +328,8 @@ ob_start();
   <?php else: ?>
   <div class="text-center mt-3">
     <a href="<?= APP_URL ?>/survey/" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left me-1"></i>Kembali
+      <i class="bi bi-arrow-left me-1"></i>
+      <?= $showId ? 'Kembali' : 'Back' ?>
     </a>
   </div>
   <?php endif; ?>

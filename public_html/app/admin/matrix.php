@@ -6,7 +6,7 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['superadmin','admin','foundation']);
+requireRole(['admin','foundation','superadmin']);
 
 $tab = $_GET['tab'] ?? '';
 $evalTypes = Database::fetchAll("SELECT * FROM eval_types ORDER BY id");
@@ -17,31 +17,23 @@ foreach ($evalTypes as $et) {
     if ($et['code'] === $tab) { $currentEt = $et; break; }
 }
 
-// ── KOLOM RESPONDEN DARI DB (dinamis) ─────────────────────────
-// Ambil distinct respondent_type dari standard_respondent_mapping
-// sesuai eval_type yang aktif, lalu label dari fungsi respondentLabel()
-$allRespondentTypes = [];
-if ($currentEt) {
-    $rtRows = Database::fetchAll("
-        SELECT DISTINCT srm.respondent_type
-        FROM standard_respondent_mapping srm
-        JOIN standards s ON s.id = srm.standard_id
-        JOIN domains d ON d.id = s.domain_id
-        WHERE d.eval_type_id = ? AND srm.period_id IS NULL
-        ORDER BY srm.respondent_type
-    ", [$currentEt['id']]);
-    foreach ($rtRows as $r) {
-        $allRespondentTypes[$r['respondent_type']] = respondentLabel($r['respondent_type']);
-    }
-}
+// Semua respondent types — muncul di semua tipe evaluasi
+$allRespondentTypes = [
+    'foundation' => 'Yayasan (YPKBI/YPKTB)',
+    'leader'     => 'Pimpinan Sekolah / Peer',
+    'teacher'    => 'Guru',
+    'parent'     => 'Komite Orang Tua',
+    'student'    => 'Siswa / OSIS',
+];
 
 // ── HANDLE SAVE ───────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_matrix'])) {
-    $etId    = (int)$_POST['eval_type_id'];
-    $etCode  = $_POST['eval_type_code'] ?? '';
-    $checked = $_POST['mapping'] ?? [];
+    $etId      = (int)$_POST['eval_type_id'];
+    $etCode    = $_POST['eval_type_code'] ?? '';
+    $checked   = $_POST['mapping'] ?? [];
+    $respTypes = $allRespondentTypes;
 
-    // Ambil semua standard_id untuk eval_type ini
+    // Get all standards for this eval type
     $standards = Database::fetchAll("
         SELECT s.id FROM standards s
         JOIN domains d ON s.domain_id = d.id
@@ -49,38 +41,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_matrix'])) {
     ", [$etId]);
     $standardIds = array_column($standards, 'id');
 
-    // Hapus mapping lama (period_id NULL = template global)
+    // Clear existing mappings for this eval type
     if (!empty($standardIds)) {
-        $ph = implode(',', array_fill(0, count($standardIds), '?'));
+        $placeholders = implode(',', array_fill(0, count($standardIds), '?'));
         Database::query(
-            "DELETE FROM standard_respondent_mapping
-             WHERE standard_id IN ($ph) AND period_id IS NULL",
+            "DELETE FROM standard_respondent_mapping WHERE standard_id IN ($placeholders)",
             $standardIds
         );
     }
 
-    // Insert mapping baru
+    // Insert new mappings
     $inserted = 0;
     foreach ($checked as $stdId => $respArr) {
         foreach ($respArr as $respType => $val) {
-            if (!$val || !isset($allRespondentTypes[$respType])) continue;
-            // Cek apakah ini peer
-            $actualRespType = $respType;
-            if (in_array($respType, $peerMap[$etCode] ?? [])) {
-                $actualRespType = 'peer';
+            if ($val && isset($respTypes[$respType])) {
+                Database::insert('standard_respondent_mapping', [
+                    'standard_id'     => (int)$stdId,
+                    'respondent_type' => $respType,
+                    'is_active'       => 1,
+                ]);
+                $inserted++;
             }
-            Database::insert('standard_respondent_mapping', [
-                'standard_id'     => (int)$stdId,
-                'respondent_type' => $actualRespType,
-                'period_id'       => null,
-                'is_active'       => 1,
-            ]);
-            $inserted++;
         }
     }
 
-    // Auto-generate packages
-    _generatePackages($etId, $etCode, $allRespondentTypes, $peerMap[$etCode] ?? [], $checked, $standardIds);
+    // Auto-generate package_questions dari mapping baru
+    _generatePackages($etId, $etCode, $respTypes, $checked, $standardIds);
 
     flash("Matriks disimpan — $inserted mapping aktif. Paket otomatis diperbarui.", 'success');
     header('Location: ' . APP_URL . '/admin/matrix.php?tab=' . urlencode($tab));
@@ -88,82 +74,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_matrix'])) {
 }
 
 // ── AUTO-GENERATE PACKAGES ────────────────────────────────────
-function _generatePackages(int $etId, string $etCode, array $respTypes, array $peerTypes, array $checked, array $standardIds): void {
+function _generatePackages(int $etId, string $etCode, array $respTypes, array $checked, array $standardIds): void {
     foreach ($respTypes as $respType => $respLabel) {
-        // Tentukan actual respondent_type (peer atau tidak)
-        $actualType = in_array($respType, $peerTypes) ? 'peer' : $respType;
-
-        // Cek apakah ada standard yang dicentang untuk responden ini
-        $hasChecked = false;
-        foreach ($checked as $stdId => $respArr) {
-            if (!empty($respArr[$respType])) { $hasChecked = true; break; }
-        }
-        if (!$hasChecked) continue;
-
-        // Cari atau buat paket
+        // Find or create package for this (eval_type, respondent_type)
         $pkg = Database::fetchOne(
-            "SELECT * FROM packages
-             WHERE eval_type_id=? AND respondent_type=? AND is_self_reflection=0 AND period_id IS NULL",
-            [$etId, $actualType]
+            "SELECT * FROM packages WHERE eval_type_id=? AND respondent_type=? AND is_self_reflection=0",
+            [$etId, $respType]
         );
 
         if (!$pkg) {
-            $etLabel  = $etCode === 'leader' ? 'Pimpinan' : 'Guru';
-            $pkgCode  = strtoupper(substr($etCode,0,1)) . '-' . strtoupper(substr($actualType,0,3));
-            $pkgName  = "Evaluasi $etLabel — Oleh $respLabel";
+            // Create new package
+            $pkgCode = strtoupper(substr($etCode, 0, 1)) . '-' . strtoupper(substr($respType, 0, 3));
+            $pkgName = ($etCode === 'leader' ? 'Pimpinan' : 'Guru') . ' — Dinilai oleh ' . $respLabel;
             $pkgId = Database::insert('packages', [
-                'code'              => $pkgCode . '_' . uniqid(),
-                'name'              => $pkgName,
-                'eval_type_id'      => $etId,
-                'respondent_type'   => $actualType,
-                'is_self_reflection'=> 0,
-                'period_id'         => null,
+                'code'             => $pkgCode . '_' . time(),
+                'name'             => $pkgName,
+                'eval_type_id'     => $etId,
+                'respondent_type'  => $respType,
+                'is_self_reflection' => 0,
+                'question_lang'    => 'both',
             ]);
-            Database::insert('package_weights', [
-                'package_id' => $pkgId,
-                'weight'     => 1.0,
-                'notes'      => 'Auto-generated',
-            ]);
+            // Add default weight
+            Database::insert('package_weights', ['package_id' => $pkgId, 'weight' => 1.0, 'notes' => 'Auto-generated']);
         } else {
             $pkgId = $pkg['id'];
         }
 
-        // Hapus package_questions lama untuk paket ini
+        // Clear existing package_questions for this package
+        // (only questions from standards of this eval_type)
         if (!empty($standardIds)) {
-            $ph = implode(',', array_fill(0, count($standardIds), '?'));
-            Database::query(
-                "DELETE pq FROM package_questions pq
-                 JOIN questions q ON pq.question_id = q.id
-                 WHERE pq.package_id = ? AND q.standard_id IN ($ph)",
-                array_merge([$pkgId], $standardIds)
-            );
+            $placeholders = implode(',', array_fill(0, count($standardIds), '?'));
+            Database::query("
+                DELETE pq FROM package_questions pq
+                JOIN questions q ON pq.question_id = q.id
+                WHERE pq.package_id = ? AND q.standard_id IN ($placeholders)
+            ", array_merge([$pkgId], $standardIds));
         }
 
-        // Insert package_questions
+        // Insert package_questions for checked standards
         $orderNum = 1;
         foreach ($checked as $stdId => $respArr) {
-            if (empty($respArr[$respType])) continue;
+            if (!isset($respArr[$respType]) || !$respArr[$respType]) continue;
 
-            // Pastikan question ada
-            $q = Database::fetchOne("SELECT id FROM questions WHERE standard_id=?", [(int)$stdId]);
+            // Ensure question exists for this standard
+            $q = Database::fetchOne(
+                "SELECT id FROM questions WHERE standard_id=?",
+                [(int)$stdId]
+            );
             if (!$q) {
+                // Auto-create blank question
                 $qId = Database::insert('questions', [
                     'standard_id'      => (int)$stdId,
                     'question_id_text' => '',
                     'question_en_text' => '',
                 ]);
-                foreach ([1=>['Tidak Terlihat','Not Evident'],2=>['Berkembang','Emerging'],
-                           3=>['Cakap','Proficient'],4=>['Teladan','Exemplary']] as $g=>[$lid,$len]) {
+                // Auto-create blank grade descriptors
+                $gradeDefaults = [
+                    1 => ['Tidak Terlihat', 'Not Evident'],
+                    2 => ['Berkembang',     'Emerging'],
+                    3 => ['Cakap',          'Proficient'],
+                    4 => ['Teladan',        'Exemplary'],
+                ];
+                foreach ($gradeDefaults as $g => [$lid, $len]) {
                     Database::insert('grade_descriptors', [
-                        'question_id'=>$qId,'grade'=>$g,
-                        'label_id'=>$lid,'label_en'=>$len,
-                        'description_id'=>'','description_en'=>'',
+                        'question_id'    => $qId,
+                        'grade'          => $g,
+                        'label_id'       => $lid,
+                        'label_en'       => $len,
+                        'description_id' => '',
+                        'description_en' => '',
                     ]);
                 }
             } else {
                 $qId = $q['id'];
             }
 
+            // Insert into package_questions
             $exists = Database::fetchOne(
                 "SELECT id FROM package_questions WHERE package_id=? AND question_id=?",
                 [$pkgId, $qId]
@@ -181,32 +167,26 @@ function _generatePackages(int $etId, string $etCode, array $respTypes, array $p
 }
 
 // ── FETCH DATA ────────────────────────────────────────────────
-$existingMap = [];
+$matrixData  = []; // [standard_id][respondent_type] = bool
 $domains     = [];
+$existingMap = [];
 
 if ($currentEt) {
-    // Mapping yang ada (period_id NULL = template global)
+    // Get existing mappings
     $mappings = Database::fetchAll("
         SELECT srm.standard_id, srm.respondent_type
         FROM standard_respondent_mapping srm
         JOIN standards s ON srm.standard_id = s.id
         JOIN domains d ON s.domain_id = d.id
-        WHERE d.eval_type_id = ? AND srm.is_active = 1 AND srm.period_id IS NULL
+        WHERE d.eval_type_id = ? AND srm.is_active = 1
     ", [$currentEt['id']]);
-
-    // Konversi peer → kolom yang sesuai
-    $peerCols = $peerMap[$tab] ?? [];
     foreach ($mappings as $m) {
-        $displayType = $m['respondent_type'];
-        if ($m['respondent_type'] === 'peer' && !empty($peerCols)) {
-            $displayType = $peerCols[0]; // pakai kolom pertama dari peerTypes
-        }
-        $existingMap[$m['standard_id']][$displayType] = true;
+        $existingMap[$m['standard_id']][$m['respondent_type']] = true;
     }
 
-    // Standards grouped by domain
+    // Get standards grouped by domain
     $rows = Database::fetchAll("
-        SELECT s.id as s_id, s.name as s_name,
+        SELECT s.id as s_id, s.name as s_name, s.order_num as s_order,
                d.id as d_id, d.name as d_name, d.code as d_code, d.order_num as d_order
         FROM standards s
         JOIN domains d ON s.domain_id = d.id
@@ -223,13 +203,20 @@ if ($currentEt) {
     }
 }
 
-$currentPeerTypes = $peerMap[$tab] ?? [];
+$currentRespTypes = $allRespondentTypes;
+
+// Label & icon untuk dropdown bahasa
+$langOptions = [
+    'both' => ['label' => 'ID + EN', 'icon' => '🌐'],
+    'id'   => ['label' => 'Indonesia', 'icon' => '🇮🇩'],
+    'en'   => ['label' => 'English',   'icon' => '🇬🇧'],
+];
 
 ob_start(); ?>
 
 <?= showFlash() ?>
 
-<!-- Tabs per eval type -->
+<!-- Tabs -->
 <ul class="nav nav-tabs mb-4">
   <?php foreach ($evalTypes as $et): ?>
   <li class="nav-item">
@@ -255,9 +242,9 @@ ob_start(); ?>
 
 <div class="alert alert-light border small mb-3">
   <i class="bi bi-info-circle me-1 text-primary"></i>
-  <strong>Cara pakai:</strong> Centang kotak di baris standar dan kolom responden.
-  Kolom yang sama dengan tipe evaluasi otomatis menjadi <strong>Peer-review</strong>.
-  Klik <strong>Simpan & Generate Paket</strong> untuk memperbarui paket.
+  <strong>Cara pakai:</strong> Centang kotak di baris standar dan kolom responden untuk menentukan
+  siapa yang menilai standar tersebut. Klik <strong>Simpan & Generate Paket</strong> untuk
+  memperbarui paket secara otomatis.
 </div>
 
 <form method="POST">
@@ -285,18 +272,13 @@ ob_start(); ?>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-bordered mb-0" id="matrixTable">
+        <table class="table table-bordered mb-0" style="min-width:700px">
           <thead>
             <tr style="background:var(--ktb-navy);color:white">
-              <th style="min-width:260px;vertical-align:middle">Standard</th>
-              <?php foreach ($allRespondentTypes as $rType => $rLabel):
-                $isPeer = in_array($rType, $currentPeerTypes);
-              ?>
-              <th class="text-center" style="min-width:100px;vertical-align:middle;font-size:.78rem">
+              <th style="min-width:280px;vertical-align:middle">Standard</th>
+              <?php foreach ($currentRespTypes as $rType => $rLabel): ?>
+              <th class="text-center" style="min-width:110px;vertical-align:middle;font-size:.8rem">
                 <?= h($rLabel) ?>
-                <?php if ($isPeer): ?>
-                <br><span class="badge bg-warning text-dark" style="font-size:.6rem">Peer-review</span>
-                <?php endif; ?>
               </th>
               <?php endforeach; ?>
             </tr>
@@ -304,9 +286,9 @@ ob_start(); ?>
           <tbody>
             <?php foreach ($domains as $did => $domain): ?>
 
-            <!-- Domain header row -->
+            <!-- Domain row -->
             <tr style="background:#eef1fa">
-              <td colspan="<?= count($allRespondentTypes)+1 ?>" class="py-2 px-3">
+              <td colspan="<?= count($currentRespTypes) + 1 ?>" class="py-2 px-3">
                 <span class="badge me-2" style="background:var(--ktb-navy)">
                   <?= h($domain['code']??'—') ?>
                 </span>
@@ -314,10 +296,13 @@ ob_start(); ?>
               </td>
             </tr>
 
+            <!-- Standard rows -->
             <?php foreach ($domain['standards'] as $sid => $sName): ?>
             <tr class="standard-row">
-              <td class="ps-4 small" style="vertical-align:middle"><?= h($sName) ?></td>
-              <?php foreach ($allRespondentTypes as $rType => $rLabel): ?>
+              <td class="ps-4 small" style="vertical-align:middle">
+                <?= h($sName) ?>
+              </td>
+              <?php foreach ($currentRespTypes as $rType => $rLabel): ?>
               <td class="text-center" style="vertical-align:middle">
                 <div class="form-check d-flex justify-content-center mb-0">
                   <input type="checkbox"
@@ -348,43 +333,67 @@ ob_start(); ?>
   </div>
 </form>
 
-<!-- Preview paket yang sudah ada -->
+<!-- PREVIEW PAKET YANG SUDAH ADA -->
 <?php
 $existingPkgs = Database::fetchAll("
     SELECT p.*, COUNT(pq.id) as q_count
     FROM packages p
     LEFT JOIN package_questions pq ON pq.package_id = p.id
-    WHERE p.eval_type_id = ? AND p.is_self_reflection = 0 AND p.period_id IS NULL
+    WHERE p.eval_type_id = ? AND p.is_self_reflection = 0
     GROUP BY p.id
     ORDER BY p.id
 ", [$currentEt['id']]);
 ?>
 <?php if (!empty($existingPkgs)): ?>
 <div class="card mt-4">
-  <div class="card-header">
-    <i class="bi bi-boxes me-2"></i>Paket yang Terbentuk
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-boxes me-1"></i>
+    <span>Paket yang Terbentuk</span>
     <span class="badge bg-secondary ms-1"><?= count($existingPkgs) ?> paket</span>
+    <span class="ms-auto text-muted small">
+      <i class="bi bi-translate me-1"></i>
+      Kolom <strong>Bahasa</strong> menentukan tampilan pertanyaan pada kuesioner responden.
+    </span>
   </div>
   <div class="card-body p-0">
     <table class="table table-hover mb-0 small">
-      <thead><tr>
-        <th>Kode</th>
-        <th>Nama Paket</th>
-        <th>Responden</th>
-        <th class="text-center">Soal</th>
-        <th>Aksi</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>Nama Paket</th>
+          <th>Responden</th>
+          <th class="text-center">Jumlah Soal</th>
+          <th class="text-center">Bahasa Tampilan</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
       <tbody>
         <?php foreach ($existingPkgs as $pkg): ?>
+        <?php $currentLang = $pkg['question_lang'] ?? 'both'; ?>
         <tr>
           <td><span class="badge badge-navy"><?= h($pkg['code']) ?></span></td>
           <td><?= h($pkg['name']) ?></td>
           <td class="text-muted"><?= h(respondentLabel($pkg['respondent_type'])) ?></td>
           <td class="text-center"><?= $pkg['q_count'] ?></td>
+          <td class="text-center">
+            <div class="d-flex align-items-center justify-content-center gap-2">
+              <select class="form-select form-select-sm pkg-lang-select"
+                      data-pkg-id="<?= $pkg['id'] ?>"
+                      style="width:130px;font-size:.8rem">
+                <?php foreach ($langOptions as $val => $opt): ?>
+                <option value="<?= $val ?>" <?= $currentLang === $val ? 'selected' : '' ?>>
+                  <?= $opt['icon'] ?> <?= $opt['label'] ?>
+                </option>
+                <?php endforeach; ?>
+              </select>
+              <span class="pkg-lang-status" style="font-size:.75rem;min-width:16px"></span>
+            </div>
+          </td>
           <td>
-            <a href="<?= APP_URL ?>/admin/questions_packages.php?pkg=<?= $pkg['id'] ?>&et=<?= urlencode($tab) ?>"
-               class="btn btn-sm btn-outline-primary py-0 px-2">
-              <i class="bi bi-folder me-1"></i>Lihat Paket
+            <a href="<?= APP_URL ?>/admin/questions.php?tab=<?= urlencode($tab) ?>"
+               class="btn btn-sm btn-outline-primary py-0 px-2"
+               title="Edit pertanyaan">
+              <i class="bi bi-pencil" style="font-size:.8rem"></i>
             </a>
           </td>
         </tr>
@@ -403,18 +412,56 @@ document.addEventListener('DOMContentLoaded', () => {
   const countEl = document.getElementById('checkedCount');
 
   function updateCount() {
-    if (countEl) countEl.textContent = document.querySelectorAll('.matrix-cb:checked').length;
+    const n = document.querySelectorAll('.matrix-cb:checked').length;
+    if (countEl) countEl.textContent = n;
   }
   cbs.forEach(cb => cb.addEventListener('change', updateCount));
   updateCount();
 
+  // Check all / Uncheck all
   document.getElementById('btnCheckAll')?.addEventListener('click', () => {
-    cbs.forEach(cb => cb.checked = true); updateCount();
+    cbs.forEach(cb => cb.checked = true);
+    updateCount();
   });
   document.getElementById('btnUncheckAll')?.addEventListener('click', () => {
-    cbs.forEach(cb => cb.checked = false); updateCount();
+    cbs.forEach(cb => cb.checked = false);
+    updateCount();
   });
 
+  // Auto-save bahasa paket via AJAX
+  document.querySelectorAll('.pkg-lang-select').forEach(sel => {
+    sel.addEventListener('change', function () {
+      const pkgId  = this.dataset.pkgId;
+      const lang   = this.value;
+      const status = this.closest('div').querySelector('.pkg-lang-status');
+      status.textContent = '…';
+      status.style.color = '#888';
+
+      fetch('<?= APP_URL ?>/admin/set_pkg_lang.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'pkg_id=' + encodeURIComponent(pkgId) + '&lang=' + encodeURIComponent(lang)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          status.textContent = '✓';
+          status.style.color = '#198754';
+        } else {
+          status.textContent = '✗';
+          status.style.color = '#dc3545';
+        }
+        setTimeout(() => { status.textContent = ''; }, 2000);
+      })
+      .catch(() => {
+        status.textContent = '✗';
+        status.style.color = '#dc3545';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+      });
+    });
+  });
+
+  // Highlight row on hover
   document.querySelectorAll('.standard-row').forEach(row => {
     row.addEventListener('mouseenter', () => row.style.background = '#f0f7ff');
     row.addEventListener('mouseleave', () => row.style.background = '');

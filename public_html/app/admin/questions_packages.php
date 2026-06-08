@@ -26,13 +26,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . APP_URL . '/admin/questions_packages.php?pkg=' . $viewPkg . '&et=' . $filterEt);
         exit;
     }
+
+    if ($action === 'save_pkg_lang') {
+        $pkgId = (int)$_POST['pkg_id'];
+        $lang  = $_POST['question_lang'] ?? 'both';
+        if ($pkgId && in_array($lang, ['both','id','en'])) {
+            Database::update('packages', ['question_lang' => $lang], 'id=?', [$pkgId]);
+            flash('Pengaturan bahasa berhasil disimpan.', 'success');
+        }
+        header('Location: ' . APP_URL . '/admin/questions_packages.php?pkg=' . $pkgId . '&et=' . $filterEt);
+        exit;
+    }
 }
 
 // ── FETCH PACKAGES ────────────────────────────────────────────
 $evalTypes = Database::fetchAll("SELECT * FROM eval_types ORDER BY id");
 
-// Filter via PHP, bukan SQL injection risk
-$whereEt = $filterEt ? "AND et.code = " . "'" . addslashes($filterEt) . "'" : '';
 $allPackages = Database::fetchAll("
     SELECT p.*, et.name as et_name, et.code as et_code,
            MAX(pw.weight) as weight,
@@ -43,19 +52,19 @@ $allPackages = Database::fetchAll("
     LEFT JOIN package_questions pq ON pq.package_id = p.id
     WHERE p.period_id IS NULL AND p.is_self_reflection = 0
     GROUP BY p.id, p.code, p.name, p.eval_type_id, p.respondent_type,
-             p.description, p.is_self_reflection, et.name, et.code
+             p.description, p.is_self_reflection, p.question_lang, et.name, et.code
     ORDER BY et.id, p.id
 ");
 
 // Group by eval type
 $byEt = [];
 foreach ($allPackages as $pkg) {
-    $byEt[$pkg['et_code']]['name']     = $pkg['et_name'];
+    $byEt[$pkg['et_code']]['name']       = $pkg['et_name'];
     $byEt[$pkg['et_code']]['packages'][] = $pkg;
 }
 
 // ── VIEW DETAIL PAKET ─────────────────────────────────────────
-$pkgDetail = null;
+$pkgDetail    = null;
 $pkgQuestions = [];
 if ($viewPkg) {
     $pkgDetail = Database::fetchOne("
@@ -107,10 +116,21 @@ $respColors = [
     'self'          => ['bg'=>'#64748b','label'=>'Self Evaluation'],
 ];
 
+$langOptions = [
+    'both' => ['icon' => '🌐', 'label' => 'ID + EN',    'badge' => 'bg-secondary'],
+    'id'   => ['icon' => '🇮🇩', 'label' => 'Indonesia', 'badge' => 'bg-primary'],
+    'en'   => ['icon' => '🇬🇧', 'label' => 'English',   'badge' => 'bg-info text-dark'],
+];
+
 ob_start();
 
 // ── VIEW: DETAIL PAKET ────────────────────────────────────────
-if ($viewPkg && $pkgDetail): ?>
+if ($viewPkg && $pkgDetail):
+    $rc          = $respColors[$pkgDetail['respondent_type']] ?? ['bg'=>'#888','label'=>$pkgDetail['respondent_type']];
+    $currentLang = $pkgDetail['question_lang'] ?? 'both';
+    $lo          = $langOptions[$currentLang] ?? $langOptions['both'];
+    $totalSoal   = array_sum(array_map(fn($d) => count($d['items']), $pkgQuestions));
+?>
 
 <div class="mb-3">
   <a href="<?= APP_URL ?>/admin/questions_packages.php?et=<?= urlencode($filterEt) ?>"
@@ -121,23 +141,55 @@ if ($viewPkg && $pkgDetail): ?>
 
 <?= showFlash() ?>
 
+<!-- Header paket + setting bahasa -->
 <div class="card mb-3">
-  <div class="card-body py-3 d-flex align-items-center gap-3">
-    <?php
-    $rc = $respColors[$pkgDetail['respondent_type']] ?? ['bg'=>'#888','label'=>$pkgDetail['respondent_type']];
-    ?>
-    <div style="width:52px;height:52px;border-radius:12px;background:<?= $rc['bg'] ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;font-weight:700;flex-shrink:0">
-      <?= strtoupper(substr($pkgDetail['code'],0,2)) ?>
-    </div>
-    <div class="flex-grow-1">
-      <h6 class="fw-bold text-navy mb-0"><?= h($pkgDetail['name']) ?></h6>
-      <div class="d-flex gap-2 mt-1 flex-wrap">
-        <span class="badge" style="background:<?= $rc['bg'] ?>;font-size:.7rem"><?= $rc['label'] ?></span>
-        <span class="badge bg-secondary" style="font-size:.7rem"><?= $pkgDetail['et_name'] ?></span>
-        <span class="badge bg-light text-dark border" style="font-size:.7rem">
-          <?= count($pkgQuestions) > 0 ? array_sum(array_map(fn($d)=>count($d['items']),$pkgQuestions)) : 0 ?> soal
-        </span>
+  <div class="card-body py-3">
+    <div class="d-flex align-items-start gap-3 flex-wrap">
+
+      <!-- Ikon paket -->
+      <div style="width:52px;height:52px;border-radius:12px;background:<?= $rc['bg'] ?>;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;font-weight:700;flex-shrink:0">
+        <?= strtoupper(substr($pkgDetail['code'],0,2)) ?>
       </div>
+
+      <!-- Info paket -->
+      <div class="flex-grow-1">
+        <h6 class="fw-bold text-navy mb-1"><?= h($pkgDetail['name']) ?></h6>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <span class="badge" style="background:<?= $rc['bg'] ?>;font-size:.7rem"><?= $rc['label'] ?></span>
+          <span class="badge bg-secondary" style="font-size:.7rem"><?= $pkgDetail['et_name'] ?></span>
+          <span class="badge bg-light text-dark border" style="font-size:.7rem">
+            <?= $totalSoal ?> soal
+          </span>
+          <span class="badge <?= $lo['badge'] ?>" style="font-size:.7rem">
+            <?= $lo['icon'] ?> <?= $lo['label'] ?>
+          </span>
+        </div>
+      </div>
+
+      <!-- Setting bahasa -->
+      <div class="border rounded p-3 bg-light" style="min-width:280px">
+        <p class="small fw-semibold text-navy mb-2">
+          <i class="bi bi-translate me-1"></i>Bahasa Tampilan Kuesioner
+        </p>
+        <p class="text-muted" style="font-size:.75rem;line-height:1.4">
+          Menentukan bahasa yang ditampilkan kepada responden saat mengisi kuesioner ini.
+        </p>
+        <form method="POST" class="d-flex align-items-center gap-2 mt-2">
+          <input type="hidden" name="action" value="save_pkg_lang">
+          <input type="hidden" name="pkg_id" value="<?= $pkgDetail['id'] ?>">
+          <select name="question_lang" class="form-select form-select-sm" style="width:auto">
+            <?php foreach ($langOptions as $val => $opt): ?>
+            <option value="<?= $val ?>" <?= $currentLang === $val ? 'selected' : '' ?>>
+              <?= $opt['icon'] ?> <?= $opt['label'] ?>
+            </option>
+            <?php endforeach; ?>
+          </select>
+          <button type="submit" class="btn btn-sm btn-navy">
+            <i class="bi bi-save me-1"></i>Simpan
+          </button>
+        </form>
+      </div>
+
     </div>
   </div>
 </div>
@@ -151,8 +203,8 @@ if ($viewPkg && $pkgDetail): ?>
   <div class="card-body p-0">
     <?php foreach ($domain['items'] as $q):
       $qNum++;
-      $activeId  = $q['question_id_text_override'] ?: $q['master_id'];
-      $activeEn  = $q['question_en_text_override'] ?: $q['master_en'];
+      $activeId   = $q['question_id_text_override'] ?: $q['master_id'];
+      $activeEn   = $q['question_en_text_override'] ?: $q['master_en'];
       $isOverride = !empty($q['question_id_text_override']);
     ?>
     <div class="border-bottom px-3 py-3">
@@ -167,10 +219,14 @@ if ($viewPkg && $pkgDetail): ?>
             <span class="badge bg-light text-muted border" style="font-size:.65rem">Pakai Master</span>
             <?php endif; ?>
           </div>
+
+          <?php if (in_array($currentLang, ['both','id'])): ?>
           <p class="mb-1 small" style="line-height:1.6">
             <?= str_replace('[Nama]','<span class="badge" style="background:#001f3e;color:#ffc901">[Nama]</span>',h($activeId)) ?>
           </p>
-          <?php if ($activeEn): ?>
+          <?php endif; ?>
+
+          <?php if (in_array($currentLang, ['both','en']) && $activeEn): ?>
           <p class="mb-0 text-muted" style="font-size:.8rem;font-style:italic">
             <?= str_replace('[Name]','<span class="badge" style="background:#001f3e;color:#ffc901">[Name]</span>',h($activeEn)) ?>
           </p>
@@ -253,7 +309,9 @@ else: ?>
 <h6 class="fw-bold text-navy mb-3"><?= h($etGroup['name']) ?></h6>
 <div class="row g-3 mb-4">
   <?php foreach ($etGroup['packages'] as $pkg):
-    $rc = $respColors[$pkg['respondent_type']] ?? ['bg'=>'#888','label'=>ucfirst($pkg['respondent_type'])];
+    $rc          = $respColors[$pkg['respondent_type']] ?? ['bg'=>'#888','label'=>ucfirst($pkg['respondent_type'])];
+    $currentLang = $pkg['question_lang'] ?? 'both';
+    $lo          = $langOptions[$currentLang] ?? $langOptions['both'];
     $overrideCount = Database::fetchOne("
         SELECT COUNT(*) c FROM package_questions
         WHERE package_id=? AND question_id_text_override IS NOT NULL AND question_id_text_override != ''
@@ -277,9 +335,12 @@ else: ?>
           <p class="small fw-semibold text-navy mb-1 lh-sm" style="font-size:.82rem">
             <?= h($pkg['name']) ?>
           </p>
-          <div class="d-flex justify-content-center gap-2 mt-2">
+          <div class="d-flex justify-content-center gap-2 mt-2 flex-wrap">
             <span class="badge bg-light text-dark border" style="font-size:.65rem">
               <i class="bi bi-question-circle me-1"></i><?= $pkg['q_count'] ?> soal
+            </span>
+            <span class="badge <?= $lo['badge'] ?>" style="font-size:.65rem">
+              <?= $lo['icon'] ?> <?= $lo['label'] ?>
             </span>
             <?php if ($overrideCount > 0): ?>
             <span class="badge bg-warning text-dark" style="font-size:.65rem">
