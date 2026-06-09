@@ -413,7 +413,7 @@ CREATE TABLE `packages` (
 
 LOCK TABLES `packages` WRITE;
 /*!40000 ALTER TABLE `packages` DISABLE KEYS */;
-INSERT INTO `packages` VALUES (1,'L1','Evaluasi Pimpinan – Oleh Atasan (YPKBI/YPKTB)',1,NULL,'atasan',NULL,0,'both'),(2,'L2','Evaluasi Pimpinan – Oleh Rekan Sejawat',1,NULL,'leader',NULL,0,'both'),(3,'L3','Evaluasi Pimpinan – Oleh Guru',1,NULL,'guru',NULL,0,'both'),(4,'L4','Evaluasi Pimpinan – Oleh Orang Tua',1,NULL,'ortu',NULL,0,'both'),(5,'L5','Evaluasi Pimpinan – Oleh Siswa (OSIS)',1,NULL,'siswa',NULL,0,'both'),(6,'L6','Refleksi Mandiri – Pimpinan',1,NULL,'self',NULL,1,'both'),(7,'T1','Evaluasi Guru – Oleh Atasan (YPKBI/YPKTB)',2,NULL,'atasan',NULL,0,'both'),(8,'T2','Evaluasi Guru – Oleh Pimpinan Sekolah',2,NULL,'leader',NULL,0,'both'),(9,'T3','Evaluasi Guru – Oleh Rekan Sejawat',2,NULL,'guru',NULL,0,'both'),(11,'T5','Evaluasi Guru – Oleh Siswa',2,NULL,'student_class',NULL,0,'both'),(12,'T6','Refleksi Mandiri – Guru',2,NULL,'self',NULL,1,'both');
+INSERT INTO `packages` VALUES (1,'L1','Evaluasi Pimpinan – Oleh Atasan (YPKBI/YPKTB)',1,NULL,'atasan',NULL,0,'both'),(2,'L2','Evaluasi Pimpinan – Oleh Pimpinan Sekolah (Peer)',1,NULL,'leader',NULL,0,'both'),(3,'L3','Evaluasi Pimpinan – Oleh Guru',1,NULL,'guru',NULL,0,'both'),(4,'L4','Evaluasi Pimpinan – Oleh Orang Tua',1,NULL,'ortu',NULL,0,'both'),(5,'L5','Evaluasi Pimpinan – Oleh Siswa (OSIS)',1,NULL,'siswa',NULL,0,'both'),(6,'L6','Refleksi Mandiri – Pimpinan',1,NULL,'self',NULL,1,'both'),(7,'T1','Evaluasi Guru – Oleh Atasan (YPKBI/YPKTB)',2,NULL,'atasan',NULL,0,'both'),(8,'T2','Evaluasi Guru – Oleh Pimpinan Sekolah',2,NULL,'leader',NULL,0,'both'),(9,'T3','Evaluasi Guru – Oleh Guru (Peer)',2,NULL,'guru',NULL,0,'both'),(11,'T5','Evaluasi Guru – Oleh Siswa',2,NULL,'student_class',NULL,0,'both'),(12,'T6','Refleksi Mandiri – Guru',2,NULL,'self',NULL,1,'both');
 /*!40000 ALTER TABLE `packages` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -810,4 +810,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-09  8:35:42
+-- Dump completed on 2026-06-09  8:53:10
