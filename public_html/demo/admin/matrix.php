@@ -17,13 +17,14 @@ foreach ($evalTypes as $et) {
     if ($et['code'] === $tab) { $currentEt = $et; break; }
 }
 
-// Semua respondent types — muncul di semua tipe evaluasi
+// Semua respondent types — harus cocok dengan nilai di DB
 $allRespondentTypes = [
-    'foundation' => 'Yayasan (YPKBI/YPKTB)',
-    'leader'     => 'Pimpinan Sekolah / Peer',
-    'teacher'    => 'Guru',
-    'parent'     => 'Komite Orang Tua',
-    'student'    => 'Siswa / OSIS',
+    'atasan'        => 'Yayasan (YPKBI/YPKTB)',
+    'leader'        => 'Pimpinan Sekolah',
+    'guru'          => 'Guru',
+    'ortu'          => 'Komite Orang Tua',
+    'siswa'         => 'OSIS / Siswa',
+    'student_class' => 'Murid yang Diajar',
 ];
 
 // ── HANDLE SAVE ───────────────────────────────────────────────
@@ -78,16 +79,17 @@ function _generatePackages(int $etId, string $etCode, array $respTypes, array $c
     foreach ($respTypes as $respType => $respLabel) {
         // Find or create package for this (eval_type, respondent_type)
         $pkg = Database::fetchOne(
-            "SELECT * FROM packages WHERE eval_type_id=? AND respondent_type=? AND is_self_reflection=0",
+            "SELECT * FROM packages WHERE eval_type_id=? AND respondent_type=? AND is_self_reflection=0 AND period_id IS NULL",
             [$etId, $respType]
         );
 
         if (!$pkg) {
             // Create new package
-            $pkgCode = strtoupper(substr($etCode, 0, 1)) . '-' . strtoupper(substr($respType, 0, 3));
-            $pkgName = ($etCode === 'leader' ? 'Pimpinan' : 'Guru') . ' — Dinilai oleh ' . $respLabel;
+            $pkgCode = strtoupper(substr($etCode, 0, 1)) . strtoupper(substr($respType, 0, 2));
+            $etLabel = $etCode === 'leader' ? 'Pimpinan Sekolah' : 'Guru';
+            $pkgName = 'Evaluasi ' . $etLabel . ' – Oleh ' . $respLabel;
             $pkgId = Database::insert('packages', [
-                'code'             => $pkgCode . '_' . time(),
+                'code'             => $pkgCode,
                 'name'             => $pkgName,
                 'eval_type_id'     => $etId,
                 'respondent_type'  => $respType,
@@ -339,7 +341,7 @@ $existingPkgs = Database::fetchAll("
     SELECT p.*, COUNT(pq.id) as q_count
     FROM packages p
     LEFT JOIN package_questions pq ON pq.package_id = p.id
-    WHERE p.eval_type_id = ? AND p.is_self_reflection = 0
+    WHERE p.eval_type_id = ? AND p.is_self_reflection = 0 AND p.period_id IS NULL
     GROUP BY p.id
     ORDER BY p.id
 ", [$currentEt['id']]);
@@ -350,7 +352,7 @@ $existingPkgs = Database::fetchAll("
     <i class="bi bi-boxes me-1"></i>
     <span>Paket yang Terbentuk</span>
     <span class="badge bg-secondary ms-1"><?= count($existingPkgs) ?> paket</span>
-    <span class="ms-auto text-muted small">
+    <span class="ms-auto small" style="color:#fff;opacity:.85">
       <i class="bi bi-translate me-1"></i>
       Kolom <strong>Bahasa</strong> menentukan tampilan pertanyaan pada kuesioner responden.
     </span>
