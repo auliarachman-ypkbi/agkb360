@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($message) < 20) {
         $error = 'Pesan terlalu pendek (minimal 20 karakter).';
     } else {
-        Database::insert('feedback', [
+        $fbId = Database::insert('feedback', [
             'sender_id' => $user['id'],
             'type'      => $type,
             'subject'   => $subject,
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $scriptUrl = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
         if ($scriptUrl) {
             $typeLabel = $type === 'appreciation' ? 'Apresiasi' : 'Perhatian / Masukan';
-            $replyUrl  = APP_URL . '/feedback/reply.php?id=' . Database::lastInsertId();
+            $replyUrl  = APP_URL . '/admin/feedback.php?id=' . $fbId;
             $payload = json_encode([
                 'to'      => 'edu@kaderbangsa.foundation',
                 'subject' => '[AKGB 360°] ' . $typeLabel . ' dari ' . $user['name'],
