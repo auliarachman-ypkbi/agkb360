@@ -26,6 +26,10 @@ define('CLAUDE_API_KEY', 'YOUR_CLAUDE_API_KEY_HERE');
 define('CLAUDE_MODEL', 'claude-sonnet-4-20250514');
 define('CLAUDE_API_URL', 'https://api.anthropic.com/v1/messages');
 
+// ── APPS SCRIPT (Google) ─────────────────────────────────────
+define('APPS_SCRIPT_URL', 'https://script.google.com/macros/s/AKfycbzK0tJj5Tre6uzOc44ZOI_elf11ZLAA8CRA38tNXdJkgh1fz8VTRTDmNBCbpT5rPCo81g/exec');
+define('FEEDBACK_EMAIL', 'edu@kaderbangsa.foundation');
+
 // ── DEFAULT ADMIN ─────────────────────────────────────────────
 define('DEFAULT_ADMIN_EMAIL', 'admin@ktb.sch.id');
 define('DEFAULT_ADMIN_PASSWORD', 'Admin@KTB2025');

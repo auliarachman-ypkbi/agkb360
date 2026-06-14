@@ -91,8 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$viewMode) {
 
     if ($isFinal && $answeredCount >= $totalQ) {
         Database::update('assignments', ['status'=>'completed','completed_at'=>date('Y-m-d H:i:s')], 'id=?', [$assignId]);
-        flash('Kuesioner berhasil diselesaikan! Terima kasih atas penilaian Anda.', 'success');
-        header('Location: ' . APP_URL . '/survey/');
+        // Redirect ke halaman nudge feedback
+        header('Location: ' . APP_URL . '/survey/done.php?assign=' . $assignId);
         exit;
     } else {
         Database::update('assignments', ['status'=>'in_progress'], 'id=? AND status=?', [$assignId,'pending']);

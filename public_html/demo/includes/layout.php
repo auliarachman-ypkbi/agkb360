@@ -60,6 +60,8 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/admin/questions_packages.php'><i class='bi bi-folder me-2'></i>Paket Pertanyaan</a></li>
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/settings.php'><i class='bi bi-sliders me-2'></i>Pengaturan</a></li>
+            <li><hr class='dropdown-divider'></li>
+            <li><a class='dropdown-item' href='{$base}/admin/feedback.php'><i class='bi bi-chat-heart me-2'></i>Inbox Feedback</a></li>
             {$superAdminExtra}
           </ul>
         </li>";
@@ -92,6 +94,9 @@ function renderNav(): void {
         " : "
         <li class='nav-item'><a class='nav-link' href='{$base}/survey/'><i class='bi bi-clipboard-check me-1'></i>Kuesioner Saya</a></li>
         ")) . "
+        " . ($role !== 'tester' ? "
+        <li class='nav-item'><a class='nav-link' href='{$base}/feedback/' style='color:#ffc901'><i class='bi bi-chat-heart me-1'></i>Feedback</a></li>
+        " : "") . "
         {$adminMenu}
       </ul>
       <ul class='navbar-nav'>
