@@ -31,15 +31,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status'    => 'new',
         ]);
 
-        // Kirim email via Apps Script
         $scriptUrl = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
         if ($scriptUrl) {
-            $typeLabel = $type === 'appreciation' ? 'Apresiasi' : 'Perhatian / Masukan';
-            $replyUrl  = APP_URL . '/admin/feedback.php?id=' . $fbId;
+            $typeLabel       = $type === 'appreciation' ? 'Apresiasi' : 'Perhatian / Masukan';
+            $typeBadgeColor  = $type === 'appreciation' ? '#27500A' : '#633806';
+            $typeBadgeBg     = $type === 'appreciation' ? '#EAF3DE' : '#FAEEDA';
+            $typeBadgeBorder = $type === 'appreciation' ? '#3B6D11' : '#854F0B';
+            $senderInitial   = strtoupper(substr($user['name'], 0, 1));
+            $senderRole      = roleLabel($user['role']);
+            $fullReplyUrl    = 'https://agkb360.app/demo/admin/feedback.php?id=' . $fbId;
+            $msgHtml         = nl2br(htmlspecialchars($message));
+
+            $htmlBody = '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"></head>'
+            . '<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">'
+            . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px"><tr><td align="center">'
+            . '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0">'
+            . '<tr><td style="background:#2C5282;padding:28px 32px;text-align:center">'
+            . '<div style="font-size:28px;font-weight:700;color:#ffffff">AKGB <span style="color:#ffc901">360&deg;</span></div>'
+            . '<div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:4px;letter-spacing:1px;text-transform:uppercase">Platform Evaluasi Kinerja</div>'
+            . '</td></tr>'
+            . '<tr><td style="padding:24px 32px 0">'
+            . '<span style="background:' . $typeBadgeBg . ';color:' . $typeBadgeColor . ';border:1px solid ' . $typeBadgeBorder . ';border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600">' . $typeLabel . '</span>'
+            . '</td></tr>'
+            . '<tr><td style="padding:12px 32px 0"><h2 style="margin:0;font-size:18px;font-weight:700;color:#1e293b">' . htmlspecialchars($subject) . '</h2></td></tr>'
+            . '<tr><td style="padding:12px 32px 0"><table cellpadding="0" cellspacing="0"><tr>'
+            . '<td style="width:36px;height:36px;background:#E6F1FB;border-radius:50%;text-align:center;vertical-align:middle;font-size:14px;font-weight:700;color:#185FA5">' . $senderInitial . '</td>'
+            . '<td style="padding-left:10px"><div style="font-size:13px;font-weight:600;color:#1e293b">' . htmlspecialchars($user['name']) . '</div>'
+            . '<div style="font-size:12px;color:#64748b">' . htmlspecialchars($user['email']) . ' &middot; ' . $senderRole . '</div></td>'
+            . '</tr></table></td></tr>'
+            . '<tr><td style="padding:16px 32px 0"><div style="border-top:1px solid #f1f5f9"></div></td></tr>'
+            . '<tr><td style="padding:16px 32px 0">'
+            . '<div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pesan</div>'
+            . '<div style="font-size:14px;color:#334155;line-height:1.8;background:#f8fafc;border-radius:8px;padding:16px;border-left:3px solid #2C5282">' . $msgHtml . '</div>'
+            . '</td></tr>'
+            . '<tr><td style="padding:24px 32px;text-align:center">'
+            . '<a href="' . $fullReplyUrl . '" style="display:inline-block;background:#2C5282;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:8px;font-size:14px;font-weight:700">Balas Feedback Ini &rarr;</a>'
+            . '<div style="margin-top:10px;font-size:11px;color:#94a3b8">Atau salin: <a href="' . $fullReplyUrl . '" style="color:#185FA5">' . $fullReplyUrl . '</a></div>'
+            . '</td></tr>'
+            . '<tr><td style="background:#f8fafc;padding:14px 32px;border-top:1px solid #e2e8f0;text-align:center">'
+            . '<div style="font-size:11px;color:#94a3b8">Email otomatis dari AKGB 360&deg; &bull; Yayasan Kader Bangsa Indonesia</div>'
+            . '</td></tr></table></td></tr></table></body></html>';
+
             $payload = json_encode([
-                'to'      => 'edu@kaderbangsa.foundation',
-                'subject' => '[AKGB 360°] ' . $typeLabel . ' dari ' . $user['name'],
-                'body'    => "Dari: {$user['name']} ({$user['email']})\nJenis: {$typeLabel}\nSubjek: {$subject}\n\nPesan:\n{$message}\n\n---\nBalas melalui platform:\n{$replyUrl}",
+                'to'       => 'edu@kaderbangsa.foundation',
+                'subject'  => '[AKGB 360°] ' . $typeLabel . ' dari ' . $user['name'],
+                'htmlBody' => $htmlBody,
             ]);
             @file_get_contents($scriptUrl, false, stream_context_create([
                 'http' => ['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload]
@@ -132,7 +168,6 @@ ob_start(); ?>
     </div>
 
     <form method="POST">
-
       <div class="field">
         <label>Jenis Feedback</label>
         <div class="type-row">
@@ -176,7 +211,6 @@ ob_start(); ?>
           <i class="bi bi-send-fill"></i>Kirim Feedback
         </button>
       </div>
-
     </form>
   </div>
 </div>
