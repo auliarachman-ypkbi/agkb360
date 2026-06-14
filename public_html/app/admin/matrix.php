@@ -215,6 +215,14 @@ $langOptions = [
 ];
 
 ob_start(); ?>
+<style>
+.standard-row.row-even { background: #ffffff; }
+.standard-row.row-odd  { background: #f8fafc; }
+.standard-row:hover    { background: #EBF4FF !important; cursor: pointer; }
+.standard-row:hover .std-name-cell { color: #2C5282; font-weight: 500; }
+.matrix-cb { transition: transform .1s; }
+.standard-row:hover .matrix-cb { transform: scale(1.15); }
+</style>
 
 <?= showFlash() ?>
 
@@ -255,19 +263,21 @@ ob_start(); ?>
   <input type="hidden" name="eval_type_code" value="<?= h($currentEt['code']) ?>">
 
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span>
+    <div class="card-header d-flex justify-content-between align-items-center" style="background:#2C5282;color:white;border-bottom:none">
+      <span style="font-weight:600">
         <i class="bi bi-grid me-2"></i>
-        Matriks: <strong><?= h($currentEt['name']) ?></strong>
+        Matriks: <?= h($currentEt['name']) ?>
       </span>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCheckAll">
+        <button type="button" class="btn btn-sm" id="btnCheckAll"
+          style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.4)">
           <i class="bi bi-check-all me-1"></i>Pilih Semua
         </button>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnUncheckAll">
+        <button type="button" class="btn btn-sm" id="btnUncheckAll"
+          style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.4)">
           <i class="bi bi-x me-1"></i>Hapus Semua
         </button>
-        <button type="submit" class="btn btn-sm btn-navy">
+        <button type="submit" class="btn btn-sm" style="background:#ffc901;color:#1a1a1a;border:none;font-weight:600">
           <i class="bi bi-save me-1"></i>Simpan & Generate Paket
         </button>
       </div>
@@ -276,10 +286,10 @@ ob_start(); ?>
       <div class="table-responsive">
         <table class="table table-bordered mb-0" style="min-width:700px">
           <thead>
-            <tr style="background:var(--ktb-navy);color:white">
-              <th style="min-width:280px;vertical-align:middle">Standard</th>
+            <tr style="background:#1A365D;color:white">
+              <th style="min-width:280px;vertical-align:middle;padding:10px 14px;font-size:.85rem">Standard</th>
               <?php foreach ($currentRespTypes as $rType => $rLabel): ?>
-              <th class="text-center" style="min-width:110px;vertical-align:middle;font-size:.8rem">
+              <th class="text-center" style="min-width:110px;vertical-align:middle;font-size:.78rem;padding:10px 6px;border-left:1px solid rgba(255,255,255,0.15)">
                 <?= h($rLabel) ?>
               </th>
               <?php endforeach; ?>
@@ -289,19 +299,19 @@ ob_start(); ?>
             <?php foreach ($domains as $did => $domain): ?>
 
             <!-- Domain row -->
-            <tr style="background:#eef1fa">
+            <tr style="background:#2C5282">
               <td colspan="<?= count($currentRespTypes) + 1 ?>" class="py-2 px-3">
-                <span class="badge me-2" style="background:var(--ktb-navy)">
+                <span class="badge me-2" style="background:rgba(255,255,255,0.2);color:white">
                   <?= h($domain['code']??'—') ?>
                 </span>
-                <strong class="text-navy"><?= h($domain['name']) ?></strong>
+                <strong style="color:white"><?= h($domain['name']) ?></strong>
               </td>
             </tr>
 
             <!-- Standard rows -->
-            <?php foreach ($domain['standards'] as $sid => $sName): ?>
-            <tr class="standard-row">
-              <td class="ps-4 small" style="vertical-align:middle">
+            <?php $rowIdx = 0; foreach ($domain['standards'] as $sid => $sName): ?>
+            <tr class="standard-row <?= $rowIdx % 2 === 0 ? 'row-even' : 'row-odd' ?>">
+              <td class="ps-4 small std-name-cell" style="vertical-align:middle">
                 <?= h($sName) ?>
               </td>
               <?php foreach ($currentRespTypes as $rType => $rLabel): ?>
@@ -317,7 +327,7 @@ ob_start(); ?>
               </td>
               <?php endforeach; ?>
             </tr>
-            <?php endforeach; ?>
+            <?php $rowIdx++; endforeach; ?>
 
             <?php endforeach; ?>
           </tbody>
