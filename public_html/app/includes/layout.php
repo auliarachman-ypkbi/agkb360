@@ -62,6 +62,7 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/admin/settings.php'><i class='bi bi-sliders me-2'></i>Pengaturan</a></li>
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/feedback.php'><i class='bi bi-chat-heart me-2'></i>Inbox Feedback</a></li>
+	    <li><a class='dropdown-item' href='{$base}/admin/blast_email.php'><i class='bi bi-send-fill me-2'></i>Blast Email</a></li>
             {$superAdminExtra}
           </ul>
         </li>";

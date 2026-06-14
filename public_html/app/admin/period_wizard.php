@@ -236,6 +236,41 @@ function _generateAssignments(int $pid): int {
         }
     }
 
+    // ── STUDENT_CLASS: generate via class mappings (deduplicated) ──
+    $teacherEtId = Database::fetchOne("SELECT id FROM eval_types WHERE code='teacher'")['id'] ?? 2;
+    $scPkgKey    = $teacherEtId . '_student_class';
+    if (isset($pkgMap[$scPkgKey])) {
+        $scPkgId = $pkgMap[$scPkgKey];
+        $teacherEvaluatees = array_filter($evaluatees, fn($e) => (int)$e['eval_type_id'] === (int)$teacherEtId);
+        foreach ($teacherEvaluatees as $teacher) {
+            // Semua murid yang berbagi kelas dengan guru ini (DISTINCT = dedup)
+            $students = Database::fetchAll("
+                SELECT DISTINCT u.id as user_id, u.name
+                FROM class_teachers ct
+                JOIN class_students cs ON cs.class_id = ct.class_id
+                JOIN users u ON u.id = cs.student_id
+                JOIN classes c ON c.id = ct.class_id
+                WHERE ct.teacher_id = ? AND u.is_active = 1 AND c.is_active = 1
+            ", [$teacher['user_id']]);
+            foreach ($students as $student) {
+                $exists = Database::fetchOne(
+                    "SELECT id FROM assignments WHERE period_id=? AND evaluatee_id=? AND evaluator_id=? AND package_id=?",
+                    [$pid, $teacher['user_id'], $student['user_id'], $scPkgId]
+                );
+                if ($exists) continue;
+                Database::insert('assignments', [
+                    'period_id'    => $pid,
+                    'evaluatee_id' => $teacher['user_id'],
+                    'evaluator_id' => $student['user_id'],
+                    'package_id'   => $scPkgId,
+                    'status'       => 'pending',
+                    'due_date'     => $dueDate,
+                ]);
+                $count++;
+            }
+        }
+    }
+
     return $count;
 }
 
@@ -255,7 +290,20 @@ $leaderTeacherUsers = Database::fetchAll("
         (u.role='teacher' AND et.code='teacher')
     )
     WHERE u.is_active=1
-    ORDER BY u.role, u.name
+
+    UNION
+
+    SELECT u.*, et.id as et_id, et.name as et_name
+    FROM users u
+    JOIN user_eval_types uet ON uet.user_id = u.id
+    JOIN eval_types et ON et.id = uet.eval_type_id
+    WHERE u.is_active=1
+    AND NOT (
+        (u.role='leader' AND et.code='leader') OR
+        (u.role='teacher' AND et.code='teacher')
+    )
+
+    ORDER BY role, name
 ");
 $selectedEvaluatees = [];
 foreach (Database::fetchAll("SELECT * FROM period_evaluatees WHERE period_id=?", [$pid]) as $pe) {
