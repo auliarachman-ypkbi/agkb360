@@ -162,9 +162,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// ── Fetch assignments ─────────────────────────────────────────
+// ── Fetch assignments dengan filter & pagination ───────────────
 $statusFilter = $_GET['status'] ?? '';
-$where = $statusFilter ? "AND a.status='$statusFilter'" : '';
+$roleFilter   = $_GET['role'] ?? '';
+$respFilter   = $_GET['resp'] ?? '';
+$searchQ      = trim($_GET['q'] ?? '');
+$curPage      = max(1, (int)($_GET['page'] ?? 1));
+$perPage      = 50;
+
+$whereSql = "WHERE a.period_id = ?";
+$qParams  = [$pid];
+
+if ($statusFilter !== '') { $whereSql .= " AND a.status = ?"; $qParams[] = $statusFilter; }
+if ($roleFilter   !== '') { $whereSql .= " AND u_ee.role = ?"; $qParams[] = $roleFilter; }
+if ($respFilter   !== '') { $whereSql .= " AND p.respondent_type = ?"; $qParams[] = $respFilter; }
+if ($searchQ      !== '') {
+    $whereSql .= " AND (u_ee.name LIKE ? OR u_or.name LIKE ?)";
+    $qParams[] = "%$searchQ%"; $qParams[] = "%$searchQ%";
+}
+
+$filteredTotal = Database::fetchOne("
+    SELECT COUNT(*) c
+    FROM assignments a
+    JOIN users u_ee ON a.evaluatee_id = u_ee.id
+    JOIN users u_or ON a.evaluator_id = u_or.id
+    JOIN packages p ON a.package_id = p.id
+    $whereSql
+", $qParams)['c'];
+
+$pagi   = paginate($filteredTotal, $perPage, $curPage);
+$offset = $pagi['offset'];
 
 $assignments = Database::fetchAll("
     SELECT a.*, 
@@ -175,10 +202,29 @@ $assignments = Database::fetchAll("
     JOIN users u_ee ON a.evaluatee_id = u_ee.id
     JOIN users u_or ON a.evaluator_id = u_or.id
     JOIN packages p ON a.package_id = p.id
-    WHERE a.period_id = ? $where
+    $whereSql
     ORDER BY a.status, u_ee.name, p.code
-    LIMIT 300
-", [$pid]);
+    LIMIT $perPage OFFSET $offset
+", $qParams);
+
+// Daftar respondent_type yang ada (untuk dropdown filter)
+$respTypeOptions = Database::fetchAll("
+    SELECT DISTINCT respondent_type FROM packages
+    WHERE respondent_type IS NOT NULL ORDER BY respondent_type
+");
+
+// Helper bangun query string, sambil mempertahankan filter lain
+function buildAssignQS(array $overrides = []): string {
+    $base = [
+        'status' => $_GET['status'] ?? '',
+        'role'   => $_GET['role']   ?? '',
+        'resp'   => $_GET['resp']   ?? '',
+        'q'      => $_GET['q']      ?? '',
+        'page'   => $_GET['page']   ?? '',
+    ];
+    $merged = array_filter(array_merge($base, $overrides), fn($v) => $v !== '' && $v !== null);
+    return '?' . htmlspecialchars(http_build_query($merged));
+}
 
 // Form dropdowns
 $allUsers   = Database::fetchAll("SELECT id, name, role FROM users WHERE is_active=1 ORDER BY role, name");
@@ -210,19 +256,19 @@ ob_start(); ?>
 
 <!-- SUMMARY STATS -->
 <div class="row g-3 mb-4">
-  <div class="col-4"><a href="?" class="text-decoration-none">
+  <div class="col-4"><a href="<?= buildAssignQS(['status'=>'']) ?>" class="text-decoration-none">
     <div class="stat-card position-relative text-center">
       <div class="stat-number"><?= array_sum(array_column($summary,'c')) ?></div>
       <div class="stat-label">Total</div>
     </div>
   </a></div>
-  <div class="col-4"><a href="?status=pending" class="text-decoration-none">
+  <div class="col-4"><a href="<?= buildAssignQS(['status'=>'pending']) ?>" class="text-decoration-none">
     <div class="stat-card red position-relative text-center">
       <div class="stat-number"><?= $sumMap['pending'] ?? 0 ?></div>
       <div class="stat-label">Menunggu</div>
     </div>
   </a></div>
-  <div class="col-4"><a href="?status=completed" class="text-decoration-none">
+  <div class="col-4"><a href="<?= buildAssignQS(['status'=>'completed']) ?>" class="text-decoration-none">
     <div class="stat-card green position-relative text-center">
       <div class="stat-number"><?= $sumMap['completed'] ?? 0 ?></div>
       <div class="stat-label">Selesai</div>
@@ -298,57 +344,173 @@ ob_start(); ?>
   </div>
 </div>
 
+<style>
+.filter-bar{background:#fff;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.filter-bar .f-group{display:flex;flex-direction:column;gap:5px}
+.filter-bar label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin:0}
+.filter-bar select,.filter-bar input[type=text]{height:36px;border:1px solid #e2e8f0;border-radius:7px;padding:0 11px;font-size:13px;color:#1e293b;outline:none;min-width:160px}
+.filter-bar select:focus,.filter-bar input:focus{border-color:#2C5282;box-shadow:0 0 0 3px rgba(44,82,130,.1)}
+.filter-bar .f-search{min-width:220px;flex:1}
+.filter-bar .f-actions{display:flex;gap:8px}
+.filter-bar .btn-filter{height:36px;padding:0 16px;background:#2C5282;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.filter-bar .btn-filter:hover{background:#1A365D}
+.filter-bar .btn-clear{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;color:#64748b;text-decoration:none}
+
+.status-tabs{display:flex;gap:6px}
+.status-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:0.5px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;white-space:nowrap}
+.status-tab.active{background:#2C5282;color:#fff;border-color:#2C5282}
+
+.assign-card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.assign-card-hdr{padding:14px 18px;border-bottom:0.5px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.assign-card-title{font-size:14px;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:8px}
+.result-count{font-size:12px;color:#94a3b8;font-weight:400}
+
+.assign-table{width:100%;border-collapse:collapse;font-size:13px}
+.assign-table thead th{background:#f8fafc;color:#475569;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:11px 16px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+.assign-table tbody td{padding:12px 16px;vertical-align:middle;color:#1e293b;border-bottom:0.5px solid #f1f5f9}
+.assign-table tbody tr:hover{background:#f8fafc}
+.assign-table tbody tr:last-child td{border-bottom:none}
+.name-primary{font-weight:600;color:#1e293b;font-size:13px}
+.role-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.pkg-badge{display:inline-block;background:#2C5282;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;letter-spacing:.2px}
+.resp-sub{font-size:11px;color:#94a3b8;margin-top:4px;display:block}
+.due-date-cell{font-size:12px;color:#475569;white-space:nowrap}
+.action-cell{display:flex;gap:6px}
+.action-icon-btn{width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;cursor:pointer}
+.action-icon-btn.danger:hover{background:#FCEBEB;border-color:#F09595;color:#791F1F}
+.action-icon-btn.view:hover{background:#E6F1FB;border-color:#B5D4F4;color:#185FA5}
+.empty-row{text-align:center;padding:40px;color:#94a3b8;font-size:13px}
+.pager{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:0.5px solid #e2e8f0;background:#fafbfc}
+.pager-info{font-size:12px;color:#64748b}
+.pager-btns{display:flex;gap:8px}
+.pager-btn{padding:6px 14px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;color:#475569;text-decoration:none;font-size:12px;display:inline-flex;align-items:center;gap:5px}
+.pager-btn.disabled{opacity:.4;pointer-events:none}
+</style>
+
+<!-- FILTER BAR (langsung di atas tabel) -->
+<form method="GET" class="filter-bar">
+  <input type="hidden" name="status" value="<?= h($statusFilter) ?>">
+  <div class="f-group">
+    <label>Role yang Dinilai</label>
+    <select name="role" onchange="this.form.submit()">
+      <option value="">Semua Role</option>
+      <option value="leader" <?= $roleFilter==='leader'?'selected':'' ?>>Pimpinan</option>
+      <option value="teacher" <?= $roleFilter==='teacher'?'selected':'' ?>>Guru</option>
+    </select>
+  </div>
+  <div class="f-group">
+    <label>Tipe Responden</label>
+    <select name="resp" onchange="this.form.submit()">
+      <option value="">Semua Tipe</option>
+      <?php foreach ($respTypeOptions as $rt): ?>
+      <option value="<?= h($rt['respondent_type']) ?>" <?= $respFilter===$rt['respondent_type']?'selected':'' ?>>
+        <?= h(respondentLabel($rt['respondent_type'])) ?>
+      </option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <div class="f-group f-search">
+    <label>Cari Nama</label>
+    <input type="text" name="q" placeholder="Cari yang dinilai / penilai..." value="<?= h($searchQ) ?>">
+  </div>
+  <div class="f-actions">
+    <button type="submit" class="btn-filter"><i class="bi bi-funnel"></i>Filter</button>
+    <?php if ($roleFilter || $respFilter || $searchQ): ?>
+    <a href="<?= buildAssignQS(['role'=>null,'resp'=>null,'q'=>null,'page'=>null]) ?>" class="btn-clear" title="Reset filter">
+      <i class="bi bi-x-lg"></i>
+    </a>
+    <?php endif; ?>
+  </div>
+</form>
+
 <!-- ASSIGNMENTS TABLE -->
-<div class="card">
-  <div class="card-header d-flex justify-content-between">
-    <span><i class="bi bi-list-check me-2"></i>Daftar Penugasan</span>
-    <div class="d-flex gap-2">
+<div class="assign-card">
+  <div class="assign-card-hdr">
+    <span class="assign-card-title">
+      <i class="bi bi-list-check"></i>Daftar Penugasan
+      <span class="result-count">(<?= $filteredTotal ?> hasil<?= ($roleFilter||$respFilter||$searchQ) ? ' terfilter' : '' ?>)</span>
+    </span>
+    <div class="status-tabs">
       <?php foreach ([''=>'Semua','pending'=>'Menunggu','in_progress'=>'Proses','completed'=>'Selesai'] as $s => $l): ?>
-      <a href="?status=<?= $s ?>" class="btn btn-sm <?= $statusFilter===$s ? 'btn-navy' : 'btn-outline-secondary' ?>"><?= $l ?></a>
+      <a href="<?= buildAssignQS(['status'=>$s,'page'=>null]) ?>" class="status-tab <?= $statusFilter===$s ? 'active' : '' ?>"><?= $l ?></a>
       <?php endforeach; ?>
     </div>
   </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover data-table mb-0" style="font-size:.85rem">
-        <thead><tr>
-          <th>Yang Dinilai</th><th>Penilai</th><th>Paket</th>
-          <th>Deadline</th><th>Status</th><th>Aksi</th>
-        </tr></thead>
-        <tbody>
-          <?php foreach ($assignments as $a): ?>
-          <tr>
-            <td><strong><?= h($a['evaluatee_name']) ?></strong><br>
-              <small class="text-muted"><?= h(roleLabel($a['evaluatee_role'])) ?></small></td>
-            <td><?= h($a['evaluator_name']) ?><br>
-              <small class="text-muted"><?= h(roleLabel($a['evaluator_role'])) ?></small></td>
-            <td><span class="badge badge-navy"><?= h($a['pkg_code']) ?></span><br>
-              <small class="text-muted"><?= h(respondentLabel($a['respondent_type'])) ?></small></td>
-            <td class="small"><?= $a['due_date'] ? date('d M Y', strtotime($a['due_date'])) : '—' ?></td>
-            <td><?= statusBadge($a['status']) ?></td>
-            <td>
+  <div style="overflow-x:auto">
+    <table class="assign-table">
+      <thead><tr>
+        <th>Yang Dinilai</th><th>Penilai</th><th>Paket</th>
+        <th>Deadline</th><th>Status</th><th style="text-align:center">Aksi</th>
+      </tr></thead>
+      <tbody>
+        <?php if (empty($assignments)): ?>
+        <tr><td colspan="6" class="empty-row">
+          <i class="bi bi-inbox" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>
+          Tidak ada penugasan yang cocok dengan filter ini
+        </td></tr>
+        <?php else: ?>
+        <?php foreach ($assignments as $a): ?>
+        <tr>
+          <td>
+            <div class="name-primary"><?= h($a['evaluatee_name']) ?></div>
+            <div class="role-sub"><?= h(roleLabel($a['evaluatee_role'])) ?></div>
+          </td>
+          <td>
+            <div class="name-primary" style="font-weight:500"><?= h($a['evaluator_name']) ?></div>
+            <div class="role-sub"><?= h(roleLabel($a['evaluator_role'])) ?></div>
+          </td>
+          <td>
+            <span class="pkg-badge"><?= h($a['pkg_code']) ?></span>
+            <span class="resp-sub"><?= h(respondentLabel($a['respondent_type'])) ?></span>
+          </td>
+          <td class="due-date-cell"><?= $a['due_date'] ? date('d M Y', strtotime($a['due_date'])) : '—' ?></td>
+          <td><?= statusBadge($a['status']) ?></td>
+          <td>
+            <div class="action-cell" style="justify-content:center">
               <?php if ($a['status'] === 'pending'): ?>
-              <form method="POST" class="d-inline">
+              <form method="POST" onsubmit="return confirm('Hapus penugasan ini?')">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="assign_id" value="<?= $a['id'] ?>">
-                <button class="btn btn-sm btn-outline-danger"
-                  data-confirm="Hapus penugasan ini?" title="Hapus">
+                <button type="submit" class="action-icon-btn danger" title="Hapus">
                   <i class="bi bi-trash"></i>
                 </button>
               </form>
               <?php elseif ($a['status'] === 'completed'): ?>
               <a href="<?= APP_URL ?>/survey/fill.php?id=<?= $a['id'] ?>&view=1"
-                class="btn btn-sm btn-outline-secondary" title="Lihat jawaban">
+                class="action-icon-btn view" title="Lihat jawaban">
                 <i class="bi bi-eye"></i>
               </a>
+              <?php else: ?>
+              <span style="color:#cbd5e1">—</span>
               <?php endif; ?>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+            </div>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PAGINATION -->
+  <?php if ($pagi['total_pages'] > 1): ?>
+  <div class="pager">
+    <span class="pager-info">
+      Halaman <?= $pagi['page'] ?> dari <?= $pagi['total_pages'] ?>
+      (menampilkan <?= $offset + 1 ?>–<?= min($offset + $perPage, $filteredTotal) ?> dari <?= $filteredTotal ?>)
+    </span>
+    <div class="pager-btns">
+      <a href="<?= buildAssignQS(['page'=>max(1,$pagi['page']-1)]) ?>"
+         class="pager-btn <?= $pagi['page']<=1?'disabled':'' ?>">
+        <i class="bi bi-chevron-left"></i> Sebelumnya
+      </a>
+      <a href="<?= buildAssignQS(['page'=>min($pagi['total_pages'],$pagi['page']+1)]) ?>"
+         class="pager-btn <?= $pagi['page']>=$pagi['total_pages']?'disabled':'' ?>">
+        Selanjutnya <i class="bi bi-chevron-right"></i>
+      </a>
     </div>
   </div>
+  <?php endif; ?>
 </div>
 
 <?php
