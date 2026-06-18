@@ -456,7 +456,10 @@ ob_start(); ?>
             <div class="role-sub"><?= h(roleLabel($a['evaluatee_role'])) ?></div>
           </td>
           <td>
-            <div class="name-primary" style="font-weight:500"><?= h($a['evaluator_name']) ?></div>
+            <a href="<?= APP_URL ?>/admin/evaluator_pov.php?id=<?= $a['evaluator_id'] ?>"
+               class="name-primary" style="font-weight:500;color:#185FA5;text-decoration:none">
+              <?= h($a['evaluator_name']) ?>
+            </a>
             <div class="role-sub"><?= h(roleLabel($a['evaluator_role'])) ?></div>
           </td>
           <td>
