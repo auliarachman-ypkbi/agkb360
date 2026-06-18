@@ -11,7 +11,7 @@ $assignId = (int)($_GET['assign'] ?? 0);
 
 // Ambil info assignment
 $assignment = $assignId ? Database::fetchOne("
-    SELECT a.*, u.name as evaluatee_name, p.pkg_name, p.code as pkg_code
+    SELECT a.*, u.name as evaluatee_name, p.name as pkg_name, p.code as pkg_code
     FROM assignments a
     JOIN users u ON u.id = a.evaluatee_id
     JOIN packages p ON p.id = a.package_id
