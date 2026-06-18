@@ -259,7 +259,7 @@ ob_start(); ?>
         $bpct = $b['total'] > 0 ? round($b['done']/$b['total']*100) : 0;
         $bColor = $bpct>=80?'#16a34a':($bpct>=50?'#d97706':'#dc2626');
         $drillUrl = APP_URL . '/admin/assignments.php?role=' . urlencode($p['role'])
-                  . '&resp=' . urlencode($b['resp']) . '&q=' . urlencode($p['name']);
+                  . '&resp=' . urlencode($b['resp']) . '&evaluatee_id=' . (int)$p['id'];
       ?>
       <div class="detail-row">
         <div class="detail-label">

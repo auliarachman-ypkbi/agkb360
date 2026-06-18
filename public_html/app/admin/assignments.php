@@ -163,12 +163,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ── Fetch assignments dengan filter & pagination ───────────────
-$statusFilter = $_GET['status'] ?? '';
-$roleFilter   = $_GET['role'] ?? '';
-$respFilter   = $_GET['resp'] ?? '';
-$searchQ      = trim($_GET['q'] ?? '');
-$curPage      = max(1, (int)($_GET['page'] ?? 1));
-$perPage      = 50;
+$statusFilter    = $_GET['status'] ?? '';
+$roleFilter      = $_GET['role'] ?? '';
+$respFilter      = $_GET['resp'] ?? '';
+$evaluateeIdF    = (int)($_GET['evaluatee_id'] ?? 0);
+$evaluatorIdF    = (int)($_GET['evaluator_id'] ?? 0);
+$searchQ         = trim($_GET['q'] ?? '');
+$curPage         = max(1, (int)($_GET['page'] ?? 1));
+$perPage         = 50;
 
 $whereSql = "WHERE a.period_id = ?";
 $qParams  = [$pid];
@@ -176,6 +178,8 @@ $qParams  = [$pid];
 if ($statusFilter !== '') { $whereSql .= " AND a.status = ?"; $qParams[] = $statusFilter; }
 if ($roleFilter   !== '') { $whereSql .= " AND u_ee.role = ?"; $qParams[] = $roleFilter; }
 if ($respFilter   !== '') { $whereSql .= " AND p.respondent_type = ?"; $qParams[] = $respFilter; }
+if ($evaluateeIdF > 0)    { $whereSql .= " AND a.evaluatee_id = ?"; $qParams[] = $evaluateeIdF; }
+if ($evaluatorIdF > 0)    { $whereSql .= " AND a.evaluator_id = ?"; $qParams[] = $evaluatorIdF; }
 if ($searchQ      !== '') {
     $whereSql .= " AND (u_ee.name LIKE ? OR u_or.name LIKE ?)";
     $qParams[] = "%$searchQ%"; $qParams[] = "%$searchQ%";
@@ -213,16 +217,34 @@ $respTypeOptions = Database::fetchAll("
     WHERE respondent_type IS NOT NULL ORDER BY respondent_type
 ");
 
+// Daftar nama yang dinilai (evaluatee) — distinct, hanya yang punya assignment di periode ini
+$evaluateeOptions = Database::fetchAll("
+    SELECT DISTINCT u.id, u.name, u.role
+    FROM users u
+    JOIN assignments a ON a.evaluatee_id = u.id AND a.period_id = ?
+    ORDER BY u.role, u.name
+", [$pid]);
+
+// Daftar nama penilai — distinct, hanya yang punya assignment di periode ini
+$evaluatorOptions = Database::fetchAll("
+    SELECT DISTINCT u.id, u.name, u.role
+    FROM users u
+    JOIN assignments a ON a.evaluator_id = u.id AND a.period_id = ?
+    ORDER BY u.role, u.name
+", [$pid]);
+
 // Helper bangun query string, sambil mempertahankan filter lain
 function buildAssignQS(array $overrides = []): string {
     $base = [
-        'status' => $_GET['status'] ?? '',
-        'role'   => $_GET['role']   ?? '',
-        'resp'   => $_GET['resp']   ?? '',
-        'q'      => $_GET['q']      ?? '',
-        'page'   => $_GET['page']   ?? '',
+        'status'       => $_GET['status']       ?? '',
+        'role'         => $_GET['role']         ?? '',
+        'resp'         => $_GET['resp']         ?? '',
+        'evaluatee_id' => $_GET['evaluatee_id'] ?? '',
+        'evaluator_id' => $_GET['evaluator_id'] ?? '',
+        'q'            => $_GET['q']            ?? '',
+        'page'         => $_GET['page']         ?? '',
     ];
-    $merged = array_filter(array_merge($base, $overrides), fn($v) => $v !== '' && $v !== null);
+    $merged = array_filter(array_merge($base, $overrides), fn($v) => $v !== '' && $v !== null && $v !== 0 && $v !== '0');
     return '?' . htmlspecialchars(http_build_query($merged));
 }
 
@@ -409,14 +431,44 @@ ob_start(); ?>
       <?php endforeach; ?>
     </select>
   </div>
+  <div class="f-group">
+    <label>Yang Dinilai</label>
+    <select name="evaluatee_id" onchange="this.form.submit()">
+      <option value="">Semua</option>
+      <?php $prevRole = null; foreach ($evaluateeOptions as $eo): ?>
+        <?php if ($eo['role'] !== $prevRole): ?>
+          <?php if ($prevRole !== null): ?></optgroup><?php endif; ?>
+          <optgroup label="<?= h(roleLabel($eo['role'])) ?>">
+          <?php $prevRole = $eo['role']; ?>
+        <?php endif; ?>
+        <option value="<?= $eo['id'] ?>" <?= $evaluateeIdF===$eo['id']?'selected':'' ?>><?= h($eo['name']) ?></option>
+      <?php endforeach; ?>
+      <?php if ($prevRole !== null): ?></optgroup><?php endif; ?>
+    </select>
+  </div>
+  <div class="f-group">
+    <label>Penilai</label>
+    <select name="evaluator_id" onchange="this.form.submit()">
+      <option value="">Semua</option>
+      <?php $prevRole2 = null; foreach ($evaluatorOptions as $eo): ?>
+        <?php if ($eo['role'] !== $prevRole2): ?>
+          <?php if ($prevRole2 !== null): ?></optgroup><?php endif; ?>
+          <optgroup label="<?= h(roleLabel($eo['role'])) ?>">
+          <?php $prevRole2 = $eo['role']; ?>
+        <?php endif; ?>
+        <option value="<?= $eo['id'] ?>" <?= $evaluatorIdF===$eo['id']?'selected':'' ?>><?= h($eo['name']) ?></option>
+      <?php endforeach; ?>
+      <?php if ($prevRole2 !== null): ?></optgroup><?php endif; ?>
+    </select>
+  </div>
   <div class="f-group f-search">
-    <label>Cari Nama</label>
+    <label>Cari Nama (bebas)</label>
     <input type="text" name="q" placeholder="Cari yang dinilai / penilai..." value="<?= h($searchQ) ?>">
   </div>
   <div class="f-actions">
     <button type="submit" class="btn-filter"><i class="bi bi-funnel"></i>Filter</button>
-    <?php if ($roleFilter || $respFilter || $searchQ): ?>
-    <a href="<?= buildAssignQS(['role'=>null,'resp'=>null,'q'=>null,'page'=>null]) ?>" class="btn-clear" title="Reset filter">
+    <?php if ($roleFilter || $respFilter || $evaluateeIdF || $evaluatorIdF || $searchQ): ?>
+    <a href="<?= buildAssignQS(['role'=>null,'resp'=>null,'evaluatee_id'=>null,'evaluator_id'=>null,'q'=>null,'page'=>null]) ?>" class="btn-clear" title="Reset filter">
       <i class="bi bi-x-lg"></i>
     </a>
     <?php endif; ?>
@@ -428,7 +480,7 @@ ob_start(); ?>
   <div class="assign-card-hdr">
     <span class="assign-card-title">
       <i class="bi bi-list-check"></i>Daftar Penugasan
-      <span class="result-count">(<?= $filteredTotal ?> hasil<?= ($roleFilter||$respFilter||$searchQ) ? ' terfilter' : '' ?>)</span>
+      <span class="result-count">(<?= $filteredTotal ?> hasil<?= ($roleFilter||$respFilter||$evaluateeIdF||$evaluatorIdF||$searchQ) ? ' terfilter' : '' ?>)</span>
     </span>
     <div class="status-tabs">
       <?php foreach ([''=>'Semua','pending'=>'Menunggu','in_progress'=>'Proses','completed'=>'Selesai'] as $s => $l): ?>
