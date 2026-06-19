@@ -11,12 +11,12 @@ $period = getPeriod();
 
 if (canAccessAdmin()) {
 
-// ── FETCH SEMUA CLOSED PERIODS ────────────────────────────────
+// ── FETCH SEMUA PERIODE (closed + active berjalan = data sementara) ──
 $closedPeriods = Database::fetchAll("
-    SELECT ep.id, ep.name, ep.year, ep.start_date, ep.end_date
+    SELECT ep.id, ep.name, ep.year, ep.start_date, ep.end_date, ep.status
     FROM eval_periods ep
     JOIN assignments a ON a.period_id = ep.id AND a.status='completed'
-    WHERE ep.status = 'closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY ep.id
     ORDER BY ep.start_date, ep.id
 ");
@@ -27,7 +27,7 @@ if (empty($closedPeriods)) {
       <div class="card-body text-center py-5 text-muted">
         <i class="bi bi-bar-chart display-4 mb-3 d-block"></i>
         <h5 class="fw-bold text-navy">Belum ada data evaluasi</h5>
-        <p>Data tren akan muncul setelah minimal satu periode evaluasi selesai.</p>
+        <p>Data tren akan muncul setelah ada kuesioner yang masuk pada periode evaluasi.</p>
         <a href="<?= APP_URL ?>/admin/periods.php" class="btn btn-navy mt-2">
           <i class="bi bi-calendar3 me-1"></i>Kelola Periode
         </a>
@@ -42,6 +42,10 @@ if (empty($closedPeriods)) {
 $periodIds   = array_column($closedPeriods, 'id');
 $periodNames = array_column($closedPeriods, 'name');
 
+// Periode terakhir dalam rentang — kalau masih 'active', ini data sementara
+$latestPeriodInView = end($closedPeriods);
+$hasPreliminary      = $latestPeriodInView && $latestPeriodInView['status'] !== 'closed';
+
 // ── METRICS ───────────────────────────────────────────────────
 $totalUsers  = Database::fetchOne("SELECT COUNT(*) c FROM users WHERE is_active=1")['c'];
 $cntLeader   = Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='leader' AND is_active=1")['c'];
@@ -54,7 +58,7 @@ $schoolAvgRaw = Database::fetchAll("
     FROM eval_periods ep
     JOIN assignments a ON a.period_id=ep.id AND a.status='completed'
     JOIN responses r ON r.assignment_id=a.id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY ep.id
     ORDER BY ep.start_date, ep.id
 ");
@@ -73,7 +77,7 @@ $domainRaw = Database::fetchAll("
     JOIN standards s ON q.standard_id=s.id
     JOIN domains d ON s.domain_id=d.id
     JOIN eval_types et ON d.eval_type_id=et.id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY et.code, et.name, d.id, d.name, ep.id
     ORDER BY et.id, d.id, ep.start_date
 ");
@@ -89,7 +93,7 @@ $traitRaw = Database::fetchAll("
     JOIN standards s ON q.standard_id=s.id
     JOIN standard_traits st ON st.standard_id=s.id
     JOIN traits t ON t.id=st.trait_id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY t.id, t.name, ep.id
     ORDER BY t.code, ep.start_date
 ");
@@ -100,7 +104,7 @@ $individualRaw = Database::fetchAll("
            ROUND(AVG(r.grade),2) as avg_score
     FROM users u
     JOIN assignments a ON a.evaluatee_id=u.id AND a.status='completed'
-    JOIN eval_periods ep ON ep.id=a.period_id AND ep.status='closed'
+    JOIN eval_periods ep ON ep.id=a.period_id AND ep.status IN ('closed','active')
     JOIN responses r ON r.assignment_id=a.id
     WHERE u.role IN ('leader','teacher') AND u.is_active=1
     GROUP BY u.id, u.name, u.role, ep.id
@@ -213,6 +217,13 @@ ob_start(); ?>
 .ql:hover{background:#f8fafc;border-color:#2C5282;transform:translateY(-2px);box-shadow:0 4px 12px rgba(44,82,130,.12)}
 .ql i{font-size:20px;color:#185FA5}
 </style>
+
+<?php if ($hasPreliminary): ?>
+<div style="background:#FAEEDA;border:1px solid #fac775;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#633806;display:flex;align-items:center;gap:8px">
+  <i class="bi bi-hourglass-split"></i>
+  Periode <strong><?= h($latestPeriodInView['name']) ?></strong> masih berjalan — data untuk periode ini bersifat <strong>sementara</strong> dari responden yang sudah mengisi, dan akan diperbarui sampai periode ditutup.
+</div>
+<?php endif; ?>
 
 <!-- METRIC CARDS -->
 <div class="dash-g4">
@@ -388,9 +399,10 @@ function renderSlider() {
   handleR.style.left = rp + '%';
   const ln = PERIODS[leftIdx].name;
   const rn = PERIODS[rightIdx].name;
-  sliderInfo.textContent = leftIdx === rightIdx
+  const prelimSuffix = PERIODS[rightIdx].status === 'active' ? ' · Sementara' : '';
+  sliderInfo.textContent = (leftIdx === rightIdx
     ? ln
-    : ln.split(' ').slice(-2).join(' ') + ' → ' + rn.split(' ').slice(-2).join(' ') + ' (' + (rightIdx-leftIdx+1) + ' periode)';
+    : ln.split(' ').slice(-2).join(' ') + ' → ' + rn.split(' ').slice(-2).join(' ') + ' (' + (rightIdx-leftIdx+1) + ' periode)') + prelimSuffix;
 }
 
 function formatPeriodLabel(name) {
@@ -412,8 +424,11 @@ function renderLabels() {
   sliderLabels.innerHTML = PERIODS.map((p,i) => {
     const pos = pct(i);
     const [line1, line2] = formatPeriodLabel(p.name);
+    const prelimDot = p.status === 'active'
+      ? `<span title="Periode berjalan — data sementara" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#d97706;margin-left:3px;vertical-align:middle"></span>`
+      : '';
     return `<span style="position:absolute;left:${pos}%;transform:translateX(-50%);text-align:center;line-height:1.3;white-space:nowrap">
-      <span style="display:block;font-size:${fs}px;font-weight:500;color:#1e293b">${line1}</span>
+      <span style="display:block;font-size:${fs}px;font-weight:500;color:#1e293b">${line1}${prelimDot}</span>
       ${line2 ? `<span style="display:block;font-size:${Math.max(7,fs-1)}px;color:#64748b">${line2}</span>` : ''}
     </span>`;
   }).join('');
