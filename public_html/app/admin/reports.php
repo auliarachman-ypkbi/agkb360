@@ -14,13 +14,13 @@ $allPersons = Database::fetchAll("
     FROM users u
     JOIN assignments a ON a.evaluatee_id = u.id
     JOIN eval_periods ep ON ep.id = a.period_id
-    WHERE u.role IN ('leader','teacher') AND u.is_active=1 AND ep.status='closed'
+    WHERE u.role IN ('leader','teacher') AND u.is_active=1 AND ep.status IN ('closed','active')
     ORDER BY u.role, u.name
 ");
 
 // ── SEMUA PERIODE CLOSED ──────────────────────────────────────
 $allPeriods = Database::fetchAll("
-    SELECT * FROM eval_periods WHERE status='closed' ORDER BY start_date ASC, id ASC
+    SELECT * FROM eval_periods WHERE status IN ('closed','active') ORDER BY start_date ASC, id ASC
 ");
 
 $selectedUid = (int)($_GET['user_id'] ?? 0);
@@ -137,6 +137,7 @@ foreach ($allPeriods as $p) {
         'id'     => $p['id'],
         'name'   => $p['name'],
         'score'  => $trendData[$p['id']]['overall'] ?? 0,
+        'status' => $p['status'],
     ];
 }
 
@@ -273,10 +274,22 @@ ob_start(); ?>
        class="nav-btn <?= !$prevPid?'disabled':'' ?>">‹</a>
     <div class="period-name">
       <?= $curPeriod ? h($curPeriod['name']) : '—' ?>
+      <?php if ($curPeriod && $curPeriod['status'] !== 'closed'): ?>
+      <span class="chip" style="background:#FAEEDA;color:#633806;border:1px solid #fac775;font-size:10px;margin-left:6px;vertical-align:middle">
+        <i class="bi bi-hourglass-split me-1"></i>Sementara
+      </span>
+      <?php endif; ?>
     </div>
     <a href="<?= $nextPid?"?user_id=$selectedUid&period_id=$nextPid&tab=trend":'#' ?>"
        class="nav-btn <?= !$nextPid?'disabled':'' ?>">›</a>
   </div>
+
+  <?php if ($curPeriod && $curPeriod['status'] !== 'closed'): ?>
+  <div style="background:#FAEEDA;border:1px solid #fac775;border-radius:10px;padding:10px 16px;font-size:12px;color:#633806;display:flex;align-items:center;gap:8px">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    Periode ini masih berjalan — angka di bawah adalah <strong>skor sementara</strong> dari responden yang sudah mengisi, dan bisa berubah sampai periode ditutup.
+  </div>
+  <?php endif; ?>
 
   <!-- METRIC CARDS -->
   <div class="metrics">
@@ -679,6 +692,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const data   = TREND_DATA.map(d => d.score || null);
     const colors = TREND_DATA.map(d => d.id === SELECTED_PID ? '#185FA5' : 'rgba(24,95,165,0.35)');
+    const borderColors = TREND_DATA.map(d => d.status === 'active' ? '#d97706' : 'transparent');
+    const borderWidths = TREND_DATA.map(d => d.status === 'active' ? 2 : 0);
     new Chart(tc, {
       type: 'bar',
       data: {
@@ -686,6 +701,8 @@ document.addEventListener('DOMContentLoaded', () => {
         datasets: [{
           data,
           backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: borderWidths,
           borderRadius: 4,
           borderSkipped: false,
         }]
