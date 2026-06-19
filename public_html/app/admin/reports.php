@@ -50,7 +50,8 @@ if ($selectedUid) {
 
         // Skor per sumber responden
         $srcRows = Database::fetchAll("
-            SELECT pkg.respondent_type, ROUND(AVG(r.grade),2) as avg
+            SELECT pkg.respondent_type, ROUND(AVG(r.grade),2) as avg,
+                   COUNT(DISTINCT a.id) as n_completed
             FROM assignments a
             JOIN packages pkg ON pkg.id = a.package_id
             JOIN responses r ON r.assignment_id = a.id
@@ -95,6 +96,17 @@ if ($selectedUid && $selectedPid) {
         'overall' => (float)($selfOverall['avg'] ?? 0),
         'byDomain' => $selfDomains,
     ];
+
+    // Total assigned per grup responden (penyebut untuk hitung respon rate)
+    $groupTotals = [];
+    $totRows = Database::fetchAll("
+        SELECT pkg.respondent_type, COUNT(*) as n_total
+        FROM assignments a
+        JOIN packages pkg ON pkg.id = a.package_id
+        WHERE a.evaluatee_id = ? AND a.period_id = ? AND pkg.is_self_reflection = 0
+        GROUP BY pkg.respondent_type
+    ", [$selectedUid, $selectedPid]);
+    foreach ($totRows as $tr) { $groupTotals[$tr['respondent_type']] = (int)$tr['n_total']; }
 
     if (!empty($scores['byStandard'])) {
         foreach ($scores['byStandard'] as $sid => $s) {
@@ -418,16 +430,22 @@ ob_start(); ?>
       if (!empty($srcRows)):
         $maxSrc = max(array_column($srcRows,'avg'));
       ?>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
         <?php foreach ($srcRows as $src):
           $pct = $maxSrc>0 ? round(($src['avg']/$maxSrc)*100) : 0;
           $label = respondentLabel($src['respondent_type']);
+          $nDone  = (int)($src['n_completed'] ?? 0);
+          $nTotal = $groupTotals[$src['respondent_type']] ?? null;
         ?>
         <div class="mc">
           <div class="mc-val"><?= number_format($src['avg'],2) ?></div>
           <div class="mc-lbl"><?= h($label) ?></div>
           <div class="bar-track" style="margin-top:8px;height:6px">
             <div class="bar-fill" style="width:<?= $pct ?>%;background:#185FA5;height:6px"></div>
+          </div>
+          <div style="margin-top:6px;font-size:10.5px;color:#94a3b8">
+            <i class="bi bi-people-fill me-1"></i>
+            <?= $nTotal !== null ? "{$nDone}/{$nTotal} review masuk" : "{$nDone} review masuk" ?>
           </div>
         </div>
         <?php endforeach; ?>
@@ -574,7 +592,7 @@ ob_start(); ?>
   <div class="dcard" style="border-left:3px solid #533AB7">
     <div class="dcard-hdr">Skor per Trait</div>
     <div class="dcard-body">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:8px 20px">
         <?php foreach ($sortedTraits as $t):
           $tl = getScoreLevel($t['avg']);
         ?>
