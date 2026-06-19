@@ -46,6 +46,9 @@ if ($action === 'get_package') {
     }
 
     // Tentukan respondent_type berdasarkan role evaluator
+    // CATATAN: respondent_type peer-review TIDAK pakai literal 'peer' —
+    // sesuai matrix, Leader selalu pakai kode 'leader', Guru selalu pakai 'guru',
+    // baik untuk peer-review maupun cross-evaluation.
     $respType = null;
 
     // Self reflection
@@ -54,26 +57,26 @@ if ($action === 'get_package') {
     }
     // Foundation/Yayasan → atasan (hanya untuk leader)
     elseif ($evaluator['role'] === 'foundation') {
-        $respType = ($evalTypeId === 1) ? 'atasan' : null;
         if ($evalTypeId === 2) {
             jsonResponse(['package' => null, 'error' => 'Yayasan tidak menilai Guru langsung.']);
         }
+        $respType = 'atasan';
     }
-    // Leader menilai
+    // Leader menilai (Leader maupun Guru) → selalu 'leader'
     elseif ($evaluator['role'] === 'leader') {
-        $respType = ($evaluatee['role'] === 'leader') ? 'peer' : 'leader';
+        $respType = 'leader';
     }
-    // Guru menilai
+    // Guru menilai (Leader maupun Guru) → selalu 'guru'
     elseif ($evaluator['role'] === 'teacher') {
-        $respType = ($evaluatee['role'] === 'teacher') ? 'peer' : 'guru';
+        $respType = 'guru';
     }
     // Orang tua → ortu
     elseif ($evaluator['role'] === 'parent') {
         $respType = 'ortu';
     }
-    // Siswa → siswa
+    // Siswa → OSIS menilai leader = 'siswa', murid menilai guru (per kelas) = 'student_class'
     elseif ($evaluator['role'] === 'student') {
-        $respType = 'siswa';
+        $respType = ($evalTypeId === 1) ? 'siswa' : 'student_class';
     }
 
     if (!$respType) {
@@ -115,10 +118,10 @@ if ($action === 'search_users') {
         $where .= " AND u.role IN ('leader','teacher')";
     } elseif ($type === 'evaluator' && $evaluateeId) {
         // Filter penilai berdasarkan evaluatee yang dipilih
-        $evaluatee = Database::fetchOne("SELECT role FROM users WHERE id=?", [$evaluateeId]);
+        $evaluatee = Database::fetchOne("SELECT id, role FROM users WHERE id=?", [$evaluateeId]);
         if ($evaluatee) {
             if ($evaluatee['role'] === 'leader') {
-                // Leader bisa dinilai oleh: foundation, leader, teacher, parent (komite), student (osis)
+                // Leader bisa dinilai oleh: foundation, leader, teacher, parent (komite), student (OSIS)
                 $where .= " AND (
                     u.role IN ('foundation','leader','teacher')
                     OR (u.role = 'parent' AND u.is_parent_committee = 1)
@@ -126,12 +129,16 @@ if ($action === 'search_users') {
                     OR u.id = $evaluateeId
                 )";
             } elseif ($evaluatee['role'] === 'teacher') {
-                // Teacher bisa dinilai oleh: leader, teacher, parent (komite), student (sesuai kelas)
+                // Teacher bisa dinilai oleh: leader, teacher, parent (komite),
+                // murid yang ada di kelas yang sama (via class_teachers + class_students — many-to-many)
                 $where .= " AND (
                     u.role IN ('leader','teacher')
                     OR (u.role = 'parent' AND u.is_parent_committee = 1)
-                    OR (u.role = 'student' AND u.class_id IN (
-                        SELECT class_id FROM teacher_classes WHERE teacher_id = $evaluateeId
+                    OR (u.role = 'student' AND u.id IN (
+                        SELECT cs.student_id
+                        FROM class_students cs
+                        JOIN class_teachers ct ON ct.class_id = cs.class_id
+                        WHERE ct.teacher_id = $evaluateeId
                     ))
                     OR u.id = $evaluateeId
                 )";
@@ -148,10 +155,8 @@ if ($action === 'search_users') {
 
     $users = Database::fetchAll("
         SELECT u.id, u.name, u.role,
-               c.name as class_name,
                u.is_osis, u.is_parent_committee
         FROM users u
-        LEFT JOIN classes c ON c.id = u.class_id
         WHERE $where
         ORDER BY FIELD(u.role,'foundation','leader','teacher','parent','student'), u.name
         LIMIT 50
@@ -161,9 +166,8 @@ if ($action === 'search_users') {
     $results = array_map(function($u) {
         $label = '[' . strtoupper($u['role']) . '] ' . $u['name'];
         $meta  = '';
-        if ($u['role'] === 'student') {
-            $meta = $u['class_name'] ? ' · ' . $u['class_name'] : '';
-            if ($u['is_osis']) $meta .= ' · OSIS';
+        if ($u['role'] === 'student' && $u['is_osis']) {
+            $meta = ' · OSIS';
         }
         if ($u['role'] === 'parent' && $u['is_parent_committee']) {
             $meta = ' · Komite';
