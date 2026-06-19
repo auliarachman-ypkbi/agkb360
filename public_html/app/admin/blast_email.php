@@ -50,7 +50,7 @@ P.S: As this platform is still in active development, please do not hesitate to 
 $otherRoleOptions = Database::fetchAll("
     SELECT role, COUNT(*) as cnt
     FROM users
-    WHERE role NOT IN ('superadmin','admin','tester','leader','teacher','student','parent')
+    WHERE role NOT IN ('superadmin','admin','tester','leader','teacher','student','parent','foundation')
     AND is_active = 1
     GROUP BY role
     ORDER BY role
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['blast_type'])) {
     $subject   = trim($_POST['subject'] ?? $defaultSubject);
     $bodyTpl   = trim($_POST['body'] ?? $defaultBody);
 
-    $allowedTypes = array_merge(['leader','teacher','student','parent','osis'], $otherRoleKeys);
+    $allowedTypes = array_merge(['leader','teacher','student','parent','osis','foundation'], $otherRoleKeys);
     if (!in_array($blastType, $allowedTypes)) {
         flash('Tipe blast tidak valid.', 'danger');
         header('Location: ' . APP_URL . '/admin/blast_email.php');
@@ -234,6 +234,7 @@ $counts = [
         JOIN `groups` g ON g.id=ug.group_id
         WHERE g.respondent_type='siswa' AND g.is_fixed=1 AND u.is_active=1
     ")['c'],
+    'foundation' => Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='foundation' AND is_active=1")['c'],
 ];
 
 // ── LOG dengan PAGINATION (10/halaman, terbaru di atas) ─────────
@@ -281,6 +282,7 @@ ob_start(); ?>
 .btn-blast.student{background:#27500A}
 .btn-blast.parent{background:#7C3AED}
 .btn-blast.osis{background:#C2410C}
+.btn-blast.foundation{background:#0C447C}
 .btn-blast.other{background:#533AB7;width:auto;padding:0 18px;flex-shrink:0}
 .other-blast-card{border:1.5px dashed #cbd5e1;border-radius:10px;padding:14px 16px;margin-bottom:20px;background:#fafbfc}
 .other-blast-lbl{font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px}
@@ -405,6 +407,21 @@ ob_start(); ?>
             onsubmit="return confirm('Kirim ke <?= $counts['osis'] ?> anggota OSIS?')"
             <?= $counts['osis']==0 ? 'disabled title="Belum ada anggota OSIS terdaftar"' : '' ?>>
             <i class="bi bi-send me-1"></i>Blast ke OSIS
+          </button>
+        </form>
+      </div>
+      <div class="type-card">
+        <div class="type-count"><?= $counts['foundation'] ?></div>
+        <div class="type-label">Yayasan</div>
+        <form method="POST">
+          <input type="hidden" name="blast_type" value="foundation">
+          <input type="hidden" name="subject" id="s_foundation">
+          <input type="hidden" name="body" id="b_foundation">
+          <button type="submit" class="btn-blast foundation"
+            onclick="syncFields('foundation')"
+            onsubmit="return confirm('Kirim ke <?= $counts['foundation'] ?> Pengurus Yayasan?')"
+            <?= $counts['foundation']==0 ? 'disabled title="Belum ada Pengurus Yayasan terdaftar"' : '' ?>>
+            <i class="bi bi-send me-1"></i>Blast ke Yayasan
           </button>
         </form>
       </div>
