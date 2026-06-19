@@ -46,6 +46,41 @@ Yayasan Kader Bangsa
 ---
 P.S: As this platform is still in active development, please do not hesitate to report any errors or issues you encounter. Your feedback helps us improve.';
 
+// ── Daftar kategori dinamis "Lainnya" (role di luar leader/teacher/student/parent) ──
+$otherRoleOptions = Database::fetchAll("
+    SELECT role, COUNT(*) as cnt
+    FROM users
+    WHERE role NOT IN ('superadmin','admin','tester','leader','teacher','student','parent')
+    AND is_active = 1
+    GROUP BY role
+    ORDER BY role
+");
+$otherRoleKeys = array_column($otherRoleOptions, 'role');
+
+// ── Helper label tampilan untuk tipe blast (termasuk 'osis' yang bukan role asli) ──
+function blastTypeLabel(string $type): string {
+    if ($type === 'osis') return 'OSIS';
+    return roleLabel($type);
+}
+
+// ── Helper ambil daftar penerima sesuai tipe blast ──────────────
+function getBlastRecipients(string $blastType): array {
+    if ($blastType === 'osis') {
+        return Database::fetchAll("
+            SELECT u.id, u.name, u.email
+            FROM users u
+            JOIN user_groups ug ON ug.user_id = u.id
+            JOIN `groups` g ON g.id = ug.group_id
+            WHERE g.respondent_type = 'siswa' AND g.is_fixed = 1 AND u.is_active = 1
+            ORDER BY u.name
+        ");
+    }
+    return Database::fetchAll(
+        "SELECT id, name, email FROM users WHERE role=? AND is_active=1 ORDER BY name",
+        [$blastType]
+    );
+}
+
 // ── HANDLE BLAST ─────────────────────────────────────────────
 $blastResult = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['blast_type'])) {
@@ -53,18 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['blast_type'])) {
     $subject   = trim($_POST['subject'] ?? $defaultSubject);
     $bodyTpl   = trim($_POST['body'] ?? $defaultBody);
 
-    if (!in_array($blastType, ['leader','teacher','student'])) {
+    $allowedTypes = array_merge(['leader','teacher','student','parent','osis'], $otherRoleKeys);
+    if (!in_array($blastType, $allowedTypes)) {
         flash('Tipe blast tidak valid.', 'danger');
         header('Location: ' . APP_URL . '/admin/blast_email.php');
         exit;
     }
 
     // Ambil penerima
-    $roleMap = ['leader'=>'leader','teacher'=>'teacher','student'=>'student'];
-    $recipients = Database::fetchAll(
-        "SELECT id, name, email FROM users WHERE role=? AND is_active=1 ORDER BY name",
-        [$roleMap[$blastType]]
-    );
+    $recipients = getBlastRecipients($blastType);
 
     $sent = 0; $failed = 0;
     foreach ($recipients as $r) {
@@ -195,15 +227,41 @@ $counts = [
     'leader'  => Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='leader' AND is_active=1")['c'],
     'teacher' => Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='teacher' AND is_active=1")['c'],
     'student' => Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='student' AND is_active=1")['c'],
+    'parent'  => Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='parent' AND is_active=1")['c'],
+    'osis'    => Database::fetchOne("
+        SELECT COUNT(*) c FROM users u
+        JOIN user_groups ug ON ug.user_id=u.id
+        JOIN `groups` g ON g.id=ug.group_id
+        WHERE g.respondent_type='siswa' AND g.is_fixed=1 AND u.is_active=1
+    ")['c'],
 ];
+
+// ── LOG dengan PAGINATION (10/halaman, terbaru di atas) ─────────
+$logPage    = max(1, (int)($_GET['log_page'] ?? 1));
+$logPerPage = 10;
+$logTotal   = Database::fetchOne("SELECT COUNT(*) c FROM email_blast_log")['c'];
+$logPagi    = paginate($logTotal, $logPerPage, $logPage);
 $logs = Database::fetchAll("
     SELECT l.*, u.name as recipient_name, s.name as sender_name
     FROM email_blast_log l
     JOIN users u ON u.id = l.recipient_id
     JOIN users s ON s.id = l.sent_by
-    ORDER BY l.sent_at DESC
-    LIMIT 100
+    ORDER BY l.sent_at DESC, l.id DESC
+    LIMIT {$logPerPage} OFFSET {$logPagi['offset']}
 ");
+
+// ── Rangkuman log: total + breakdown per kategori blast ─────────
+$blastSummary = Database::fetchAll("
+    SELECT blast_type,
+           SUM(CASE WHEN status='sent'   THEN 1 ELSE 0 END) as sent_count,
+           SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) as failed_count,
+           COUNT(*) as total_count
+    FROM email_blast_log
+    GROUP BY blast_type
+    ORDER BY total_count DESC
+");
+$totalSentAll   = Database::fetchOne("SELECT COUNT(*) c FROM email_blast_log WHERE status='sent'")['c'];
+$totalFailedAll = Database::fetchOne("SELECT COUNT(*) c FROM email_blast_log WHERE status='failed'")['c'];
 
 ob_start(); ?>
 
@@ -211,15 +269,25 @@ ob_start(); ?>
 .blast-card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px}
 .blast-hdr{padding:12px 20px;font-size:13px;font-weight:600;color:#1e293b;border-bottom:0.5px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;gap:8px}
 .blast-body{padding:20px}
-.type-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.type-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .type-card{border:1.5px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center}
 .type-count{font-size:28px;font-weight:600;color:#2C5282}
 .type-label{font-size:12px;color:#64748b;margin:4px 0 12px}
 .btn-blast{width:100%;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:white;transition:opacity .15s}
 .btn-blast:hover{opacity:.85}
+.btn-blast:disabled{opacity:.4;cursor:not-allowed}
 .btn-blast.leader{background:#2C5282}
 .btn-blast.teacher{background:#854F0B}
 .btn-blast.student{background:#27500A}
+.btn-blast.parent{background:#7C3AED}
+.btn-blast.osis{background:#C2410C}
+.btn-blast.other{background:#533AB7;width:auto;padding:0 18px;flex-shrink:0}
+.other-blast-card{border:1.5px dashed #cbd5e1;border-radius:10px;padding:14px 16px;margin-bottom:20px;background:#fafbfc}
+.other-blast-lbl{font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px}
+.other-blast-row{display:flex;gap:10px;align-items:stretch}
+.other-blast-row select{flex:1;height:38px;border:1px solid #e2e8f0;border-radius:8px;padding:0 12px;font-size:13px;color:#1e293b;outline:none;background:#fff}
+.other-blast-row select:focus{border-color:#2C5282;box-shadow:0 0 0 3px rgba(44,82,130,.1)}
+.other-blast-row .btn-blast{height:38px;display:inline-flex;align-items:center}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:11px;font-weight:600;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .field input,.field textarea{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;outline:none}
@@ -232,10 +300,22 @@ ob_start(); ?>
 .log-table td{padding:8px 12px;border-bottom:0.5px solid #f1f5f9;color:#334155}
 .badge-sent{background:#EAF3DE;color:#27500A;border:0.5px solid #3B6D11;font-size:10px;padding:2px 8px;border-radius:20px}
 .badge-failed{background:#FCEBEB;color:#791F1F;border:0.5px solid #F09595;font-size:10px;padding:2px 8px;border-radius:20px}
-.badge-type{font-size:10px;padding:2px 8px;border-radius:20px}
-.badge-leader{background:#E6F1FB;color:#0C447C}
-.badge-teacher{background:#FAEEDA;color:#633806}
-.badge-student{background:#EAF3DE;color:#27500A}
+.badge-type-generic{display:inline-block;background:#E6F1FB;color:#0C447C;border:0.5px solid #B5D4F4;font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px}
+.log-summary{display:flex;gap:16px;align-items:stretch;padding:16px 20px;border-bottom:0.5px solid #e2e8f0;background:#fafbfc;flex-wrap:wrap}
+.summary-total{flex-shrink:0;padding-right:16px;border-right:1px solid #e2e8f0;text-align:center;min-width:100px}
+.summary-total-val{font-size:26px;font-weight:700;color:#2C5282;line-height:1.1}
+.summary-total-lbl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.summary-total-fail{font-size:10px;color:#dc2626;margin-top:3px}
+.summary-breakdown{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1}
+.summary-chip{background:#fff;border:0.5px solid #e2e8f0;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:6px;font-size:12px}
+.summary-chip-lbl{color:#64748b;font-weight:500}
+.summary-chip-val{color:#1e293b;font-weight:700}
+.summary-chip-fail{color:#dc2626;font-size:10px}
+.log-pager{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:0.5px solid #e2e8f0;background:#fafbfc}
+.log-pager-info{font-size:11px;color:#64748b}
+.log-pager-btns{display:flex;gap:8px}
+.log-pager-btn{padding:5px 12px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;color:#475569;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px}
+.log-pager-btn.disabled{opacity:.4;pointer-events:none}
 </style>
 
 <?php if ($blastResult): ?>
@@ -244,7 +324,7 @@ ob_start(); ?>
   <?php if (!empty($blastResult['test'])): ?>
     Test email <?= $blastResult['sent']>0?'berhasil dikirim ke <strong>edu@kaderbangsa.foundation</strong>':'gagal dikirim' ?>.
   <?php else: ?>
-    Blast ke <strong><?= ucfirst($blastResult['type']) ?></strong> selesai —
+    Blast ke <strong><?= h(blastTypeLabel($blastResult['type'])) ?></strong> selesai —
     <strong><?= $blastResult['sent'] ?> terkirim</strong>
     <?= $blastResult['failed']>0 ? ', <strong>'.$blastResult['failed'].' gagal</strong>' : '' ?>
   <?php endif; ?>
@@ -299,7 +379,56 @@ ob_start(); ?>
           </button>
         </form>
       </div>
+      <div class="type-card">
+        <div class="type-count"><?= $counts['parent'] ?></div>
+        <div class="type-label">Komite Orang Tua</div>
+        <form method="POST">
+          <input type="hidden" name="blast_type" value="parent">
+          <input type="hidden" name="subject" id="s_parent">
+          <input type="hidden" name="body" id="b_parent">
+          <button type="submit" class="btn-blast parent"
+            onclick="syncFields('parent')"
+            onsubmit="return confirm('Kirim ke <?= $counts['parent'] ?> Komite Orang Tua?')">
+            <i class="bi bi-send me-1"></i>Blast ke Komite Ortu
+          </button>
+        </form>
+      </div>
+      <div class="type-card">
+        <div class="type-count"><?= $counts['osis'] ?></div>
+        <div class="type-label">OSIS</div>
+        <form method="POST">
+          <input type="hidden" name="blast_type" value="osis">
+          <input type="hidden" name="subject" id="s_osis">
+          <input type="hidden" name="body" id="b_osis">
+          <button type="submit" class="btn-blast osis"
+            onclick="syncFields('osis')"
+            onsubmit="return confirm('Kirim ke <?= $counts['osis'] ?> anggota OSIS?')"
+            <?= $counts['osis']==0 ? 'disabled title="Belum ada anggota OSIS terdaftar"' : '' ?>>
+            <i class="bi bi-send me-1"></i>Blast ke OSIS
+          </button>
+        </form>
+      </div>
     </div>
+
+    <!-- Blast Lainnya — kategori dinamis dari role user yang ada -->
+    <?php if (!empty($otherRoleOptions)): ?>
+    <div class="other-blast-card">
+      <div class="other-blast-lbl"><i class="bi bi-people me-1"></i>Blast Lainnya</div>
+      <form method="POST" class="other-blast-row" onsubmit="return syncOther(event)">
+        <select name="blast_type" id="other_role_select" required>
+          <option value="">Pilih kategori...</option>
+          <?php foreach ($otherRoleOptions as $opt): ?>
+          <option value="<?= h($opt['role']) ?>"><?= h(roleLabel($opt['role'])) ?> (<?= $opt['cnt'] ?> orang)</option>
+          <?php endforeach; ?>
+        </select>
+        <input type="hidden" name="subject" id="s_other">
+        <input type="hidden" name="body" id="b_other">
+        <button type="submit" class="btn-blast other">
+          <i class="bi bi-send me-1"></i>Kirim
+        </button>
+      </form>
+    </div>
+    <?php endif; ?>
 
     <!-- Email composer -->
     <div class="field">
@@ -334,7 +463,35 @@ ob_start(); ?>
 
 <!-- LOG -->
 <div class="blast-card">
-  <div class="blast-hdr"><i class="bi bi-journal-text"></i>Log Pengiriman (100 terbaru)</div>
+  <div class="blast-hdr">
+    <i class="bi bi-journal-text"></i>Log Pengiriman
+    <span style="font-weight:400;color:#94a3b8;margin-left:4px">(<?= $logTotal ?> total)</span>
+  </div>
+
+  <!-- RANGKUMAN -->
+  <?php if (!empty($blastSummary)): ?>
+  <div class="log-summary">
+    <div class="summary-total">
+      <div class="summary-total-val"><?= $totalSentAll ?></div>
+      <div class="summary-total-lbl">Total Terkirim</div>
+      <?php if ($totalFailedAll > 0): ?>
+      <div class="summary-total-fail"><?= $totalFailedAll ?> gagal</div>
+      <?php endif; ?>
+    </div>
+    <div class="summary-breakdown">
+      <?php foreach ($blastSummary as $bs): ?>
+      <div class="summary-chip">
+        <span class="summary-chip-lbl"><?= h(blastTypeLabel($bs['blast_type'])) ?></span>
+        <span class="summary-chip-val"><?= $bs['sent_count'] ?></span>
+        <?php if ($bs['failed_count'] > 0): ?>
+        <span class="summary-chip-fail">(<?= $bs['failed_count'] ?> gagal)</span>
+        <?php endif; ?>
+      </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <div class="blast-body" style="padding:0">
     <?php if (empty($logs)): ?>
     <div style="text-align:center;padding:32px;color:#94a3b8;font-size:13px">Belum ada log pengiriman</div>
@@ -354,7 +511,7 @@ ob_start(); ?>
         <?php foreach ($logs as $l): ?>
         <tr>
           <td style="white-space:nowrap"><?= date('d M Y H:i', strtotime($l['sent_at'])) ?></td>
-          <td><span class="badge-type badge-<?= $l['blast_type'] ?>"><?= ucfirst($l['blast_type']) ?></span></td>
+          <td><span class="badge-type-generic"><?= h(blastTypeLabel($l['blast_type'])) ?></span></td>
           <td><?= h($l['recipient_name']) ?></td>
           <td style="color:#64748b"><?= h($l['recipient_email']) ?></td>
           <td><span class="<?= $l['status']==='sent'?'badge-sent':'badge-failed' ?>"><?= $l['status']==='sent'?'Terkirim':'Gagal' ?></span></td>
@@ -363,6 +520,23 @@ ob_start(); ?>
         <?php endforeach; ?>
       </tbody>
     </table>
+
+    <?php if ($logPagi['total_pages'] > 1): ?>
+    <div class="log-pager">
+      <span class="log-pager-info">
+        Halaman <?= $logPagi['page'] ?> dari <?= $logPagi['total_pages'] ?>
+        (<?= $logPagi['offset']+1 ?>–<?= min($logPagi['offset']+$logPerPage, $logTotal) ?> dari <?= $logTotal ?>)
+      </span>
+      <div class="log-pager-btns">
+        <a href="?log_page=<?= max(1,$logPagi['page']-1) ?>" class="log-pager-btn <?= $logPagi['page']<=1?'disabled':'' ?>">
+          <i class="bi bi-chevron-left"></i> Sebelumnya
+        </a>
+        <a href="?log_page=<?= min($logPagi['total_pages'],$logPagi['page']+1) ?>" class="log-pager-btn <?= $logPagi['page']>=$logPagi['total_pages']?'disabled':'' ?>">
+          Selanjutnya <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+    <?php endif; ?>
     <?php endif; ?>
   </div>
 </div>
@@ -375,6 +549,16 @@ function syncFields(type) {
   const bEl = document.getElementById('b_' + type);
   if (sEl) sEl.value = subj;
   if (bEl) bEl.value = body;
+}
+
+function syncOther(e) {
+  const sel = document.getElementById('other_role_select');
+  if (!sel.value) { return false; }
+  const subj = document.getElementById('subject_main').value;
+  const body = document.getElementById('body_main').value;
+  document.getElementById('s_other').value = subj;
+  document.getElementById('b_other').value = body;
+  return confirm('Kirim ke kategori "' + sel.options[sel.selectedIndex].text + '"?');
 }
 </script>
 
