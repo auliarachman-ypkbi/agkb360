@@ -90,11 +90,12 @@ function renderNav(): void {
         " . (in_array($role, ['superadmin','admin','foundation','leader']) ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-1'></i>Laporan</a></li>
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/progress.php'><i class='bi bi-activity me-1'></i>Progress</a></li>
-        " : ($role === 'tester' ? "
+        " : '') . "
+        " . ($role === 'tester' ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/tester/'><i class='bi bi-eye me-1'></i>Preview Kuesioner</a></li>
-        " : "
+        " : (in_array($role, ['foundation','leader','teacher','parent','student']) ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/survey/'><i class='bi bi-clipboard-check me-1'></i>Kuesioner Saya</a></li>
-        ")) . "
+        " : '')) . "
         " . ($role !== 'tester' ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/feedback/' style='color:#ffc901'><i class='bi bi-chat-heart me-1'></i>Feedback</a></li>
         " : "") . "
