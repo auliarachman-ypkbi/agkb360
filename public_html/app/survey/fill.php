@@ -107,6 +107,14 @@ $answeredCount = count($existing);
 $totalQ = count($questions);
 $progress = $totalQ > 0 ? round(($answeredCount/$totalQ)*100) : 0;
 
+// Info evaluator dan rata-rata skor untuk view mode
+$evaluator = Database::fetchOne("SELECT id, name, role FROM users WHERE id=?", [$assignment['evaluator_id']]);
+$avgScore = null;
+if ($viewMode && $answeredCount > 0) {
+    $avgRow = Database::fetchOne("SELECT ROUND(AVG(grade),2) as avg FROM responses WHERE assignment_id=?", [$assignId]);
+    $avgScore = $avgRow['avg'] ?? null;
+}
+
 ob_start();
 ?>
 <!-- HEADER INFO -->
@@ -120,7 +128,14 @@ ob_start();
         <p class="text-muted mb-1 small">
           Yang Dinilai: <strong><?= h($assignment['evaluatee_name']) ?></strong>
           <?php if (!$assignment['is_self_reflection']): ?>
-          | Peran Anda: <strong><?= h(respondentLabel($assignment['respondent_type'])) ?></strong>
+          | <?= $viewMode ? 'Dinilai oleh' : 'Peran Anda' ?>:
+          <strong>
+            <?php if ($viewMode): ?>
+              <?= h($evaluator['name'] ?? '—') ?> <span class="text-muted fw-normal">(<?= h(roleLabel($evaluator['role'] ?? '')) ?>)</span>
+            <?php else: ?>
+              <?= h(respondentLabel($assignment['respondent_type'])) ?>
+            <?php endif; ?>
+          </strong>
           <?php endif; ?>
         </p>
         <?php if ($viewMode): ?>
@@ -128,6 +143,12 @@ ob_start();
         <?php endif; ?>
       </div>
       <div class="col-md-4 text-md-end">
+        <?php if ($viewMode && $avgScore !== null): ?>
+        <div style="margin-bottom:10px">
+          <?= scoreBadge((float)$avgScore) ?>
+          <div class="small text-muted mt-1">Rata-rata skor kuesioner ini</div>
+        </div>
+        <?php endif; ?>
         <div class="mb-1 small"><?= $answeredCount ?>/<?= $totalQ ?> pertanyaan dijawab</div>
         <div class="progress" style="height:12px">
           <div class="progress-bar navy" style="width:<?= $progress ?>%" role="progressbar">
