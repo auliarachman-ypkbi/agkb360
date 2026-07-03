@@ -362,6 +362,7 @@ ob_start(); ?>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────
 const PERIODS     = <?= json_encode(array_values($closedPeriods)) ?>;
@@ -378,6 +379,7 @@ let rightIdx      = PERIODS.length - 1;
 let schoolChart   = null;
 let activeDomainEt  = null;
 let activeTraitId   = null;
+Chart.register(ChartDataLabels);
 const domainCharts  = {};
 const traitCharts   = {};
 
@@ -506,7 +508,20 @@ function updateSchoolChart() {
       }]},
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}} },
+        plugins: {
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}},
+          datalabels: {
+            display: true,
+            anchor: 'top',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 10, weight: '600' },
+            color: '#533AB7',
+            padding: { bottom: 4 },
+          }
+        },
+        layout: { padding: { top: 20 } },
         scales: {
           y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
           x: { ticks:{font:{size:10},maxRotation:30}, grid:{display:false} }
@@ -625,8 +640,19 @@ return {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toFixed(2)} / 4.00` } }
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toFixed(2)} / 4.00` } },
+          datalabels: {
+            display: true,
+            anchor: 'end',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 9, weight: '600' },
+            color: ctx => ctx.dataset.borderColor || '#475569',
+            padding: { bottom: 2 },
+            clip: false,
+          }
         },
+        layout: { padding: { top: 20 } },
         scales: {
           y: { min: 1.5, max: 4.0, ticks: { stepSize: 0.5, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } },
           x: { ticks: { font: { size: 6 }, maxRotation: 45 }, grid: { display: false } }
@@ -703,7 +729,20 @@ function updateTraitChart(tid) {
       }]},
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}} },
+        plugins: {
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}},
+          datalabels: {
+            display: true,
+            anchor: 'top',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 10, weight: '600' },
+            color: '#533AB7',
+            padding: { bottom: 4 },
+          }
+        },
+        layout: { padding: { top: 20 } },
         scales: {
           y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
           x: { ticks:{font:{size:10},maxRotation:30}, grid:{display:false} }
