@@ -378,7 +378,6 @@ let rightIdx      = PERIODS.length - 1;
 let schoolChart   = null;
 let activeDomainEt  = null;
 let activeTraitId   = null;
-Chart.register(ChartDataLabels);
 const domainCharts  = {};
 const traitCharts   = {};
 
@@ -875,6 +874,7 @@ function updateAll() {
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
   renderLabels();
   renderSlider();
   buildDomainTabs();
