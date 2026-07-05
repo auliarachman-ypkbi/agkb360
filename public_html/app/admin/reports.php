@@ -26,6 +26,7 @@ $allPeriods = Database::fetchAll("
 $selectedUid = (int)($_GET['user_id'] ?? 0);
 $selectedPid = (int)($_GET['period_id'] ?? 0);
 $activeTab   = $_GET['tab'] ?? 'trend';
+$isAdminUser = in_array(currentUser()['role'] ?? '', ['admin','superadmin'], true);
 
 $selectedUser = $selectedUid
     ? Database::fetchOne("SELECT * FROM users WHERE id=?", [$selectedUid])
@@ -655,7 +656,11 @@ ob_start(); ?>
   <div class="dcard">
     <div class="dcard-hdr">
       <span><i class="bi bi-stars me-2"></i>Saran Pengembangan (AI)</span>
-      <?php if ($scores['overall'] > 0): ?>
+      <?php if ($isAdminUser && $scores['overall'] > 0): ?>
+      <a class="btn btn-sm btn-outline-secondary me-1" style="font-size:11px"
+         href="<?= APP_URL ?>/api/ai.php?action=download_input&evaluatee_id=<?= $selectedUid ?>&period_id=<?= $selectedPid ?>"
+         title="Download data evaluasi + prompt (.txt)">
+        <i class="bi bi-download me-1"></i>Data AI (.txt)</a>
       <button class="btn btn-sm btn-outline-secondary" style="font-size:11px"
         onclick="generateAI(<?= $selectedUid ?>, <?= $selectedPid ?>)">
         <i class="bi bi-stars me-1"></i>Generate
@@ -664,6 +669,7 @@ ob_start(); ?>
     </div>
     <div class="dcard-body">
       <?php if ($aiSuggestion): ?>
+      <?php if ($isAdminUser): ?>
       <form method="POST" action="<?= APP_URL ?>/api/ai.php">
         <input type="hidden" name="action" value="save_edit">
         <input type="hidden" name="evaluatee_id" value="<?= $selectedUid ?>">
@@ -674,6 +680,9 @@ ob_start(); ?>
           <i class="bi bi-save me-1"></i>Simpan Editan
         </button>
       </form>
+      <?php else: ?>
+      <div style="white-space:pre-wrap;font-size:13px;line-height:1.7"><?= h($aiSuggestion['edited_suggestion'] ?? $aiSuggestion['raw_suggestion']) ?></div>
+      <?php endif; ?>
       <?php else: ?>
       <div style="text-align:center;padding:24px;color:#64748b">
         <i class="bi bi-stars" style="font-size:32px;display:block;margin-bottom:8px;opacity:.4"></i>
