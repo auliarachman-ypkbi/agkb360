@@ -20,3 +20,5 @@ build/
 ktb_mysql_data/
 .git/
 docker/nginx/default.conf
+public_html/app/config/config.php
+public_html/demo/config/config.php
