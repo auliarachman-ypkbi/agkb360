@@ -26,6 +26,9 @@ define('CLAUDE_API_KEY', 'YOUR_CLAUDE_API_KEY_HERE');
 define('CLAUDE_MODEL', 'claude-sonnet-4-20250514');
 define('CLAUDE_API_URL', 'https://api.anthropic.com/v1/messages');
 
+// AI Configuration — Google Gemini (AI Studio)
+define('GEMINI_API_KEY', 'AQ.Ab8RN6K4LYuXrgcaLMPCywIpDRb9R41xzD7XQBozRfp7co2NDA');
+
 // ── DEFAULT ADMIN ─────────────────────────────────────────────
 define('DEFAULT_ADMIN_EMAIL', 'admin@ktb.sch.id');
 define('DEFAULT_ADMIN_PASSWORD', 'Admin@KTB2025');

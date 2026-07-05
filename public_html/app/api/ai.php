@@ -25,18 +25,6 @@ $action  = $_REQUEST['action'] ?? '';
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function respondentLabel(string $key): string {
-    return [
-        'atasan'        => 'Atasan / Yayasan (YPKBI)',
-        'leader'        => 'Pimpinan Sekolah',
-        'guru'          => 'Guru (Rekan Sejawat)',
-        'ortu'          => 'Orang Tua',
-        'siswa'         => 'Siswa (OSIS)',
-        'student_class' => 'Murid yang Diajar',
-        'self'          => 'Refleksi Diri',
-    ][$key] ?? ucfirst($key);
-}
-
 /**
  * Kumpulkan seluruh data evaluasi seorang evaluatee untuk AI.
  * Bekerja dengan data yang ADA saat ini (respons completed),
