@@ -33,6 +33,17 @@ function renderNav(): void {
   <i class='bi bi-bug-fill me-1'></i>MODE TESTER — Aktivitas tidak dihitung dalam evaluasi
 </div>" : '';
 
+    // View As banner
+    $viewAsBanner = isViewingAs() ? "
+<div style='background:#d97706;color:white;text-align:center;padding:8px 16px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:12px'>
+  <i class='bi bi-eye-fill'></i>
+  MODE PREVIEW — Anda sedang melihat sebagai Guru
+  <a href='{$base}/admin/view_as.php?action=exit'
+     style='background:rgba(255,255,255,.2);color:white;text-decoration:none;padding:3px 12px;border-radius:20px;font-size:11px;margin-left:8px'>
+    ✕ Kembali ke Admin
+  </a>
+</div>" : '';
+
     // Superadmin extra menu
     $superAdminExtra = $role === 'superadmin' ? "
         <li><hr class='dropdown-divider'></li>
@@ -63,12 +74,14 @@ function renderNav(): void {
             <li><hr class='dropdown-divider'></li>
             <li><a class='dropdown-item' href='{$base}/admin/feedback.php'><i class='bi bi-chat-heart me-2'></i>Inbox Feedback</a></li>
 	    <li><a class='dropdown-item' href='{$base}/admin/blast_email.php'><i class='bi bi-send-fill me-2'></i>Blast Email</a></li>
+            <li><hr class='dropdown-divider'></li>
+            <li><a class='dropdown-item text-warning' href='{$base}/admin/view_as.php?action=activate'><i class='bi bi-eye me-2'></i>Preview sebagai Guru</a></li>
             {$superAdminExtra}
           </ul>
         </li>";
     }
 
-    echo $testerBanner . "
+    echo $viewAsBanner . $testerBanner . "
 <nav class='navbar navbar-expand-lg navbar-dark ktb-navbar'>
   <div class='container-fluid'>
     <a class='navbar-brand d-flex align-items-center gap-2' href='{$base}/dashboard/'>
@@ -133,7 +146,6 @@ function renderFooter(): void {
 <script src='https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.1/sweetalert2.all.min.js'></script>
 <script src='{$base}/assets/js/app.js'></script>
 </body></html>";
