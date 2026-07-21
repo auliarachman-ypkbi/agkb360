@@ -109,6 +109,9 @@ function renderNav(): void {
         " : (in_array($role, ['foundation','leader','teacher','parent','student']) ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/survey/'><i class='bi bi-clipboard-check me-1'></i>Kuesioner Saya</a></li>
         " : '')) . "
+        " . (in_array($role, ['teacher','leader']) ? "
+        <li class='nav-item'><a class='nav-link' href='{$base}/survey/my_report.php'><i class='bi bi-bar-chart-line me-1'></i>Laporan Kinerja</a></li>
+        " : '') . "
         " . ($role !== 'tester' ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/feedback/' style='color:#ffc901'><i class='bi bi-chat-heart me-1'></i>Feedback</a></li>
         " : "") . "
@@ -146,7 +149,6 @@ function renderFooter(): void {
 <script src='https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.1/sweetalert2.all.min.js'></script>
 <script src='{$base}/assets/js/app.js'></script>
 </body></html>";
