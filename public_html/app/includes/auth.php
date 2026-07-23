@@ -92,3 +92,23 @@ function verifyCsrf(): void {
         die(json_encode(['error' => 'Invalid CSRF token']));
     }
 }
+// ── VIEW AS (Admin preview as Teacher) ───────────────────────
+function activateViewAs(): void {
+    startSession();
+    if (!in_array($_SESSION['user_role'], ['superadmin','admin'])) return;
+    $_SESSION['view_as_active']     = true;
+    $_SESSION['original_user_role'] = $_SESSION['user_role'];
+    $_SESSION['user_role']          = 'teacher';
+}
+
+function exitViewAs(): void {
+    startSession();
+    if (!empty($_SESSION['view_as_active'])) {
+        $_SESSION['user_role'] = $_SESSION['original_user_role'];
+        unset($_SESSION['view_as_active'], $_SESSION['original_user_role']);
+    }
+}
+
+function isViewingAs(): bool {
+    return !empty($_SESSION['view_as_active']);
+}
