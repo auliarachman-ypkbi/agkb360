@@ -24,6 +24,18 @@ $inProgressA = Database::fetchOne("SELECT COUNT(*) c FROM assignments WHERE peri
 $pendingA    = Database::fetchOne("SELECT COUNT(*) c FROM assignments WHERE period_id=? AND status='pending'", [$pid])['c'];
 $completion  = $totalAssign > 0 ? round($completedA/$totalAssign*100) : 0;
 
+// ── Breakdown per kelompok penilai ────────────────
+$respBreakdown = Database::fetchAll("
+    SELECT p.respondent_type,
+           COUNT(*) as total,
+           SUM(CASE WHEN a.status='completed' THEN 1 ELSE 0 END) as done,
+           ROUND(SUM(CASE WHEN a.status='completed' THEN 1 ELSE 0 END)/COUNT(*)*100,1) as pct
+    FROM assignments a
+    JOIN packages p ON p.id = a.package_id
+    WHERE a.period_id = ? AND p.is_self_reflection = 0
+    GROUP BY p.respondent_type ORDER BY pct DESC
+", [$pid]);
+
 // ── Filter ───────────────────────────────────────────────────
 $roleFilter = $_GET['role'] ?? '';
 $searchQ    = trim($_GET['q'] ?? '');
@@ -187,6 +199,29 @@ ob_start(); ?>
     <div class="hstat"><div class="hstat-val" style="color:#f87171"><?= $pendingA ?></div><div class="hstat-lbl">Belum mulai</div></div>
   </div>
 </div>
+
+<!-- BREAKDOWN PER KELOMPOK PENILAI -->
+<?php if (!empty($respBreakdown)): ?>
+<div style="background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:20px">
+  <div style="padding:14px 18px;border-bottom:0.5px solid #e2e8f0;font-size:13px;font-weight:600;color:#1e293b">
+    <i class="bi bi-people-fill me-2" style="color:#2C5282"></i>Progress per Kelompok Penilai
+  </div>
+  <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
+    <?php foreach ($respBreakdown as $rb):
+      $rc = $rb['pct']>=80?'#16a34a':($rb['pct']>=50?'#d97706':'#dc2626');
+    ?>
+    <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(respondentLabel($rb['respondent_type'])) ?></div>
+      <div style="font-size:26px;font-weight:700;color:<?= $rc ?>;line-height:1"><?= $rb['pct'] ?>%</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px"><?= $rb['done'] ?>/<?= $rb['total'] ?> penugasan</div>
+      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
+        <div style="height:100%;border-radius:2px;background:<?= $rc ?>;width:<?= $rb['pct'] ?>%"></div>
+      </div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <!-- PERLU PERHATIAN -->
 <?php if (!empty($needAttention)): ?>
