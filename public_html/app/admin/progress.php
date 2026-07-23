@@ -36,6 +36,24 @@ $respBreakdown = Database::fetchAll("
     GROUP BY p.respondent_type ORDER BY pct DESC
 ", [$pid]);
 
+// ── Partisipasi per kelompok (berapa orang sudah isi) ────────
+$peopleParticipation = Database::fetchAll("
+    SELECT u.role,
+           COUNT(DISTINCT u.id) as total_orang,
+           COUNT(DISTINCT CASE WHEN stat.selesai > 0 THEN u.id END) as sudah_isi,
+           ROUND(COUNT(DISTINCT CASE WHEN stat.selesai > 0 THEN u.id END)/COUNT(DISTINCT u.id)*100,1) as pct
+    FROM users u
+    JOIN (
+        SELECT a.evaluator_id,
+               SUM(CASE WHEN a.status='completed' THEN 1 ELSE 0 END) as selesai
+        FROM assignments a
+        WHERE a.period_id = ?
+        GROUP BY a.evaluator_id
+    ) stat ON stat.evaluator_id = u.id
+    WHERE u.is_active = 1 AND u.role IN ('leader','teacher','student','parent','foundation')
+    GROUP BY u.role ORDER BY pct DESC
+", [$pid]);
+
 // ── Filter ───────────────────────────────────────────────────
 $roleFilter = $_GET['role'] ?? '';
 $searchQ    = trim($_GET['q'] ?? '');
@@ -216,6 +234,30 @@ ob_start(); ?>
       <div style="font-size:11px;color:#94a3b8;margin-top:4px"><?= $rb['done'] ?>/<?= $rb['total'] ?> penugasan</div>
       <div style="margin-top:8px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
         <div style="height:100%;border-radius:2px;background:<?= $rc ?>;width:<?= $rb['pct'] ?>%"></div>
+      </div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<!-- PARTISIPASI PER KELOMPOK -->
+<?php if (!empty($peopleParticipation)): ?>
+<div style="background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:20px">
+  <div style="padding:14px 18px;border-bottom:0.5px solid #e2e8f0;font-size:13px;font-weight:600;color:#1e293b">
+    <i class="bi bi-person-check-fill me-2" style="color:#2C5282"></i>Partisipasi per Kelompok
+    <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:4px">— berapa orang yang sudah mulai mengisi</span>
+  </div>
+  <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+    <?php foreach ($peopleParticipation as $pp):
+      $rc = $pp['pct']>=80?'#16a34a':($pp['pct']>=50?'#d97706':'#dc2626');
+    ?>
+    <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(roleLabel($pp['role'])) ?></div>
+      <div style="font-size:26px;font-weight:700;color:<?= $rc ?>;line-height:1"><?= $pp['pct'] ?>%</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px"><?= $pp['sudah_isi'] ?>/<?= $pp['total_orang'] ?> orang</div>
+      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
+        <div style="height:100%;border-radius:2px;background:<?= $rc ?>;width:<?= $pp['pct'] ?>%"></div>
       </div>
     </div>
     <?php endforeach; ?>
