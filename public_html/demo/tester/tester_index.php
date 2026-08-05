@@ -93,7 +93,7 @@ ob_start();
 
 <!-- ── BANNER TESTER MODE ─────────────────────────────────── -->
 <div class="alert d-flex align-items-center gap-2 mb-4"
-     style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:10px">
+     style="background:#fff1dc;border:1.5px solid #ff9101;border-radius:10px">
   <i class="bi bi-flask text-warning fs-5"></i>
   <div>
     <strong>Mode Tester</strong> — Halaman ini hanya untuk preview kuesioner.
@@ -194,7 +194,7 @@ ob_start();
           | Tipe Responden: <strong><?= h($selectedPkg['respondent_type']) ?></strong>
           <?php endif; ?>
         </p>
-        <span class="badge" style="background:#6f42c1">
+        <span class="badge" style="background:#2201b2">
           <i class="bi bi-flask me-1"></i>Preview Mode — Tidak ada data tersimpan
         </span>
       </div>
@@ -237,7 +237,7 @@ ob_start();
             <strong class="small text-muted"><?= h($q['standard_name']) ?></strong>
             <?php if (!empty($q['elaboration_id'])): ?>
             <button type="button" class="btn btn-sm ms-auto py-0 px-2"
-              style="background:#6f42c1;color:white;font-size:.7rem"
+              style="background:#2201b2;color:white;font-size:.7rem"
               data-bs-toggle="modal"
               data-bs-target="#elabModal<?= $q['id'] ?>">
               <i class="bi bi-lightbulb me-1"></i>Elaborasi
@@ -306,7 +306,7 @@ ob_start();
   <div class="modal fade" id="elabModal<?= $q['id'] ?>" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header" style="background:#6f42c1;color:white">
+        <div class="modal-header" style="background:#2201b2;color:white">
           <h6 class="modal-title">
             <i class="bi bi-lightbulb me-2"></i><?= h($q['standard_name']) ?>
           </h6>

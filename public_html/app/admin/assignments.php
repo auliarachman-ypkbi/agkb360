@@ -368,45 +368,45 @@ ob_start(); ?>
 </div>
 
 <style>
-.filter-bar{background:#fff;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.filter-bar{background:#fff;border:0.5px solid #e3e5ea;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 .filter-bar .f-group{display:flex;flex-direction:column;gap:5px}
-.filter-bar label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin:0}
-.filter-bar select,.filter-bar input[type=text]{height:36px;border:1px solid #e2e8f0;border-radius:7px;padding:0 11px;font-size:13px;color:#1e293b;outline:none;min-width:160px}
-.filter-bar select:focus,.filter-bar input:focus{border-color:#2C5282;box-shadow:0 0 0 3px rgba(44,82,130,.1)}
+.filter-bar label{font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.4px;margin:0}
+.filter-bar select,.filter-bar input[type=text]{height:36px;border:1px solid #e3e5ea;border-radius:7px;padding:0 11px;font-size:13px;color:#040136;outline:none;min-width:160px}
+.filter-bar select:focus,.filter-bar input:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
 .filter-bar .f-search{min-width:220px;flex:1}
 .filter-bar .f-actions{display:flex;gap:8px}
-.filter-bar .btn-filter{height:36px;padding:0 16px;background:#2C5282;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.filter-bar .btn-filter:hover{background:#1A365D}
-.filter-bar .btn-clear{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;color:#64748b;text-decoration:none}
+.filter-bar .btn-filter{height:36px;padding:0 16px;background:#040136;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.filter-bar .btn-filter:hover{background:#02001f}
+.filter-bar .btn-clear{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;background:#fafafb;border:1px solid #e3e5ea;border-radius:7px;color:#6b6a83;text-decoration:none}
 
 .status-tabs{display:flex;gap:6px}
-.status-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:0.5px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;white-space:nowrap}
-.status-tab.active{background:#2C5282;color:#fff;border-color:#2C5282}
+.status-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:0.5px solid #e3e5ea;background:#fff;color:#6b6a83;text-decoration:none;white-space:nowrap}
+.status-tab.active{background:#040136;color:#fff;border-color:#040136}
 
-.assign-card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
-.assign-card-hdr{padding:14px 18px;border-bottom:0.5px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.assign-card-title{font-size:14px;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:8px}
-.result-count{font-size:12px;color:#94a3b8;font-weight:400}
+.assign-card{background:#fff;border:0.5px solid #e3e5ea;border-radius:12px;overflow:hidden}
+.assign-card-hdr{padding:14px 18px;border-bottom:0.5px solid #e3e5ea;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.assign-card-title{font-size:14px;font-weight:600;color:#040136;display:flex;align-items:center;gap:8px}
+.result-count{font-size:12px;color:#6f6e85;font-weight:400}
 
 .assign-table{width:100%;border-collapse:collapse;font-size:13px}
-.assign-table thead th{background:#f8fafc;color:#475569;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:11px 16px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-.assign-table tbody td{padding:12px 16px;vertical-align:middle;color:#1e293b;border-bottom:0.5px solid #f1f5f9}
-.assign-table tbody tr:hover{background:#f8fafc}
+.assign-table thead th{background:#fafafb;color:#2f2d4d;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:11px 16px;text-align:left;border-bottom:1px solid #e3e5ea;white-space:nowrap}
+.assign-table tbody td{padding:12px 16px;vertical-align:middle;color:#040136;border-bottom:0.5px solid #f3f4f6}
+.assign-table tbody tr:hover{background:#fafafb}
 .assign-table tbody tr:last-child td{border-bottom:none}
-.name-primary{font-weight:600;color:#1e293b;font-size:13px}
-.role-sub{font-size:11px;color:#94a3b8;margin-top:2px}
-.pkg-badge{display:inline-block;background:#2C5282;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;letter-spacing:.2px}
-.resp-sub{font-size:11px;color:#94a3b8;margin-top:4px;display:block}
-.due-date-cell{font-size:12px;color:#475569;white-space:nowrap}
+.name-primary{font-weight:600;color:#040136;font-size:13px}
+.role-sub{font-size:11px;color:#6f6e85;margin-top:2px}
+.pkg-badge{display:inline-block;background:#040136;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px;letter-spacing:.2px}
+.resp-sub{font-size:11px;color:#6f6e85;margin-top:4px;display:block}
+.due-date-cell{font-size:12px;color:#2f2d4d;white-space:nowrap}
 .action-cell{display:flex;gap:6px}
-.action-icon-btn{width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;cursor:pointer}
-.action-icon-btn.danger:hover{background:#FCEBEB;border-color:#F09595;color:#791F1F}
-.action-icon-btn.view:hover{background:#E6F1FB;border-color:#B5D4F4;color:#185FA5}
-.empty-row{text-align:center;padding:40px;color:#94a3b8;font-size:13px}
-.pager{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:0.5px solid #e2e8f0;background:#fafbfc}
-.pager-info{font-size:12px;color:#64748b}
+.action-icon-btn{width:30px;height:30px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e3e5ea;background:#fff;color:#6b6a83;text-decoration:none;cursor:pointer}
+.action-icon-btn.danger:hover{background:#fdeceb;border-color:#f3b5b0;color:#8c1610}
+.action-icon-btn.view:hover{background:#eeebfc;border-color:#b9aef2;color:#030870}
+.empty-row{text-align:center;padding:40px;color:#6f6e85;font-size:13px}
+.pager{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:0.5px solid #e3e5ea;background:#fafafb}
+.pager-info{font-size:12px;color:#6b6a83}
 .pager-btns{display:flex;gap:8px}
-.pager-btn{padding:6px 14px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;color:#475569;text-decoration:none;font-size:12px;display:inline-flex;align-items:center;gap:5px}
+.pager-btn{padding:6px 14px;border-radius:7px;border:1px solid #e3e5ea;background:#fff;color:#2f2d4d;text-decoration:none;font-size:12px;display:inline-flex;align-items:center;gap:5px}
 .pager-btn.disabled{opacity:.4;pointer-events:none}
 </style>
 
@@ -510,7 +510,7 @@ ob_start(); ?>
           </td>
           <td>
             <a href="<?= APP_URL ?>/admin/evaluator_pov.php?id=<?= $a['evaluator_id'] ?>"
-               class="name-primary" style="font-weight:500;color:#185FA5;text-decoration:none">
+               class="name-primary" style="font-weight:500;color:#030870;text-decoration:none">
               <?= h($a['evaluator_name']) ?>
             </a>
             <div class="role-sub"><?= h(roleLabel($a['evaluator_role'])) ?></div>
@@ -525,7 +525,7 @@ ob_start(); ?>
             <?php if ($a['status']==='completed' && $a['avg_score']): ?>
             <?= scoreBadge((float)$a['avg_score']) ?>
             <?php else: ?>
-            <span style="color:#cbd5e1">—</span>
+            <span style="color:#cdd0d8">—</span>
             <?php endif; ?>
           </td>
           <td>
@@ -544,7 +544,7 @@ ob_start(); ?>
                 <i class="bi bi-eye"></i>
               </a>
               <?php else: ?>
-              <span style="color:#cbd5e1">—</span>
+              <span style="color:#cdd0d8">—</span>
               <?php endif; ?>
             </div>
           </td>

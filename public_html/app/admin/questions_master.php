@@ -134,7 +134,7 @@ ob_start(); ?>
   <?php foreach ($et['domains'] as $did => $domain): ?>
   <div class="card mb-3">
     <div class="card-header py-2 d-flex align-items-center gap-2"
-         style="background:#f0f4fb">
+         style="background:#f3f4f6">
       <span class="badge badge-navy"><?= h($domain['code']??'—') ?></span>
       <strong class="text-navy small"><?= h($domain['name']) ?></strong>
       <span class="badge bg-secondary ms-auto"><?= count($domain['standards']) ?> standar</span>
@@ -159,11 +159,11 @@ ob_start(); ?>
             </div>
             <?php if (!$isEmpty): ?>
             <p class="mb-1 small" style="line-height:1.6">
-              <?= str_replace('[Nama]','<span class="badge" style="background:#001f3e;color:#ffc901">[Nama]</span>', h($std['text_id'])) ?>
+              <?= str_replace('[Nama]','<span class="badge" style="background:#02001f;color:#ff9101">[Nama]</span>', h($std['text_id'])) ?>
             </p>
             <?php if ($std['text_en']): ?>
             <p class="mb-0 text-muted" style="font-size:.8rem;font-style:italic">
-              <?= str_replace('[Name]','<span class="badge" style="background:#001f3e;color:#ffc901">[Name]</span>', h($std['text_en'])) ?>
+              <?= str_replace('[Name]','<span class="badge" style="background:#02001f;color:#ff9101">[Name]</span>', h($std['text_en'])) ?>
             </p>
             <?php endif; ?>
             <?php else: ?>
@@ -179,7 +179,7 @@ ob_start(); ?>
               data-bs-target="#rubrik<?= $std['q_id'] ?>">
               <i class="bi bi-table me-1"></i>Rubrik
             </button>
-            <button class="btn btn-sm btn-outline-secondary" style="border-color:#6f42c1;color:#6f42c1"
+            <button class="btn btn-sm btn-outline-secondary" style="border-color:#2201b2;color:#2201b2"
               data-bs-toggle="modal" data-bs-target="#elab<?= $sid ?>">
               <i class="bi bi-lightbulb me-1"></i>Elaborasi
             </button>
@@ -297,7 +297,7 @@ ob_start(); ?>
       <div class="modal fade" id="elab<?= $sid ?>" tabindex="-1">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
-            <div class="modal-header" style="background:#6f42c1;color:white">
+            <div class="modal-header" style="background:#2201b2;color:white">
               <h6 class="modal-title"><i class="bi bi-lightbulb me-2"></i><?= h($std['name']) ?></h6>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -318,7 +318,7 @@ ob_start(); ?>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn" style="background:#6f42c1;color:white">
+                <button type="submit" class="btn" style="background:#2201b2;color:white">
                   <i class="bi bi-save me-1"></i>Simpan
                 </button>
               </div>

@@ -191,7 +191,7 @@ ob_start();
             if (!empty($stdData['elaboration_id'])):
             ?>
             <button type="button" class="btn btn-sm ms-auto py-0 px-2"
-              style="background:#6f42c1;color:white;font-size:.7rem"
+              style="background:#2201b2;color:white;font-size:.7rem"
               data-bs-toggle="modal"
               data-bs-target="#elabModal<?= $q['id'] ?>">
               <i class="bi bi-lightbulb me-1"></i>Elaborasi
@@ -276,7 +276,7 @@ ob_start();
   <div class="modal fade" id="elabModal<?= $q['id'] ?>" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header" style="background:#6f42c1;color:white">
+        <div class="modal-header" style="background:#2201b2;color:white">
           <h6 class="modal-title">
             <i class="bi bi-lightbulb me-2"></i><?= h($stdData['name']) ?>
           </h6>

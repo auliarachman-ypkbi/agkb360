@@ -95,16 +95,16 @@ ob_start();
 
 <style>
 .tab-pill{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-.tab-pill a{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;text-decoration:none;border:1px solid #e2e8f0;color:#64748b;background:#fff;transition:all .15s}
-.tab-pill a.active{background:#2C5282;color:#fff;border-color:#2C5282}
-.tab-pill a:hover:not(.active){background:#f1f5f9;border-color:#2C5282;color:#2C5282}
-.teacher-card{border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;text-decoration:none;color:#1e293b;background:#fff}
-.teacher-card:hover{border-color:#2C5282;background:#f8fafc;color:#1e293b}
-.teacher-card.active{border-color:#2C5282;background:#EBF4FF}
-.class-check{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:6px;background:#fff;transition:background .12s}
-.class-check:has(input:checked){background:#EBF4FF;border-color:#2C5282}
-.student-check{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:5px;background:#fff;transition:background .12s}
-.student-check:has(input:checked){background:#EBF4FF;border-color:#2C5282}
+.tab-pill a{padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;text-decoration:none;border:1px solid #e3e5ea;color:#6b6a83;background:#fff;transition:all .15s}
+.tab-pill a.active{background:#040136;color:#fff;border-color:#040136}
+.tab-pill a:hover:not(.active){background:#f3f4f6;border-color:#040136;color:#040136}
+.teacher-card{border:1px solid #e3e5ea;border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;text-decoration:none;color:#040136;background:#fff}
+.teacher-card:hover{border-color:#040136;background:#fafafb;color:#040136}
+.teacher-card.active{border-color:#040136;background:#eeebfc}
+.class-check{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid #e3e5ea;margin-bottom:6px;background:#fff;transition:background .12s}
+.class-check:has(input:checked){background:#eeebfc;border-color:#040136}
+.student-check{display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:8px;border:1px solid #e3e5ea;margin-bottom:5px;background:#fff;transition:background .12s}
+.student-check:has(input:checked){background:#eeebfc;border-color:#040136}
 </style>
 
 <!-- TAB NAVIGATION -->
@@ -180,7 +180,7 @@ if ($tab === 'classes'): ?>
 
   <!-- Info -->
   <div class="col-md-4">
-    <div class="card" style="border-left:3px solid #2C5282">
+    <div class="card" style="border-left:3px solid #040136">
       <div class="card-body">
         <h6 class="fw-bold text-navy mb-3">Panduan</h6>
         <p class="small text-muted mb-2">
@@ -246,7 +246,7 @@ elseif ($tab === 'teachers'): ?>
         <?php foreach ($teachers as $t): ?>
         <a href="?tab=teachers&tid=<?= $t['id'] ?>"
            class="teacher-card mb-2 <?= $selTeacher===$t['id']?'active':'' ?>">
-          <div style="width:32px;height:32px;border-radius:50%;background:#2C5282;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">
+          <div style="width:32px;height:32px;border-radius:50%;background:#040136;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">
             <?= strtoupper(substr($t['name'],0,2)) ?>
           </div>
           <span class="small fw-500"><?= h($t['name']) ?></span>
@@ -322,7 +322,7 @@ elseif ($tab === 'students'): ?>
         <?php $cnt = $classStats[$c['id']]['students']; ?>
         <a href="?tab=students&cid=<?= $c['id'] ?>"
            class="teacher-card mb-2 <?= $selClass===$c['id']?'active':'' ?>">
-          <div style="width:32px;height:32px;border-radius:8px;background:#2C5282;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">
+          <div style="width:32px;height:32px;border-radius:8px;background:#040136;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">
             <i class="bi bi-building" style="font-size:.8rem"></i>
           </div>
           <div>
@@ -367,7 +367,7 @@ elseif ($tab === 'students'): ?>
               <input type="checkbox" name="student_ids[]" value="<?= $s['id'] ?>"
                 class="student-cb"
                 <?= in_array($s['id'], $classStudentIds)?'checked':'' ?>>
-              <div style="width:28px;height:28px;border-radius:50%;background:#4F86C6;color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">
+              <div style="width:28px;height:28px;border-radius:50%;background:#2201b2;color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">
                 <?= strtoupper(substr($s['name'],0,2)) ?>
               </div>
               <span class="small"><?= h($s['name']) ?></span>

@@ -1,235 +1,246 @@
 <?php
+// AGKB 360° — Inbox tiket (sisi pengelola)
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/feedback.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['superadmin','admin']);
+requireRole(['superadmin','admin','foundation','leader']);
 $user = currentUser();
 
-// Handle reply
-$replySuccess = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reply_feedback'])) {
-    $fbId     = (int)$_POST['feedback_id'];
-    $response = trim($_POST['admin_response'] ?? '');
-    if ($fbId && strlen($response) >= 5) {
-        $fb = Database::fetchOne("SELECT f.*, u.name as sender_name, u.email as sender_email FROM feedback f JOIN users u ON u.id=f.sender_id WHERE f.id=?", [$fbId]);
-        if ($fb) {
-            Database::query("UPDATE feedback SET admin_response=?, responded_by=?, status='responded', responded_at=NOW() WHERE id=?",
-                [$response, $user['id'], $fbId]);
+// Eskalasi otomatis dijalankan saat inbox dibuka (pengganti cron)
+$escalated = fbRunAutoEscalation();
+if ($escalated) flash("$escalated tiket dieskalasi otomatis karena melewati batas waktu.", 'warning');
 
-            // Kirim email balasan via Apps Script
-            $scriptUrl = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
-            if ($scriptUrl) {
-                $payload = json_encode([
-                    'to'      => $fb['sender_email'],
-                    'subject' => '[AKGB 360°] Balasan untuk: ' . $fb['subject'],
-                    'body'    => "Yth. {$fb['sender_name']},\n\nBerikut balasan atas feedback Anda:\n\n{$response}\n\n---\nSalam,\nTim Yayasan Kader Bangsa",
-                ]);
-                @file_get_contents($scriptUrl, false, stream_context_create([
-                    'http' => ['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload]
-                ]));
-            }
-            flash('Balasan berhasil dikirim ke ' . $fb['sender_email'], 'success');
+$tracks = fbAllowedTracks($user);
+if (!$tracks) { http_response_code(403); include BASE_PATH . '/includes/403.php'; exit; }
+
+// ── Filter ──────────────────────────────────────────────────
+$fStatus = $_GET['status']   ?? 'aktif';
+$fTrack  = $_GET['track']    ?? '';
+$fCat    = (int)($_GET['cat']  ?? 0);
+$fPic    = (int)($_GET['pic']  ?? 0);
+$fPrio   = $_GET['prio']     ?? '';
+$fQ      = trim($_GET['q']   ?? '');
+$showTest= !empty($_GET['test']);
+
+$w = ["t.track IN (" . implode(',', array_fill(0, count($tracks), '?')) . ")"];
+$p = $tracks;
+
+// Saat mencari, filter status dan penyembunyian tiket tester diabaikan.
+// Kalau tidak, mencari nomor tiket yang persis pun bisa tidak ketemu.
+$modeCari = $fQ !== '';
+
+if (!$showTest && !$modeCari)         { $w[] = "t.is_test = 0"; }
+if ($fTrack && in_array($fTrack, $tracks, true)) { $w[] = "t.track = ?";  $p[] = $fTrack; }
+if ($fCat)                            { $w[] = "t.category_id = ?";       $p[] = $fCat; }
+if ($fPic)                            { $w[] = "t.assignee_id = ?";       $p[] = $fPic; }
+if ($fPrio)                           { $w[] = "t.priority = ?";          $p[] = $fPrio; }
+if ($fQ) { $w[] = "(t.subject LIKE ? OR t.ticket_no LIKE ?)"; $p[] = "%$fQ%"; $p[] = "%$fQ%"; }
+
+switch ($modeCari ? 'semua' : $fStatus) {
+    case 'aktif':     $w[] = "t.status IN ('baru','ditinjau','ditindaklanjuti','menunggu_pelapor')"; break;
+    case 'terlambat': $w[] = "t.status IN ('baru','ditinjau','ditindaklanjuti') AND t.due_at < NOW()"; break;
+    case 'selesai':   $w[] = "t.status IN ('selesai','ditutup')"; break;
+    case 'saya':      $w[] = "t.assignee_id = ?"; $p[] = $user['id']; break;
+    case 'antrean':
+        // Tiket di unit saya yang belum diambil siapa pun
+        $myUnits = array_column(fbUserUnits((int)$user['id']), 'id');
+        if ($myUnits) {
+            $uph = implode(',', array_fill(0, count($myUnits), '?'));
+            $w[] = "t.assignee_id IS NULL AND t.category_id IN
+                    (SELECT id FROM feedback_categories WHERE handler_group_id IN ($uph))";
+            $p = array_merge($p, $myUnits);
+        } else {
+            $w[] = "t.assignee_id IS NULL";
         }
-    }
-    header('Location: ' . APP_URL . '/admin/feedback.php');
-    exit;
+        $w[] = "t.status IN ('baru','ditinjau','ditindaklanjuti')";
+        break;
 }
+if ($user['role'] === 'leader') { $w[] = "(t.level >= 2 OR t.assignee_id = ?)"; $p[] = $user['id']; }
 
-// Filter
-$filter   = $_GET['filter'] ?? 'all';
-$detailId = (int)($_GET['id'] ?? 0);
+$where = 'WHERE ' . implode(' AND ', $w);
 
-$where = $filter === 'new' ? "WHERE f.status='new'" : ($filter === 'responded' ? "WHERE f.status='responded'" : '');
-$feedbacks = Database::fetchAll("
-    SELECT f.*, u.name as sender_name, u.role as sender_role, u.email as sender_email,
-           r.name as responder_name
-    FROM feedback f
-    JOIN users u ON u.id = f.sender_id
-    LEFT JOIN users r ON r.id = f.responded_by
-    $where
-    ORDER BY f.created_at DESC
-");
+$tickets = Database::fetchAll(
+    "SELECT t.*, c.name AS category_name,
+            s.name AS sender_name, s.role AS sender_role, s.email AS sender_email,
+            a.name AS assignee_name
+     FROM feedback_tickets t
+     LEFT JOIN feedback_categories c ON c.id = t.category_id
+     LEFT JOIN users s ON s.id = t.sender_id
+     LEFT JOIN users a ON a.id = t.assignee_id
+     $where
+     ORDER BY FIELD(t.priority,'P1','P2','P3','P4'), t.due_at IS NULL, t.due_at ASC, t.created_at DESC
+     LIMIT 300", $p);
 
-$detailFb = $detailId ? Database::fetchOne("
-    SELECT f.*, u.name as sender_name, u.role as sender_role, u.email as sender_email,
-           r.name as responder_name
-    FROM feedback f JOIN users u ON u.id=f.sender_id
-    LEFT JOIN users r ON r.id=f.responded_by
-    WHERE f.id=?", [$detailId]) : null;
+// ── Ringkasan ───────────────────────────────────────────────
+$ph = implode(',', array_fill(0, count($tracks), '?'));
+$testCond = $showTest ? '' : ' AND is_test = 0';
+$sum = Database::fetchOne(
+    "SELECT
+       COUNT(*) AS semua,
+       SUM(status IN ('baru','ditinjau','ditindaklanjuti','menunggu_pelapor')) AS aktif,
+       SUM(status = 'baru') AS baru,
+       SUM(status IN ('baru','ditinjau','ditindaklanjuti') AND due_at < NOW()) AS terlambat,
+       SUM(status = 'menunggu_pelapor') AS onhold,
+       SUM(status IN ('selesai','ditutup')) AS selesai
+     FROM feedback_tickets WHERE track IN ($ph) $testCond", $tracks);
 
-$counts = [
-    'all'       => Database::fetchOne("SELECT COUNT(*) c FROM feedback")['c'],
-    'new'       => Database::fetchOne("SELECT COUNT(*) c FROM feedback WHERE status='new'")['c'],
-    'responded' => Database::fetchOne("SELECT COUNT(*) c FROM feedback WHERE status='responded'")['c'],
-];
+$cats = Database::fetchAll(
+    "SELECT id,name,track FROM feedback_categories WHERE is_active=1 ORDER BY order_num");
+$pics = Database::fetchAll(
+    "SELECT DISTINCT u.id,u.name FROM feedback_tickets t
+     JOIN users u ON u.id=t.assignee_id ORDER BY u.name");
 
 ob_start(); ?>
-
 <style>
-.fb-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-.fb-panel{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
-.fb-panel-hdr{padding:12px 16px;background:#2C5282;color:white;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
-.filter-row{display:flex;gap:6px;padding:12px 14px;border-bottom:0.5px solid #e2e8f0}
-.filter-btn{padding:4px 12px;border-radius:20px;font-size:12px;border:0.5px solid #e2e8f0;background:transparent;color:#64748b;cursor:pointer;text-decoration:none}
-.filter-btn.active{background:#2C5282;color:white;border-color:#2C5282}
-.fb-item{padding:12px 16px;border-bottom:0.5px solid #f1f5f9;cursor:pointer;transition:background .1s}
-.fb-item:hover{background:#f8fafc}
-.fb-item.selected{background:#EBF4FF;border-left:3px solid #2C5282}
-.fb-item:last-child{border-bottom:none}
-.badge-appr{background:#EAF3DE;color:#27500A;border:0.5px solid #3B6D11;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
-.badge-conc{background:#FAEEDA;color:#633806;border:0.5px solid #854F0B;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
-.badge-new{background:#E6F1FB;color:#0C447C;border:0.5px solid #185FA5;font-size:10px;padding:2px 8px;border-radius:20px}
-.badge-done{background:#EAF3DE;color:#27500A;border:0.5px solid #3B6D11;font-size:10px;padding:2px 8px;border-radius:20px}
-.fb-subj{font-size:13px;font-weight:500;color:#1e293b;margin:4px 0 2px}
-.fb-from{font-size:11px;color:#94a3b8}
-.detail-body{padding:16px}
-.detail-msg{background:#f8fafc;border-radius:8px;padding:14px;font-size:13px;color:#1e293b;line-height:1.7;margin:12px 0;border-left:3px solid #2C5282}
-.detail-label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.reply-form textarea{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none}
-.reply-form textarea:focus{border-color:#2C5282;box-shadow:0 0 0 3px rgba(44,82,130,.1)}
-.btn-reply{padding:9px 20px;background:#2C5282;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-top:10px}
-.btn-reply:hover{background:#1A365D}
-.response-box{background:#EAF3DE;border:0.5px solid #3B6D11;border-radius:8px;padding:14px;margin-top:12px}
-.empty-state{text-align:center;padding:40px 16px;color:#94a3b8}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid #e3e5ea;border-radius:11px;padding:13px 15px;text-decoration:none;display:block;transition:all .14s}
+.kpi:hover{text-decoration:none;border-color:#cdd0d8;transform:translateY(-1px)}
+.kpi.active{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.07)}
+.kpi-n{font-size:24px;font-weight:700;color:#040136;line-height:1.1}
+.kpi-l{font-size:11.5px;color:#6b6a83;margin-top:3px}
+.kpi.warn .kpi-n{color:#b42318}
+.kpi.hold .kpi-n{color:#6b6a83}
+.kpi.done .kpi-n{color:#027a48}
+.flt{background:#fff;border:1px solid #e3e5ea;border-radius:11px;padding:12px 14px;margin-bottom:14px}
+.flt select,.flt input{border:1px solid #e3e5ea;border-radius:8px;padding:5px 10px;font-size:12.5px;outline:none;color:#040136}
+.flt select:focus,.flt input:focus{border-color:#2201b2}
+.trow{display:block;background:#fff;border:1px solid #e3e5ea;border-radius:11px;padding:13px 16px;margin-bottom:8px;text-decoration:none;transition:all .13s;border-left:3px solid #e3e5ea}
+.trow:hover{text-decoration:none;border-color:#cdd0d8;border-left-color:#040136;background:#fafafb}
+.trow.p1{border-left-color:#b42318}.trow.p2{border-left-color:#b83a01}
+.trow.late{background:#fffafa}
+.trow-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.trow-no{font-size:11px;font-weight:700;color:#030870;letter-spacing:.03em}
+.trow-subj{font-size:14px;font-weight:600;color:#040136;line-height:1.4;margin-bottom:3px}
+.trow-meta{font-size:11.5px;color:#6b6a83;display:flex;gap:12px;flex-wrap:wrap}
+.empty{text-align:center;padding:48px 20px;color:#6f6e85;background:#fff;border:1px solid #e3e5ea;border-radius:12px}
 </style>
 
 <?= showFlash() ?>
 
-<!-- Stats -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-  <div style="background:#f8fafc;border-radius:10px;padding:12px 16px;border:0.5px solid #e2e8f0;text-align:center">
-    <div style="font-size:24px;font-weight:500;color:#1e293b"><?= $counts['all'] ?></div>
-    <div style="font-size:11px;color:#64748b">Total Feedback</div>
-  </div>
-  <div style="background:#E6F1FB;border-radius:10px;padding:12px 16px;border:0.5px solid #B5D4F4;text-align:center">
-    <div style="font-size:24px;font-weight:500;color:#185FA5"><?= $counts['new'] ?></div>
-    <div style="font-size:11px;color:#0C447C">Belum Dibalas</div>
-  </div>
-  <div style="background:#EAF3DE;border-radius:10px;padding:12px 16px;border:0.5px solid #C0DD97;text-align:center">
-    <div style="font-size:24px;font-weight:500;color:#3B6D11"><?= $counts['responded'] ?></div>
-    <div style="font-size:11px;color:#27500A">Sudah Dibalas</div>
-  </div>
+<div class="kpi-row">
+  <a href="?status=semua"     class="kpi <?= $fStatus==='semua'?'active':'' ?>"><div class="kpi-n"><?= (int)$sum['semua'] ?></div><div class="kpi-l">Total Masuk</div></a>
+  <a href="?status=aktif"     class="kpi <?= $fStatus==='aktif'?'active':'' ?>"><div class="kpi-n"><?= (int)$sum['aktif'] ?></div><div class="kpi-l">Sedang Proses</div></a>
+  <a href="?status=terlambat" class="kpi warn <?= $fStatus==='terlambat'?'active':'' ?>"><div class="kpi-n"><?= (int)$sum['terlambat'] ?></div><div class="kpi-l">Terlambat</div></a>
+  <a href="?status=aktif&amp;q=" class="kpi hold"><div class="kpi-n"><?= (int)$sum['onhold'] ?></div><div class="kpi-l">Menunggu Pelapor</div></a>
+  <a href="?status=selesai"   class="kpi done <?= $fStatus==='selesai'?'active':'' ?>"><div class="kpi-n"><?= (int)$sum['selesai'] ?></div><div class="kpi-l">Selesai</div></a>
+  <a href="?status=antrean"   class="kpi <?= $fStatus==='antrean'?'active':'' ?>"><div class="kpi-n"><i class="bi bi-inboxes" style="font-size:20px"></i></div><div class="kpi-l">Antrean Unit Saya</div></a>
+  <a href="?status=saya"      class="kpi <?= $fStatus==='saya'?'active':'' ?>"><div class="kpi-n"><i class="bi bi-person-check" style="font-size:20px"></i></div><div class="kpi-l">Ditugaskan ke Saya</div></a>
 </div>
 
-<div class="fb-layout">
+<?php $myUnitNames = array_column(fbUserUnits((int)$user['id']), 'name'); ?>
+<?php if ($myUnitNames): ?>
+<div class="small text-muted mb-2">
+  <i class="bi bi-diagram-3 me-1"></i>Unit penanganan Anda: <strong><?= h(implode(' · ', $myUnitNames)) ?></strong>
+</div>
+<?php elseif (!fbCanManage($user)): ?>
+<div class="alert alert-warning small py-2">
+  <i class="bi bi-exclamation-triangle me-1"></i>
+  Anda belum tergabung di unit penanganan mana pun, jadi tidak ada antrean yang bisa Anda ambil.
+</div>
+<?php endif; ?>
 
-  <!-- LIST -->
-  <div class="fb-panel">
-    <div class="fb-panel-hdr">
-      <i class="bi bi-inbox-fill"></i> Inbox Feedback
-    </div>
-    <div class="filter-row">
-      <a href="?filter=all" class="filter-btn <?= $filter==='all'?'active':'' ?>">Semua (<?= $counts['all'] ?>)</a>
-      <a href="?filter=new" class="filter-btn <?= $filter==='new'?'active':'' ?>">Baru (<?= $counts['new'] ?>)</a>
-      <a href="?filter=responded" class="filter-btn <?= $filter==='responded'?'active':'' ?>">Dibalas (<?= $counts['responded'] ?>)</a>
-    </div>
-    <?php if (empty($feedbacks)): ?>
-    <div class="empty-state">
-      <i class="bi bi-inbox" style="font-size:32px;display:block;margin-bottom:8px;opacity:.4"></i>
-      <p style="font-size:13px">Belum ada feedback</p>
-    </div>
-    <?php else: ?>
-    <?php foreach ($feedbacks as $fb): ?>
-    <a href="?filter=<?= $filter ?>&id=<?= $fb['id'] ?>" style="text-decoration:none">
-      <div class="fb-item <?= $detailId===$fb['id']?'selected':'' ?>">
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
-          <span class="<?= $fb['type']==='appreciation'?'badge-appr':'badge-conc' ?>">
-            <?= $fb['type']==='appreciation'?'Apresiasi':'Perhatian' ?>
-          </span>
-          <span class="<?= $fb['status']==='new'?'badge-new':'badge-done' ?>">
-            <?= $fb['status']==='new'?'Baru':'Dibalas' ?>
-          </span>
-          <span style="font-size:10px;color:#94a3b8;margin-left:auto">
-            <?= date('d M Y', strtotime($fb['created_at'])) ?>
-          </span>
-        </div>
-        <div class="fb-subj"><?= h($fb['subject']) ?></div>
-        <div class="fb-from">
-          <i class="bi bi-person" style="font-size:10px"></i>
-          <?= h($fb['sender_name']) ?> — <?= h(roleLabel($fb['sender_role'])) ?>
-        </div>
-      </div>
-    </a>
-    <?php endforeach; ?>
-    <?php endif; ?>
-  </div>
-
-  <!-- DETAIL -->
-  <div class="fb-panel">
-    <div class="fb-panel-hdr">
-      <i class="bi bi-chat-text-fill"></i> Detail & Balasan
-    </div>
-    <?php if (!$detailFb): ?>
-    <div class="empty-state">
-      <i class="bi bi-arrow-left" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4"></i>
-      <p style="font-size:13px">Pilih feedback dari daftar</p>
-    </div>
-    <?php else: ?>
-    <div class="detail-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <span class="<?= $detailFb['type']==='appreciation'?'badge-appr':'badge-conc' ?>" style="font-size:11px;padding:3px 10px">
-          <?= $detailFb['type']==='appreciation'?'Apresiasi':'Perhatian / Masukan' ?>
-        </span>
-        <span class="<?= $detailFb['status']==='new'?'badge-new':'badge-done' ?>" style="font-size:11px;padding:3px 10px">
-          <?= $detailFb['status']==='new'?'Belum Dibalas':'Sudah Dibalas' ?>
-        </span>
-      </div>
-
-      <div class="detail-label">Subjek</div>
-      <div style="font-size:15px;font-weight:500;color:#1e293b;margin-bottom:12px"><?= h($detailFb['subject']) ?></div>
-
-      <div class="detail-label">Dari</div>
-      <div style="font-size:13px;color:#475569;margin-bottom:12px">
-        <i class="bi bi-person-fill me-1"></i>
-        <?= h($detailFb['sender_name']) ?> (<?= h($detailFb['sender_email']) ?>)<br>
-        <span style="font-size:11px;color:#94a3b8">
-          <?= h(roleLabel($detailFb['sender_role'])) ?> · <?= date('d M Y H:i', strtotime($detailFb['created_at'])) ?>
-        </span>
-      </div>
-
-      <div class="detail-label">Pesan</div>
-      <div class="detail-msg"><?= nl2br(h($detailFb['message'])) ?></div>
-
-      <?php if ($detailFb['status'] === 'responded'): ?>
-      <div class="response-box">
-        <div class="detail-label" style="color:#27500A">Balasan Admin</div>
-        <div style="font-size:13px;color:#1e293b;line-height:1.7;margin-bottom:8px">
-          <?= nl2br(h($detailFb['admin_response'])) ?>
-        </div>
-        <div style="font-size:11px;color:#64748b">
-          Dibalas oleh <?= h($detailFb['responder_name'] ?? 'Admin') ?>
-          · <?= date('d M Y H:i', strtotime($detailFb['responded_at'])) ?>
-        </div>
-      </div>
-      <?php else: ?>
-      <div class="reply-form">
-        <div class="detail-label">Tulis Balasan</div>
-        <form method="POST">
-          <input type="hidden" name="reply_feedback" value="1">
-          <input type="hidden" name="feedback_id" value="<?= $detailFb['id'] ?>">
-          <textarea name="admin_response" rows="5"
-            placeholder="Tulis balasan yang akan dikirim ke email <?= h($detailFb['sender_name']) ?>..."
-            required minlength="5"></textarea>
-          <div style="font-size:11px;color:#64748b;margin-top:4px">
-            <i class="bi bi-envelope me-1"></i>
-            Balasan akan dikirim ke <strong><?= h($detailFb['sender_email']) ?></strong>
-          </div>
-          <button type="submit" class="btn-reply">
-            <i class="bi bi-send-fill"></i>Kirim Balasan
-          </button>
-        </form>
-      </div>
+<div class="flt">
+  <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
+    <input type="hidden" name="status" value="<?= h($fStatus) ?>">
+    <select name="track" onchange="this.form.submit()">
+      <option value="">Semua jenis</option>
+      <?php foreach (fbTracks() as $k=>$v): if(!in_array($k,$tracks,true))continue; ?>
+      <option value="<?= $k ?>" <?= $fTrack===$k?'selected':'' ?>><?= h($v['label']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select name="cat" onchange="this.form.submit()">
+      <option value="0">Semua kategori</option>
+      <?php foreach ($cats as $c): if(!in_array($c['track'],$tracks,true))continue; ?>
+      <option value="<?= $c['id'] ?>" <?= $fCat===(int)$c['id']?'selected':'' ?>><?= h($c['name']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select name="prio" onchange="this.form.submit()">
+      <option value="">Semua prioritas</option>
+      <?php foreach (fbPriorities() as $k=>$v): ?>
+      <option value="<?= $k ?>" <?= $fPrio===$k?'selected':'' ?>><?= $k ?> · <?= h($v['label']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <select name="pic" onchange="this.form.submit()">
+      <option value="0">Semua penanggung jawab</option>
+      <?php foreach ($pics as $pc): ?>
+      <option value="<?= $pc['id'] ?>" <?= $fPic===(int)$pc['id']?'selected':'' ?>><?= h($pc['name']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <input type="text" name="q" value="<?= h($fQ) ?>" placeholder="Cari subjek / nomor tiket" style="min-width:190px"
+           title="Pencarian menembus semua status dan termasuk tiket tester">
+    <label class="d-flex align-items-center gap-1" style="font-size:12px;color:#6b6a83;cursor:pointer">
+      <input type="checkbox" name="test" value="1" <?= $showTest?'checked':'' ?> onchange="this.form.submit()">
+      Tampilkan tiket tester
+    </label>
+    <button class="btn btn-navy btn-sm px-3">Terapkan</button>
+    <a href="?" class="btn btn-sm btn-outline-navy px-3">Reset</a>
+    <span class="ms-auto d-flex gap-1 flex-wrap">
+      <a href="<?= APP_URL ?>/admin/feedback_dashboard.php" class="btn btn-sm btn-catalyst px-3">
+        <i class="bi bi-graph-up me-1"></i>Dashboard
+      </a>
+      <?php if (fbCanManage($user)): ?>
+      <a href="<?= APP_URL ?>/admin/feedback_units.php" class="btn btn-sm btn-outline-navy px-3">
+        <i class="bi bi-diagram-3 me-1"></i>Unit Penanganan
+      </a>
+      <a href="<?= APP_URL ?>/admin/feedback_categories.php" class="btn btn-sm btn-outline-navy px-3">
+        <i class="bi bi-tags me-1"></i>Kategori
+      </a>
       <?php endif; ?>
-    </div>
+    </span>
+  </form>
+</div>
+
+<?php if ($modeCari): ?>
+<div class="alert alert-info small py-2 d-flex align-items-center gap-2">
+  <i class="bi bi-search"></i>
+  <span>Hasil pencarian <strong>"<?= h($fQ) ?>"</strong> — mencakup semua status, termasuk tiket tester.</span>
+  <a href="?status=<?= h($fStatus) ?>" class="ms-auto text-decoration-none">Bersihkan pencarian</a>
+</div>
+<?php endif; ?>
+
+<?php if (!$tickets): ?>
+<div class="empty">
+  <i class="bi bi-inbox" style="font-size:34px;display:block;margin-bottom:10px;opacity:.35"></i>
+  <div style="font-size:14px">
+    <?= $modeCari
+        ? 'Tidak ada tiket yang cocok dengan pencarian ini.'
+        : 'Tidak ada tiket yang cocok dengan filter ini.' ?>
+  </div>
+</div>
+<?php else: foreach ($tickets as $t):
+  $late = fbIsOverdue($t);
+  $sd   = fbSenderDisplay($t, $user); ?>
+<a href="<?= APP_URL ?>/admin/ticket.php?id=<?= $t['id'] ?>"
+   class="trow <?= strtolower($t['priority']) ?> <?= $late?'late':'' ?>">
+  <div class="trow-top">
+    <span class="trow-no"><?= h($t['ticket_no']) ?></span>
+    <?= fbBadgeTrack($t['track']) ?>
+    <?= fbBadgeStatus($t['status']) ?>
+    <?php if ($t['track']!=='apresiasi') echo fbBadgePriority($t['priority']); ?>
+    <?= fbBadgeOverdue($t) ?>
+    <?php if ($t['is_test']) echo fbChip('TESTER', '#fff', '#2201b2', '#2201b2'); ?>
+    <span style="margin-left:auto;font-size:11px;color:#6b6a83"><?= fbRelTime($t['created_at']) ?></span>
+  </div>
+  <div class="trow-subj"><?= h($t['subject']) ?></div>
+  <div class="trow-meta">
+    <span><i class="bi bi-person me-1"></i><?= h($sd['name']) ?><?= $sd['masked']?' 🔒':'' ?></span>
+    <span><i class="bi bi-tag me-1"></i><?= h($t['category_name'] ?? '—') ?></span>
+    <span><i class="bi bi-person-badge me-1"></i><?= h($t['assignee_name'] ?? 'Belum ditugaskan') ?></span>
+    <span><i class="bi bi-diagram-2 me-1"></i><?= h(fbLevels()[$t['level']] ?? '—') ?></span>
+    <?php if ($t['due_at'] && !in_array($t['status'],['selesai','ditutup'],true)): ?>
+    <span style="<?= $late?'color:#b42318;font-weight:600':'' ?>">
+      <i class="bi bi-clock me-1"></i><?= date('d M, H:i', strtotime($t['due_at'])) ?>
+    </span>
     <?php endif; ?>
   </div>
-
-</div>
+</a>
+<?php endforeach; endif; ?>
 
 <?php
 $content = ob_get_clean();
-pageWrapper('Feedback & Apresiasi', $content);
+pageWrapper('Inbox Tiket', $content);

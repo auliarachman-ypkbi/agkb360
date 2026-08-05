@@ -23,25 +23,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk — AKGB 360°</title>
+<title>Masuk — AGKB 360°</title>
+<link rel="icon" type="image/svg+xml" href="<?= APP_URL ?>/assets/img/brand/favicon.svg">
+<link rel="apple-touch-icon" href="<?= APP_URL ?>/assets/img/brand/favicon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --navy:#2C5282;
-  --gold:#ffc901;
-  --blue:#4F86C6;
+  /* AGKB 360° — Brand Identity 2026 */
+  --oblivion:#040136;
+  --oblivion-900:#02001f;
+  --axiom:#030870;
+  --galactic:#2201b2;
+  --catalyst:#ff9101;
+  --catalyst-300:#ffc36b;
+  --ember:#ee4c01;
   --white:#ffffff;
-  --bg:#f5f7fa;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-  --focus:rgba(26,86,204,.15);
+  --bg:#f3f4f6;
+  --text:#2f2d4d;
+  --ink:#040136;
+  --muted:#6b6a83;
+  --border:#e3e5ea;
+  --focus:rgba(34,1,178,.14);
 }
 
-html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text)}
+html,body{height:100%;font-family:'Host Grotesk','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 
 .page{
   min-height:100vh;
@@ -49,25 +58,32 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   align-items:center;
   justify-content:center;
   padding:24px;
+  background:
+    radial-gradient(1000px 560px at 8% -10%, rgba(34,1,178,.14) 0%, transparent 60%),
+    radial-gradient(760px 460px at 96% 110%, rgba(255,145,1,.14) 0%, transparent 58%),
+    var(--bg);
 }
 
 .card{
   width:100%;
-  max-width:880px;
-  min-height:480px;
+  max-width:920px;
+  min-height:500px;
   display:grid;
   grid-template-columns:1fr 1fr;
-  border-radius:20px;
+  border-radius:22px;
   overflow:hidden;
-  box-shadow:0 4px 6px rgba(0,0,0,.04),0 20px 60px rgba(0,0,0,.08);
+  box-shadow:0 4px 8px rgba(4,1,54,.05),0 24px 64px rgba(4,1,54,.16);
   animation:up .4s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── LEFT ── */
 .left{
-  background:var(--white);
-  border-right:1px solid var(--border);
+  background:
+    radial-gradient(720px 460px at 18% 8%, rgba(34,1,178,.55) 0%, transparent 62%),
+    radial-gradient(560px 400px at 100% 100%, rgba(255,145,1,.22) 0%, transparent 60%),
+    linear-gradient(158deg, var(--oblivion-900) 0%, var(--oblivion) 52%, var(--axiom) 100%);
+  color:#fff;
   padding:52px 44px;
   display:flex;
   flex-direction:column;
@@ -76,51 +92,70 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   overflow:hidden;
 }
 
-/* subtle dot grid - very light */
+/* modular dot grid — echo dari logo mark */
 .left::before{
   content:'';
   position:absolute;
   inset:0;
-  background-image:radial-gradient(rgba(0,31,62,.06) 1px,transparent 1px);
-  background-size:24px 24px;
+  background-image:radial-gradient(rgba(255,255,255,.09) 1.5px,transparent 1.5px);
+  background-size:26px 26px;
   pointer-events:none;
 }
 
-/* navy accent bottom */
+/* catalyst accent bottom */
 .left::after{
   content:'';
   position:absolute;
   bottom:0;left:0;right:0;
   height:4px;
-  background:#4F86C6;
+  background:linear-gradient(90deg,var(--catalyst) 0%,var(--ember) 48%,var(--galactic) 100%);
   pointer-events:none;
 }
 
 .brand{position:relative;z-index:1}
 
 .brand-headline{
-  font-size:26px;
+  font-size:27px;
   font-weight:700;
-  color:var(--navy);
-  line-height:1.25;
-  letter-spacing:-.4px;
+  color:#fff;
+  line-height:1.24;
+  letter-spacing:-.5px;
   margin-bottom:10px;
 }
+.brand-headline span{color:var(--catalyst)}
 
 .brand-sub{
-  font-size:13px;
-  color:var(--muted);
-  line-height:1.65;
+  font-size:13.5px;
+  color:rgba(255,255,255,.66);
+  line-height:1.68;
+  max-width:330px;
 }
+
+.values{
+  position:relative;z-index:1;
+  margin-top:30px;
+  display:flex;flex-direction:column;gap:9px;
+}
+.value-item{
+  display:flex;align-items:center;gap:9px;
+  font-size:12px;font-weight:500;
+  color:rgba(255,255,255,.72);
+}
+.value-dot{
+  width:7px;height:7px;border-radius:2px;
+  background:var(--catalyst);flex:0 0 auto;
+}
+.value-item:nth-child(2) .value-dot{background:var(--ember)}
+.value-item:nth-child(3) .value-dot{background:var(--catalyst-300)}
 
 .logo-wrap{
   position:relative;
   z-index:1;
-  margin-bottom:32px;
+  margin-bottom:34px;
 }
 
 .logo-wrap img{
-  height:64px;
+  height:58px;
   width:auto;
   object-fit:contain;
   display:block;
@@ -129,18 +164,18 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 .logo-fallback{
   display:none;
   align-items:center;
-  gap:10px;
+  gap:12px;
 }
 .fallback-badge{
-  background:var(--navy);
-  color:var(--gold);
+  background:var(--catalyst);
+  color:var(--oblivion);
   font-size:13px;
-  font-weight:700;
-  padding:6px 14px;
-  border-radius:8px;
+  font-weight:800;
+  padding:7px 14px;
+  border-radius:10px;
 }
-.fallback-name{font-size:18px;font-weight:700;color:var(--navy)}
-.fallback-name span{color:var(--gold)}
+.fallback-name{font-size:19px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.fallback-name span{color:var(--catalyst)}
 
 /* ── RIGHT ── */
 .right{
@@ -156,15 +191,15 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   font-weight:700;
   letter-spacing:1.4px;
   text-transform:uppercase;
-  color:var(--blue);
+  color:var(--galactic);
   margin-bottom:8px;
 }
 
 .right-title{
   font-size:26px;
   font-weight:700;
-  color:var(--text);
-  letter-spacing:-.4px;
+  color:var(--ink);
+  letter-spacing:-.5px;
   margin-bottom:4px;
 }
 
@@ -179,12 +214,12 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   display:flex;
   align-items:center;
   gap:8px;
-  background:#fef2f2;
-  border:1px solid #fecaca;
+  background:#fdeceb;
+  border:1px solid #f3b5b0;
   border-radius:10px;
   padding:10px 14px;
   font-size:13px;
-  color:#b91c1c;
+  color:#b42318;
   margin-bottom:18px;
 }
 
@@ -207,7 +242,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   position:absolute;
   left:14px;top:50%;
   transform:translateY(-50%);
-  color:#9ca3af;
+  color:#6f6e85;
   pointer-events:none;
 }
 
@@ -226,7 +261,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 }
 
 .field input:focus{
-  border-color:var(--blue);
+  border-color:var(--galactic);
   box-shadow:0 0 0 3px var(--focus);
 }
 
@@ -235,18 +270,18 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   right:12px;top:50%;
   transform:translateY(-50%);
   background:none;border:none;
-  cursor:pointer;color:#9ca3af;
+  cursor:pointer;color:#6f6e85;
   padding:6px;line-height:0;
   transition:color .15s;
 }
-.toggle-pw:hover{color:var(--navy)}
+.toggle-pw:hover{color:var(--oblivion)}
 
 /* button */
 .btn-masuk{
   width:100%;
   height:48px;
   margin-top:8px;
-  background:var(--navy);
+  background:var(--oblivion);
   color:#fff;
   font-family:inherit;
   font-size:15px;
@@ -257,8 +292,9 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   transition:background .15s,box-shadow .15s,transform .1s;
   letter-spacing:.01em;
 }
-.btn-masuk:hover{background:#1A365D;box-shadow:0 4px 14px rgba(0,31,62,.25)}
+.btn-masuk:hover{background:var(--axiom);box-shadow:0 6px 18px rgba(4,1,54,.28)}
 .btn-masuk:active{transform:scale(.98)}
+.btn-masuk:focus-visible{outline:none;box-shadow:0 0 0 3px var(--focus)}
 
 /* footer */
 .right-footer{
@@ -276,7 +312,7 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
   display:inline-block;
   width:6px;height:6px;
   border-radius:50%;
-  background:var(--gold);
+  background:var(--catalyst);
   margin-right:5px;
   vertical-align:middle;
 }
@@ -285,6 +321,9 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
 @media(max-width:640px){
   .card{grid-template-columns:1fr}
   .left{padding:36px 28px 28px;min-height:200px}
+  .values{display:none}
+  .logo-wrap{margin-bottom:24px}
+  .logo-wrap img{height:46px}
   .right{padding:32px 28px}
   .brand-headline{font-size:22px}
   .right-title{font-size:22px}
@@ -299,16 +338,21 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
     <!-- LEFT -->
     <div class="left">
       <div class="logo-wrap">
-        <img src="<?= APP_URL ?>/assets/img/logoAKGB360.png" alt="AKGB 360°"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <img src="<?= APP_URL ?>/assets/img/brand/agkb-lockup-white.svg" alt="AGKB 360° — Platform Evaluasi Kinerja"
+             onerror="this.onerror=null;this.src='<?= APP_URL ?>/assets/img/brand/agkb-lockup-white.png'">
         <div class="logo-fallback">
           <div class="fallback-badge">360°</div>
-          <div class="fallback-name">AKGB <span>360°</span></div>
+          <div class="fallback-name">AGKB <span>360°</span></div>
         </div>
       </div>
       <div class="brand">
-        <h1 class="brand-headline">Platform Evaluasi<br>Kinerja 360°</h1>
-        <p class="brand-sub">Evaluasi multi-responden yang komprehensif untuk pengembangan profesional berkelanjutan.</p>
+        <h1 class="brand-headline">Multiple Perspectives,<br><span>One Insight</span></h1>
+        <p class="brand-sub">Evaluasi multi-responden yang menghimpun setiap sudut pandang secara setara — untuk pengembangan profesional yang berkelanjutan.</p>
+      </div>
+      <div class="values">
+        <div class="value-item"><span class="value-dot"></span>Integritas &amp; Objektivitas</div>
+        <div class="value-item"><span class="value-dot"></span>Pertumbuhan Berkelanjutan</div>
+        <div class="value-item"><span class="value-dot"></span>Transparansi &amp; Akuntabilitas</div>
       </div>
     </div>
 
@@ -365,8 +409,8 @@ html,body{height:100%;font-family:'Plus Jakarta Sans',sans-serif;background:var(
       </form>
 
       <div class="right-footer">
-        <span><span class="version-dot"></span>AKGB 360° v2.0</span>
-        <span>© 2025 AKGB</span>
+        <span><span class="version-dot"></span>AGKB 360° v2.0</span>
+        <span>© 2025 AGKB</span>
       </div>
     </div>
 

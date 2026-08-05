@@ -114,7 +114,7 @@ $needAttention = array_slice($needAttention, 0, 4);
 ob_start(); ?>
 
 <style>
-.prog-hero{background:linear-gradient(135deg,#2C5282,#1A365D);color:white;border-radius:16px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden}
+.prog-hero{background:radial-gradient(520px 320px at 12% 0%,rgba(34,1,178,.5) 0%,transparent 68%),radial-gradient(420px 300px at 100% 110%,rgba(255,145,1,.18) 0%,transparent 62%),linear-gradient(150deg,#02001f 0%,#040136 55%,#030870 100%);color:white;border-radius:16px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden}
 .prog-hero::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,.04);border-radius:50%}
 .hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap;gap:10px}
 .hero-title{font-size:18px;font-weight:600;margin-bottom:4px}
@@ -122,8 +122,8 @@ ob_start(); ?>
 .hero-actions{display:flex;gap:8px}
 .btn-hero{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.08)}
 .btn-hero:hover{background:rgba(255,255,255,.18);color:#fff}
-.btn-hero.danger{border-color:rgba(248,113,113,.5);color:#fecaca}
-.btn-hero.danger:hover{background:rgba(248,113,113,.15)}
+.btn-hero.danger{border-color:rgba(180,35,24,.5);color:#f3b5b0}
+.btn-hero.danger:hover{background:rgba(180,35,24,.15)}
 .hero-bar-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
 .hero-pct{font-size:32px;font-weight:700}
 .hero-bar{height:10px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden;margin-bottom:22px}
@@ -134,52 +134,52 @@ ob_start(); ?>
 .hstat-lbl{font-size:11px;opacity:.7;margin-top:2px}
 
 .attn-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.attn-card{background:#fff;border:1px solid #FADCDC;border-radius:12px;padding:14px 16px;border-left:4px solid #dc2626}
-.attn-name{font-size:13px;font-weight:600;color:#1e293b}
-.attn-role{font-size:11px;color:#94a3b8;margin-bottom:8px}
-.attn-pct{font-size:20px;font-weight:700;color:#dc2626}
-.attn-sub{font-size:11px;color:#94a3b8}
+.attn-card{background:#fff;border:1px solid #fdeceb;border-radius:12px;padding:14px 16px;border-left:4px solid #b42318}
+.attn-name{font-size:13px;font-weight:600;color:#040136}
+.attn-role{font-size:11px;color:#6f6e85;margin-bottom:8px}
+.attn-pct{font-size:20px;font-weight:700;color:#b42318}
+.attn-sub{font-size:11px;color:#6f6e85}
 
-.filter-bar{background:#fff;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.filter-bar{background:#fff;border:0.5px solid #e3e5ea;border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 .filter-bar .f-group{display:flex;flex-direction:column;gap:5px}
-.filter-bar label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px}
-.filter-bar select,.filter-bar input{height:36px;border:1px solid #e2e8f0;border-radius:7px;padding:0 11px;font-size:13px;outline:none;min-width:160px}
-.filter-bar select:focus,.filter-bar input:focus{border-color:#2C5282;box-shadow:0 0 0 3px rgba(44,82,130,.1)}
+.filter-bar label{font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.4px}
+.filter-bar select,.filter-bar input{height:36px;border:1px solid #e3e5ea;border-radius:7px;padding:0 11px;font-size:13px;outline:none;min-width:160px}
+.filter-bar select:focus,.filter-bar input:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
 .filter-bar .f-search{min-width:240px;flex:1}
-.btn-filter{height:36px;padding:0 16px;background:#2C5282;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.btn-clear{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;color:#64748b;text-decoration:none}
+.btn-filter{height:36px;padding:0 16px;background:#040136;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-clear{height:36px;width:36px;display:inline-flex;align-items:center;justify-content:center;background:#fafafb;border:1px solid #e3e5ea;border-radius:7px;color:#6b6a83;text-decoration:none}
 
 .person-list{display:flex;flex-direction:column;gap:8px}
-.person-card{background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden}
+.person-card{background:#fff;border:0.5px solid #e3e5ea;border-radius:12px;overflow:hidden}
 .person-row{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;transition:background .12s}
-.person-row:hover{background:#f8fafc}
-.p-avatar{width:38px;height:38px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.person-row:hover{background:#fafafb}
+.p-avatar{width:38px;height:38px;border-radius:50%;background:#eeebfc;color:#030870;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
 .p-info{flex:1;min-width:0}
-.p-name{font-size:13px;font-weight:600;color:#1e293b}
-.p-role{font-size:11px;color:#94a3b8;display:flex;align-items:center;gap:6px;margin-top:1px}
+.p-name{font-size:13px;font-weight:600;color:#040136}
+.p-role{font-size:11px;color:#6f6e85;display:flex;align-items:center;gap:6px;margin-top:1px}
 .role-chip{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600}
-.role-chip.leader{background:#E6F1FB;color:#0C447C}
-.role-chip.teacher{background:#FAEEDA;color:#633806}
+.role-chip.leader{background:#eeebfc;color:#030870}
+.role-chip.teacher{background:#fff1dc;color:#b83a01}
 .p-bar-wrap{width:160px;flex-shrink:0}
-.p-bar-track{height:6px;border-radius:4px;background:#f1f5f9;overflow:hidden;margin-bottom:4px}
+.p-bar-track{height:6px;border-radius:4px;background:#f3f4f6;overflow:hidden;margin-bottom:4px}
 .p-bar-fill{height:100%;border-radius:4px}
-.p-bar-label{font-size:10px;color:#94a3b8;display:flex;justify-content:space-between}
+.p-bar-label{font-size:10px;color:#6f6e85;display:flex;justify-content:space-between}
 .p-pct{font-size:16px;font-weight:700;width:48px;text-align:right;flex-shrink:0}
-.p-chevron{color:#cbd5e1;transition:transform .2s;flex-shrink:0}
+.p-chevron{color:#cdd0d8;transition:transform .2s;flex-shrink:0}
 .person-card.open .p-chevron{transform:rotate(90deg)}
-.p-detail{display:none;border-top:0.5px solid #f1f5f9;padding:14px 18px;background:#fafbfc}
+.p-detail{display:none;border-top:0.5px solid #f3f4f6;padding:14px 18px;background:#fafafb}
 .person-card.open .p-detail{display:block}
-.detail-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid #f1f5f9}
+.detail-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:0.5px solid #f3f4f6}
 .detail-row:last-child{border-bottom:none}
-.detail-label{flex:1;font-size:12px;color:#475569}
-.detail-label .pkg-code{display:inline-block;background:#2C5282;color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;margin-right:6px}
+.detail-label{flex:1;font-size:12px;color:#2f2d4d}
+.detail-label .pkg-code{display:inline-block;background:#040136;color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;margin-right:6px}
 .detail-bar-wrap{width:110px}
-.detail-bar-track{height:5px;border-radius:3px;background:#e2e8f0;overflow:hidden}
+.detail-bar-track{height:5px;border-radius:3px;background:#e3e5ea;overflow:hidden}
 .detail-bar-fill{height:100%;border-radius:3px}
-.detail-count{font-size:11px;color:#94a3b8;width:54px;text-align:right}
-.detail-link{font-size:11px;color:#185FA5;text-decoration:none;width:70px;text-align:right;flex-shrink:0}
+.detail-count{font-size:11px;color:#6f6e85;width:54px;text-align:right}
+.detail-link{font-size:11px;color:#030870;text-decoration:none;width:70px;text-align:right;flex-shrink:0}
 .detail-link:hover{text-decoration:underline}
-.empty-state{text-align:center;padding:50px;color:#94a3b8;font-size:13px}
+.empty-state{text-align:center;padding:50px;color:#6f6e85;font-size:13px}
 </style>
 
 <!-- HERO -->
@@ -188,7 +188,7 @@ ob_start(); ?>
     <div>
       <div class="hero-title">Progress Evaluasi Berjalan</div>
       <div class="hero-sub">
-        <i class="bi bi-circle-fill" style="font-size:.5rem;color:#4ade80"></i>
+        <i class="bi bi-circle-fill" style="font-size:.5rem;color:#43c58c"></i>
         <?= h($period['name']) ?>
         <?php if ($period['end_date']): ?>
         · Berakhir <?= date('d M Y', strtotime($period['end_date'])) ?>
@@ -207,32 +207,32 @@ ob_start(); ?>
     <span class="hero-pct"><?= $completion ?>%</span>
   </div>
   <div class="hero-bar">
-    <div class="hero-bar-fill" style="width:<?= $completion ?>%;background:<?= $completion>=80?'#4ade80':($completion>=50?'#fbbf24':'#f87171') ?>"></div>
+    <div class="hero-bar-fill" style="width:<?= $completion ?>%;background:<?= $completion>=80?'#43c58c':($completion>=50?'#ffc36b':'#d9483d') ?>"></div>
   </div>
 
   <div class="hero-stats">
     <div class="hstat"><div class="hstat-val"><?= $totalAssign ?></div><div class="hstat-lbl">Total penugasan</div></div>
-    <div class="hstat"><div class="hstat-val" style="color:#4ade80"><?= $completedA ?></div><div class="hstat-lbl">Selesai</div></div>
-    <div class="hstat"><div class="hstat-val" style="color:#fbbf24"><?= $inProgressA ?></div><div class="hstat-lbl">Sedang diisi</div></div>
-    <div class="hstat"><div class="hstat-val" style="color:#f87171"><?= $pendingA ?></div><div class="hstat-lbl">Belum mulai</div></div>
+    <div class="hstat"><div class="hstat-val" style="color:#43c58c"><?= $completedA ?></div><div class="hstat-lbl">Selesai</div></div>
+    <div class="hstat"><div class="hstat-val" style="color:#ffc36b"><?= $inProgressA ?></div><div class="hstat-lbl">Sedang diisi</div></div>
+    <div class="hstat"><div class="hstat-val" style="color:#d9483d"><?= $pendingA ?></div><div class="hstat-lbl">Belum mulai</div></div>
   </div>
 </div>
 
 <!-- BREAKDOWN PER KELOMPOK PENILAI -->
 <?php if (!empty($respBreakdown)): ?>
-<div style="background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:20px">
-  <div style="padding:14px 18px;border-bottom:0.5px solid #e2e8f0;font-size:13px;font-weight:600;color:#1e293b">
-    <i class="bi bi-people-fill me-2" style="color:#2C5282"></i>Progress per Kelompok Penilai
+<div style="background:#fff;border:0.5px solid #e3e5ea;border-radius:12px;overflow:hidden;margin-bottom:20px">
+  <div style="padding:14px 18px;border-bottom:0.5px solid #e3e5ea;font-size:13px;font-weight:600;color:#040136">
+    <i class="bi bi-people-fill me-2" style="color:#040136"></i>Progress per Kelompok Penilai
   </div>
   <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">
     <?php foreach ($respBreakdown as $rb):
-      $rc = $rb['pct']>=80?'#16a34a':($rb['pct']>=50?'#d97706':'#dc2626');
+      $rc = $rb['pct']>=80?'#027a48':($rb['pct']>=50?'#a85a01':'#b42318');
     ?>
-    <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(respondentLabel($rb['respondent_type'])) ?></div>
+    <div style="background:#fafafb;border-radius:10px;padding:14px 16px;border:1px solid #e3e5ea">
+      <div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(respondentLabel($rb['respondent_type'])) ?></div>
       <div style="font-size:26px;font-weight:700;color:<?= $rc ?>;line-height:1"><?= $rb['pct'] ?>%</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px"><?= $rb['done'] ?>/<?= $rb['total'] ?> penugasan</div>
-      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
+      <div style="font-size:11px;color:#6f6e85;margin-top:4px"><?= $rb['done'] ?>/<?= $rb['total'] ?> penugasan</div>
+      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e3e5ea;overflow:hidden">
         <div style="height:100%;border-radius:2px;background:<?= $rc ?>;width:<?= $rb['pct'] ?>%"></div>
       </div>
     </div>
@@ -243,20 +243,20 @@ ob_start(); ?>
 
 <!-- PARTISIPASI PER KELOMPOK -->
 <?php if (!empty($peopleParticipation)): ?>
-<div style="background:#fff;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:20px">
-  <div style="padding:14px 18px;border-bottom:0.5px solid #e2e8f0;font-size:13px;font-weight:600;color:#1e293b">
-    <i class="bi bi-person-check-fill me-2" style="color:#2C5282"></i>Partisipasi per Kelompok
-    <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:4px">— berapa orang yang sudah mulai mengisi</span>
+<div style="background:#fff;border:0.5px solid #e3e5ea;border-radius:12px;overflow:hidden;margin-bottom:20px">
+  <div style="padding:14px 18px;border-bottom:0.5px solid #e3e5ea;font-size:13px;font-weight:600;color:#040136">
+    <i class="bi bi-person-check-fill me-2" style="color:#040136"></i>Partisipasi per Kelompok
+    <span style="font-size:11px;font-weight:400;color:#6f6e85;margin-left:4px">— berapa orang yang sudah mulai mengisi</span>
   </div>
   <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
     <?php foreach ($peopleParticipation as $pp):
-      $rc = $pp['pct']>=80?'#16a34a':($pp['pct']>=50?'#d97706':'#dc2626');
+      $rc = $pp['pct']>=80?'#027a48':($pp['pct']>=50?'#a85a01':'#b42318');
     ?>
-    <div style="background:#f8fafc;border-radius:10px;padding:14px 16px;border:1px solid #e2e8f0">
-      <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(roleLabel($pp['role'])) ?></div>
+    <div style="background:#fafafb;border-radius:10px;padding:14px 16px;border:1px solid #e3e5ea">
+      <div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px"><?= h(roleLabel($pp['role'])) ?></div>
       <div style="font-size:26px;font-weight:700;color:<?= $rc ?>;line-height:1"><?= $pp['pct'] ?>%</div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:4px"><?= $pp['sudah_isi'] ?>/<?= $pp['total_orang'] ?> orang</div>
-      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden">
+      <div style="font-size:11px;color:#6f6e85;margin-top:4px"><?= $pp['sudah_isi'] ?>/<?= $pp['total_orang'] ?> orang</div>
+      <div style="margin-top:8px;height:4px;border-radius:2px;background:#e3e5ea;overflow:hidden">
         <div style="height:100%;border-radius:2px;background:<?= $rc ?>;width:<?= $pp['pct'] ?>%"></div>
       </div>
     </div>
@@ -267,8 +267,8 @@ ob_start(); ?>
 
 <!-- PERLU PERHATIAN -->
 <?php if (!empty($needAttention)): ?>
-<div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
-  <i class="bi bi-exclamation-triangle-fill me-1" style="color:#dc2626"></i>Perlu Perhatian — Progress di Bawah 50%
+<div style="font-size:12px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+  <i class="bi bi-exclamation-triangle-fill me-1" style="color:#b42318"></i>Perlu Perhatian — Progress di Bawah 50%
 </div>
 <div class="attn-row">
   <?php foreach ($needAttention as $na): $pct = round($na['done']/$na['total']*100); ?>
@@ -312,7 +312,7 @@ ob_start(); ?>
 <div class="person-list">
   <?php foreach ($people as $i => $p):
     $pct = $p['total'] > 0 ? round($p['done']/$p['total']*100) : 0;
-    $barColor = $pct>=80?'#16a34a':($pct>=50?'#d97706':'#dc2626');
+    $barColor = $pct>=80?'#027a48':($pct>=50?'#a85a01':'#b42318');
   ?>
   <div class="person-card" id="pcard<?= $i ?>">
     <div class="person-row" onclick="document.getElementById('pcard<?= $i ?>').classList.toggle('open')">
@@ -334,7 +334,7 @@ ob_start(); ?>
     <div class="p-detail">
       <?php foreach ($p['breakdown'] as $b):
         $bpct = $b['total'] > 0 ? round($b['done']/$b['total']*100) : 0;
-        $bColor = $bpct>=80?'#16a34a':($bpct>=50?'#d97706':'#dc2626');
+        $bColor = $bpct>=80?'#027a48':($bpct>=50?'#a85a01':'#b42318');
         $drillUrl = APP_URL . '/admin/assignments.php?role=' . urlencode($p['role'])
                   . '&resp=' . urlencode($b['resp']) . '&evaluatee_id=' . (int)$p['id'];
       ?>

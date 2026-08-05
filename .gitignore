@@ -22,3 +22,8 @@ ktb_mysql_data/
 docker/nginx/default.conf
 public_html/app/config/config.php
 public_html/demo/config/config.php
+
+# Lampiran feedback (di luar webroot) — isi tidak ikut git
+storage/feedback*/*
+!storage/feedback*/.gitkeep
+!storage/feedback*/.htaccess

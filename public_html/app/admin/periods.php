@@ -132,9 +132,9 @@ $periods = Database::fetchAll("
 ");
 
 $statusConfig = [
-    'draft'  => ['bg'=>'#6b7280','label'=>'Draft',  'icon'=>'bi-pencil'],
-    'active' => ['bg'=>'#16a34a','label'=>'Aktif',  'icon'=>'bi-play-circle-fill'],
-    'closed' => ['bg'=>'#374151','label'=>'Selesai','icon'=>'bi-archive-fill'],
+    'draft'  => ['bg'=>'#6b6a83','label'=>'Draft',  'icon'=>'bi-pencil'],
+    'active' => ['bg'=>'#027a48','label'=>'Aktif',  'icon'=>'bi-play-circle-fill'],
+    'closed' => ['bg'=>'#2f2d4d','label'=>'Selesai','icon'=>'bi-archive-fill'],
 ];
 
 ob_start(); ?>
@@ -161,7 +161,7 @@ if ($warnClose && isset($_GET['warn_close'])):
     <div class="table-responsive mb-3">
       <table class="table table-sm small">
         <thead>
-          <tr style="background:#fef2f2">
+          <tr style="background:#fdeceb">
             <th>Penilai</th>
             <th>Yang Dinilai</th>
             <th>Status</th>

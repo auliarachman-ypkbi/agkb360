@@ -11,12 +11,12 @@ $period = getPeriod();
 
 if (canAccessAdmin()) {
 
-// ── FETCH SEMUA CLOSED PERIODS ────────────────────────────────
+// ── FETCH SEMUA PERIODE (closed + active berjalan = data sementara) ──
 $closedPeriods = Database::fetchAll("
-    SELECT ep.id, ep.name, ep.year, ep.start_date, ep.end_date
+    SELECT ep.id, ep.name, ep.year, ep.start_date, ep.end_date, ep.status
     FROM eval_periods ep
     JOIN assignments a ON a.period_id = ep.id AND a.status='completed'
-    WHERE ep.status = 'closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY ep.id
     ORDER BY ep.start_date, ep.id
 ");
@@ -27,7 +27,7 @@ if (empty($closedPeriods)) {
       <div class="card-body text-center py-5 text-muted">
         <i class="bi bi-bar-chart display-4 mb-3 d-block"></i>
         <h5 class="fw-bold text-navy">Belum ada data evaluasi</h5>
-        <p>Data tren akan muncul setelah minimal satu periode evaluasi selesai.</p>
+        <p>Data tren akan muncul setelah ada kuesioner yang masuk pada periode evaluasi.</p>
         <a href="<?= APP_URL ?>/admin/periods.php" class="btn btn-navy mt-2">
           <i class="bi bi-calendar3 me-1"></i>Kelola Periode
         </a>
@@ -42,6 +42,10 @@ if (empty($closedPeriods)) {
 $periodIds   = array_column($closedPeriods, 'id');
 $periodNames = array_column($closedPeriods, 'name');
 
+// Periode terakhir dalam rentang — kalau masih 'active', ini data sementara
+$latestPeriodInView = end($closedPeriods);
+$hasPreliminary      = $latestPeriodInView && $latestPeriodInView['status'] !== 'closed';
+
 // ── METRICS ───────────────────────────────────────────────────
 $totalUsers  = Database::fetchOne("SELECT COUNT(*) c FROM users WHERE is_active=1")['c'];
 $cntLeader   = Database::fetchOne("SELECT COUNT(*) c FROM users WHERE role='leader' AND is_active=1")['c'];
@@ -54,7 +58,7 @@ $schoolAvgRaw = Database::fetchAll("
     FROM eval_periods ep
     JOIN assignments a ON a.period_id=ep.id AND a.status='completed'
     JOIN responses r ON r.assignment_id=a.id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY ep.id
     ORDER BY ep.start_date, ep.id
 ");
@@ -73,7 +77,7 @@ $domainRaw = Database::fetchAll("
     JOIN standards s ON q.standard_id=s.id
     JOIN domains d ON s.domain_id=d.id
     JOIN eval_types et ON d.eval_type_id=et.id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY et.code, et.name, d.id, d.name, ep.id
     ORDER BY et.id, d.id, ep.start_date
 ");
@@ -89,7 +93,7 @@ $traitRaw = Database::fetchAll("
     JOIN standards s ON q.standard_id=s.id
     JOIN standard_traits st ON st.standard_id=s.id
     JOIN traits t ON t.id=st.trait_id
-    WHERE ep.status='closed'
+    WHERE ep.status IN ('closed','active')
     GROUP BY t.id, t.name, ep.id
     ORDER BY t.code, ep.start_date
 ");
@@ -100,7 +104,7 @@ $individualRaw = Database::fetchAll("
            ROUND(AVG(r.grade),2) as avg_score
     FROM users u
     JOIN assignments a ON a.evaluatee_id=u.id AND a.status='completed'
-    JOIN eval_periods ep ON ep.id=a.period_id AND ep.status='closed'
+    JOIN eval_periods ep ON ep.id=a.period_id AND ep.status IN ('closed','active')
     JOIN responses r ON r.assignment_id=a.id
     WHERE u.role IN ('leader','teacher') AND u.is_active=1
     GROUP BY u.id, u.name, u.role, ep.id
@@ -158,10 +162,10 @@ function initials(string $n): string {
     return count($w)>=2 ? strtoupper($w[0][0].$w[1][0]) : strtoupper(substr($n,0,2));
 }
 function heatColor(float $v): string {
-    if ($v >= 3.5) return 'background:#EAF3DE;color:#27500A';
-    if ($v >= 3.0) return 'background:#E6F1FB;color:#0C447C';
-    if ($v >= 2.5) return 'background:#FAEEDA;color:#633806';
-    return 'background:#FCEBEB;color:#791F1F';
+    if ($v >= 3.5) return 'background:#e7f6ef;color:#015c36';
+    if ($v >= 3.0) return 'background:#eeebfc;color:#030870';
+    if ($v >= 2.5) return 'background:#fff1dc;color:#b83a01';
+    return 'background:#fdeceb;color:#8c1610';
 }
 
 ob_start(); ?>
@@ -169,50 +173,57 @@ ob_start(); ?>
 <style>
 .dash-g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .dash-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.mcard{background:#ffffff;border-radius:10px;padding:.9rem 1.1rem;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
-.mval{font-size:24px;font-weight:500;color:#1e293b;line-height:1.1}
-.mlbl{font-size:12px;color:#64748b;margin-top:3px}
-.msub{font-size:11px;color:#64748b;margin-top:6px}
-.dcard{background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
-.dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#1e293b;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
+.mcard{background:#ffffff;border-radius:10px;padding:.9rem 1.1rem;border:1px solid #e3e5ea;box-shadow:0 1px 3px rgba(4,1,54,.04),0 4px 12px rgba(4,1,54,.04)}
+.mval{font-size:24px;font-weight:500;color:#040136;line-height:1.1}
+.mlbl{font-size:12px;color:#6b6a83;margin-top:3px}
+.msub{font-size:11px;color:#6b6a83;margin-top:6px}
+.dcard{background:#ffffff;border:1px solid #e3e5ea;border-radius:12px;overflow:hidden;margin-bottom:14px;box-shadow:0 1px 3px rgba(4,1,54,.04),0 4px 12px rgba(4,1,54,.04)}
+.dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#040136;border-bottom:1px solid #e3e5ea;display:flex;justify-content:space-between;align-items:center;background:#fafafb}
 .dcard-body{padding:14px;background:#ffffff}
 /* Accent left borders per card type */
-.dcard.accent-blue{border-left:3px solid #185FA5}
-.dcard.accent-green{border-left:3px solid #3B6D11}
-.dcard.accent-red{border-left:3px solid #A32D2D}
-.dcard.accent-purple{border-left:3px solid #533AB7}
-.dcard.accent-amber{border-left:3px solid #854F0B}
+.dcard.accent-blue{border-left:3px solid #030870}
+.dcard.accent-green{border-left:3px solid #027a48}
+.dcard.accent-red{border-left:3px solid #b42318}
+.dcard.accent-purple{border-left:3px solid #030870}
+.dcard.accent-amber{border-left:3px solid #b83a01}
 /* Section divider */
-.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:10px;margin-top:4px;padding-left:2px;display:flex;align-items:center;gap:8px}
-.section-label::after{content:"";flex:1;height:1px;background:#e2e8f0}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b6a83;margin-bottom:10px;margin-top:4px;padding-left:2px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:"";flex:1;height:1px;background:#e3e5ea}
 /* Tabs */
 .tab-group{display:flex;gap:4px;flex-wrap:wrap}
-.tab-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;transition:all .12s}
-.tab-btn.active{background:#185FA5!important;color:#ffffff!important;border-color:transparent}
+.tab-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:0.5px solid #e3e5ea;background:#fafafb;color:#6b6a83;cursor:pointer;transition:all .12s}
+.tab-btn.active{background:#030870!important;color:#ffffff!important;border-color:transparent}
 .tab-panel{display:none}.tab-panel.active{display:block}
 /* Slider */
-.period-slider-wrap{background:#ffffff;border:1px solid #e2e8f0;border-left:3px solid #2C5282;border-radius:12px;padding:12px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04)}
-.slider-track{position:relative;height:6px;background:#f1f5f9;border-radius:3px;margin:20px 0 8px}
+.period-slider-wrap{background:#ffffff;border:1px solid #e3e5ea;border-left:3px solid #040136;border-radius:12px;padding:12px 20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(4,1,54,.04),0 4px 12px rgba(4,1,54,.04)}
+.slider-track{position:relative;height:6px;background:#f3f4f6;border-radius:3px;margin:20px 0 8px}
 .slider-wrap-inner{width:75%;margin:0 auto}
-.slider-fill{position:absolute;height:100%;background:#185FA5;border-radius:3px;pointer-events:none}
-.slider-handle{position:absolute;top:-7px;width:20px;height:20px;border-radius:50%;background:white;border:2px solid #185FA5;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.15);transform:translateX(-50%);transition:box-shadow .1s}
-.slider-handle:active{cursor:grabbing;box-shadow:0 2px 8px rgba(24,95,165,.3)}
-.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:4px}
-.period-info{font-size:13px;font-weight:500;text-align:center;color:#1e293b}
+.slider-fill{position:absolute;height:100%;background:#030870;border-radius:3px;pointer-events:none}
+.slider-handle{position:absolute;top:-7px;width:20px;height:20px;border-radius:50%;background:white;border:2px solid #030870;cursor:grab;box-shadow:0 1px 4px rgba(4,1,54,.15);transform:translateX(-50%);transition:box-shadow .1s}
+.slider-handle:active{cursor:grabbing;box-shadow:0 2px 8px rgba(3,8,112,.3)}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:#6b6a83;margin-top:4px}
+.period-info{font-size:13px;font-weight:500;text-align:center;color:#040136}
 /* Rank rows */
-.rank-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9}
+.rank-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f3f4f6}
 .rank-row:last-child{border-bottom:none}
-.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#E6F1FB;color:#0C447C}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#eeebfc;color:#030870}
 .rank-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500}
-.rank-role{font-size:10px;color:#64748b}
+.rank-role{font-size:10px;color:#6b6a83}
 .score-chip{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;flex-shrink:0}
 .sline{display:flex;align-items:flex-end;gap:2px;height:18px;flex-shrink:0}
 .sb{width:8px;border-radius:2px 2px 0 0}
 .ql-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-.ql{display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:10px;border:1px solid #e2e8f0;background:#ffffff;font-size:12px;font-weight:500;text-align:center;gap:5px;text-decoration:none;color:#1e293b;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.ql:hover{background:#f8fafc;border-color:#2C5282;transform:translateY(-2px);box-shadow:0 4px 12px rgba(44,82,130,.12)}
-.ql i{font-size:20px;color:#185FA5}
+.ql{display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:10px;border:1px solid #e3e5ea;background:#ffffff;font-size:12px;font-weight:500;text-align:center;gap:5px;text-decoration:none;color:#040136;transition:all .15s;box-shadow:0 1px 3px rgba(4,1,54,.04)}
+.ql:hover{background:#fafafb;border-color:#040136;transform:translateY(-2px);box-shadow:0 4px 12px rgba(4,1,54,.12)}
+.ql i{font-size:20px;color:#030870}
 </style>
+
+<?php if ($hasPreliminary): ?>
+<div style="background:#fff1dc;border:1px solid #ffc36b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b83a01;display:flex;align-items:center;gap:8px">
+  <i class="bi bi-hourglass-split"></i>
+  Periode <strong><?= h($latestPeriodInView['name']) ?></strong> masih berjalan — data untuk periode ini bersifat <strong>sementara</strong> dari responden yang sudah mengisi, dan akan diperbarui sampai periode ditutup.
+</div>
+<?php endif; ?>
 
 <!-- METRIC CARDS -->
 <div class="dash-g4">
@@ -247,7 +258,7 @@ ob_start(); ?>
 <!-- PERIOD SLIDER -->
 <div class="period-slider-wrap">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <span style="font-size:12px;font-weight:500;color:#64748b">
+    <span style="font-size:12px;font-weight:500;color:#6b6a83">
       <i class="bi bi-sliders me-1"></i>Rentang Periode
     </span>
     <span class="period-info" id="sliderInfo">—</span>
@@ -326,14 +337,14 @@ ob_start(); ?>
 <div class="section-label"><i class="bi bi-people"></i>Peringkat Kinerja</div>
 <div class="dash-g2">
   <div class="dcard accent-green">
-    <div class="dcard-hdr" style="color:#3B6D11">
+    <div class="dcard-hdr" style="color:#027a48">
       <span><i class="bi bi-trophy-fill me-1"></i>5 Performa Terbaik</span>
       <span style="font-size:10px;font-weight:400" id="rankPeriodLabel">periode akhir</span>
     </div>
     <div class="dcard-body" style="padding:8px 14px" id="top5List"></div>
   </div>
   <div class="dcard accent-red">
-    <div class="dcard-hdr" style="color:#A32D2D">
+    <div class="dcard-hdr" style="color:#b42318">
       <span><i class="bi bi-exclamation-triangle-fill me-1"></i>5 Perlu Perhatian</span>
       <span style="font-size:10px;font-weight:400" id="rankPeriodLabel2">periode akhir</span>
     </div>
@@ -359,7 +370,8 @@ const DOMAIN_DATA = <?= json_encode($jsDomain) ?>;  // struktur baru
 const TRAIT_DATA  = <?= json_encode($jsTrait) ?>;
 const INDIVIDUAL  = <?= json_encode($jsIndividual) ?>;
 
-const COLORS = ['#185FA5','#3B6D11','#854F0B','#A32D2D','#533AB7','#0F6E56','#BA7517','#0C6B5F'];
+// Palet kategori AGKB 360° — 8 warna, semua lolos AA dengan teks putih
+const COLORS = ['#030870','#2201b2','#5b3fd6','#0a6e78','#0f7a3d','#a85a01','#b83a01','#b42318'];
 
 // ── STATE ─────────────────────────────────────────────────────
 let leftIdx       = 0;
@@ -388,9 +400,10 @@ function renderSlider() {
   handleR.style.left = rp + '%';
   const ln = PERIODS[leftIdx].name;
   const rn = PERIODS[rightIdx].name;
-  sliderInfo.textContent = leftIdx === rightIdx
+  const prelimSuffix = PERIODS[rightIdx].status === 'active' ? ' · Sementara' : '';
+  sliderInfo.textContent = (leftIdx === rightIdx
     ? ln
-    : ln.split(' ').slice(-2).join(' ') + ' → ' + rn.split(' ').slice(-2).join(' ') + ' (' + (rightIdx-leftIdx+1) + ' periode)';
+    : ln.split(' ').slice(-2).join(' ') + ' → ' + rn.split(' ').slice(-2).join(' ') + ' (' + (rightIdx-leftIdx+1) + ' periode)') + prelimSuffix;
 }
 
 function formatPeriodLabel(name) {
@@ -412,9 +425,12 @@ function renderLabels() {
   sliderLabels.innerHTML = PERIODS.map((p,i) => {
     const pos = pct(i);
     const [line1, line2] = formatPeriodLabel(p.name);
+    const prelimDot = p.status === 'active'
+      ? `<span title="Periode berjalan — data sementara" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#d97701;margin-left:3px;vertical-align:middle"></span>`
+      : '';
     return `<span style="position:absolute;left:${pos}%;transform:translateX(-50%);text-align:center;line-height:1.3;white-space:nowrap">
-      <span style="display:block;font-size:${fs}px;font-weight:500;color:#1e293b">${line1}</span>
-      ${line2 ? `<span style="display:block;font-size:${Math.max(7,fs-1)}px;color:#64748b">${line2}</span>` : ''}
+      <span style="display:block;font-size:${fs}px;font-weight:500;color:#040136">${line1}${prelimDot}</span>
+      ${line2 ? `<span style="display:block;font-size:${Math.max(7,fs-1)}px;color:#6b6a83">${line2}</span>` : ''}
     </span>`;
   }).join('');
   sliderLabels.style.position = 'relative';
@@ -481,19 +497,32 @@ function updateSchoolChart() {
       data: { labels, datasets: [{
         label: 'Rata-rata',
         data,
-        borderColor: '#185FA5',
-        backgroundColor: 'rgba(55,138,221,0.08)',
+        borderColor: '#030870',
+        backgroundColor: 'rgba(34,1,178,0.08)',
         fill: true, tension: 0.4,
-        pointBackgroundColor: '#185FA5',
+        pointBackgroundColor: '#030870',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
         pointRadius: 6, pointHoverRadius: 8,
       }]},
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}} },
+        plugins: {
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}},
+          datalabels: {
+            display: true,
+            anchor: 'top',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 10, weight: '600' },
+            color: '#030870',
+            padding: { bottom: 4 },
+          }
+        },
+        layout: { padding: { top: 20 } },
         scales: {
-          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
+          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(4,1,54,.05)'} },
           x: { ticks:{font:{size:10},maxRotation:30}, grid:{display:false} }
         }
       }
@@ -512,7 +541,7 @@ function updateSchoolChart() {
     document.getElementById('metricAvgVal').textContent = last.toFixed(2);
     const sub = document.getElementById('metricAvgSub');
     const sign = diff >= 0 ? '+' : '';
-    sub.innerHTML = `<span style="color:${diff>=0?'#3B6D11':'#A32D2D'}">${sign}${diff} dari periode awal rentang</span>`;
+    sub.innerHTML = `<span style="color:${diff>=0?'#027a48':'#b42318'}">${sign}${diff} dari periode awal rentang</span>`;
   }
 }
 
@@ -538,16 +567,16 @@ function buildDomainTabs() {
 }
 
 function setTabActive(btn) {
-  btn.style.background = '#185FA5';
+  btn.style.background = '#030870';
   btn.style.color = '#ffffff';
-  btn.style.borderColor = '#185FA5';
+  btn.style.borderColor = '#030870';
   btn.style.fontWeight = '600';
-  btn.style.boxShadow = '0 2px 6px rgba(24,95,165,0.35)';
+  btn.style.boxShadow = '0 2px 6px rgba(3,8,112,0.35)';
 }
 function setTabInactive(btn) {
-  btn.style.background = '#f8fafc';
-  btn.style.color = '#64748b';
-  btn.style.borderColor = '#e2e8f0';
+  btn.style.background = '#fafafb';
+  btn.style.color = '#6b6a83';
+  btn.style.borderColor = '#e3e5ea';
   btn.style.fontWeight = '400';
   btn.style.boxShadow = 'none';
 }
@@ -581,8 +610,8 @@ function updateDomainChart(etCode) {
     });
 
 const intensity = 0.3 + (idx / Math.max(1, periodNames.length - 1)) * 0.5; // range 0.3 - 0.8
-const blueShade = `rgba(24, 95, 165, ${intensity})`;
-const borderShade = `rgba(24, 95, 165, 0.8)`;
+const blueShade = `rgba(3,8,112, ${intensity})`;
+const borderShade = `rgba(3,8,112, 0.8)`;
 
 return {
   label: periodName,
@@ -610,10 +639,21 @@ return {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toFixed(2)} / 4.00` } }
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toFixed(2)} / 4.00` } },
+          datalabels: {
+            display: true,
+            anchor: 'end',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 9, weight: '600' },
+            color: ctx => ctx.dataset.borderColor || '#2f2d4d',
+            padding: { bottom: 2 },
+            clip: false,
+          }
         },
+        layout: { padding: { top: 20 } },
         scales: {
-          y: { min: 1.5, max: 4.0, ticks: { stepSize: 0.5, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,.05)' } },
+          y: { min: 1.5, max: 4.0, ticks: { stepSize: 0.5, font: { size: 10 } }, grid: { color: 'rgba(4,1,54,.05)' } },
           x: { ticks: { font: { size: 6 }, maxRotation: 45 }, grid: { display: false } }
         }
       }
@@ -679,18 +719,31 @@ function updateTraitChart(tid) {
       type: 'line',
       data: { labels, datasets: [{
         label: trait.name, data,
-        borderColor: '#533AB7',
-        backgroundColor: 'rgba(83,58,183,0.06)',
+        borderColor: '#030870',
+        backgroundColor: 'rgba(34,1,178,0.06)',
         fill: true, tension: 0.4,
-        pointBackgroundColor: '#533AB7',
+        pointBackgroundColor: '#030870',
         pointBorderColor: '#fff',
         pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7,
       }]},
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}} },
+        plugins: {
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}},
+          datalabels: {
+            display: true,
+            anchor: 'top',
+            align: 'top',
+            formatter: v => v != null ? parseFloat(v).toFixed(2) : '',
+            font: { size: 10, weight: '600' },
+            color: '#030870',
+            padding: { bottom: 4 },
+          }
+        },
+        layout: { padding: { top: 20 } },
         scales: {
-          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
+          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(4,1,54,.05)'} },
           x: { ticks:{font:{size:10},maxRotation:30}, grid:{display:false} }
         }
       }
@@ -719,24 +772,24 @@ function updateIndividualList() {
     if (!vals.length) continue;
     const first = vals[0], last = vals[vals.length-1];
     const diff = last - first;
-    const color = diff > 0.05 ? '#185FA5' : diff < -0.05 ? '#E24B4A' : '#888780';
-    const badge = diff > 0.05 ? `<span style="background:#EAF3DE;color:#3B6D11;font-size:10px;padding:1px 6px;border-radius:4px">↑ +${diff.toFixed(1)}</span>`
-                : diff < -0.05 ? `<span style="background:#FCEBEB;color:#A32D2D;font-size:10px;padding:1px 6px;border-radius:4px">↓ ${diff.toFixed(1)}</span>`
-                : `<span style="background:#F1EFE8;color:#5F5E5A;font-size:10px;padding:1px 6px;border-radius:4px">→ ${diff.toFixed(1)}</span>`;
+    const color = diff > 0.05 ? '#030870' : diff < -0.05 ? '#b42318' : '#6f6e85';
+    const badge = diff > 0.05 ? `<span style="background:#e7f6ef;color:#027a48;font-size:10px;padding:1px 6px;border-radius:4px">↑ +${diff.toFixed(1)}</span>`
+                : diff < -0.05 ? `<span style="background:#fdeceb;color:#b42318;font-size:10px;padding:1px 6px;border-radius:4px">↓ ${diff.toFixed(1)}</span>`
+                : `<span style="background:#fff8ef;color:#6b6a83;font-size:10px;padding:1px 6px;border-radius:4px">→ ${diff.toFixed(1)}</span>`;
     const bars = vals.map((v,i) => {
       const h = Math.max(20, Math.round((v/4)*100));
       const op = 0.35 + (i/Math.max(1,vals.length-1))*0.65;
       return `<div style="width:8px;height:${h}%;border-radius:2px 2px 0 0;background:${color};opacity:${op.toFixed(2)};align-self:flex-end"></div>`;
     }).join('');
     const nm = p.name.split(' ').slice(0,2).join(' ');
-    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #e2e8f0">
-      <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#E6F1FB;color:#0C447C">${initials(p.name)}</div>
+    html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid #e3e5ea">
+      <div style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;flex-shrink:0;background:#eeebfc;color:#030870">${initials(p.name)}</div>
       <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500">${nm}</div>
       <div style="display:flex;align-items:flex-end;gap:2px;height:20px">${bars}</div>
       ${badge}
     </div>`;
   }
-  el.innerHTML = html || '<p style="font-size:12px;color:#64748b;text-align:center;padding:1rem">Tidak ada data</p>';
+  el.innerHTML = html || '<p style="font-size:12px;color:#6b6a83;text-align:center;padding:1rem">Tidak ada data</p>';
 }
 
 // ── TOP 5 / BOTTOM 5 (tanpa filter orang) ────────────────────
@@ -746,10 +799,10 @@ function initials(name) {
 }
 
 function heatStyle(v) {
-  if (v >= 3.5) return 'background:#EAF3DE;color:#27500A';
-  if (v >= 3.0) return 'background:#E6F1FB;color:#0C447C';
-  if (v >= 2.5) return 'background:#FAEEDA;color:#633806';
-  return 'background:#FCEBEB;color:#791F1F';
+  if (v >= 3.5) return 'background:#e7f6ef;color:#015c36';
+  if (v >= 3.0) return 'background:#eeebfc;color:#030870';
+  if (v >= 2.5) return 'background:#fff1dc;color:#b83a01';
+  return 'background:#fdeceb;color:#8c1610';
 }
 
 function roleLabel(r) { return r === 'leader' ? 'Pimpinan' : 'Guru'; }
@@ -767,7 +820,7 @@ function updateRankings() {
 
     const vals = pids.map(pid => p.scores[pid]).filter(v=>v!==undefined);
     const first = vals[0]||v, diff = v - first;
-    const barColor = diff > 0.05 ? '#185FA5' : diff < -0.05 ? '#E24B4A' : '#888780';
+    const barColor = diff > 0.05 ? '#030870' : diff < -0.05 ? '#b42318' : '#6f6e85';
     const bars = vals.map((bv,i)=>{
       const h = Math.max(20, Math.round((bv/4)*100));
       const op = 0.3 + (i/Math.max(1,vals.length-1))*0.7;
@@ -789,7 +842,7 @@ function updateRankings() {
   function renderList(items, el) {
     el.innerHTML = items.map((p,i) => `
       <div class="rank-row">
-        <div style="font-size:11px;font-weight:500;color:#64748b;min-width:14px">${i+1}</div>
+        <div style="font-size:11px;font-weight:500;color:#6b6a83;min-width:14px">${i+1}</div>
         <div class="av">${initials(p.name)}</div>
         <div style="flex:1;min-width:0">
           <div class="rank-nm" title="${p.name}">${p.name.split(' ').slice(0,2).join(' ')}</div>
@@ -807,7 +860,7 @@ function updateRankings() {
   const attnEl = document.getElementById('metricNeedAttn');
   if (attnEl) {
     attnEl.textContent = attn;
-    attnEl.style.color = attn > 0 ? '#A32D2D' : '#3B6D11';
+    attnEl.style.color = attn > 0 ? '#b42318' : '#027a48';
   }
 }
 
@@ -822,6 +875,7 @@ function updateAll() {
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
   renderLabels();
   renderSlider();
   buildDomainTabs();

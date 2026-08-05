@@ -220,7 +220,7 @@ ob_start(); ?>
 
     <!-- HARD RESET -->
     <div class="card border-danger">
-      <div class="card-header" style="background:#dc3545;color:white">
+      <div class="card-header" style="background:#b42318;color:white">
         <i class="bi bi-exclamation-triangle me-2"></i>Danger Zone
       </div>
       <div class="card-body">
@@ -257,7 +257,7 @@ async function fullReset() {
     html: 'Ini akan <strong>MENGHAPUS SEMUA DATA</strong> termasuk user, pertanyaan, dan seluruh struktur, lalu install ulang dari awal.<br><br>Ketik <code>FULLRESET</code> untuk konfirmasi.',
     input: 'text', icon: 'error',
     showCancelButton: true,
-    confirmButtonColor: '#dc3545',
+    confirmButtonColor: '#b42318',
     confirmButtonText: 'Hapus Semua',
     preConfirm: (val) => {
       if (val !== 'FULLRESET') { Swal.showValidationMessage('Ketik FULLRESET'); return false; }

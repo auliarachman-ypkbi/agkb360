@@ -27,7 +27,7 @@ $action  = $_REQUEST['action'] ?? '';
 
 function respondentLabel(string $key): string {
     return [
-        'atasan'        => 'Atasan / Yayasan (YPKBI)',
+        'atasan'        => 'Atasan / Yayasan',
         'leader'        => 'Pimpinan Sekolah',
         'guru'          => 'Guru (Rekan Sejawat)',
         'ortu'          => 'Orang Tua',
@@ -208,11 +208,15 @@ function buildAIPrompt(array $d): string {
 
 /** Panggil Google Gemini API (Google AI Studio). */
 function callGemini(string $prompt): string {
-    if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === '' || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-        throw new Exception('GEMINI_API_KEY belum diset di config/config.php.');
+    // Baca Gemini API Key dari DB settings (prioritas), fallback ke config.php
+    $geminiKeyRow = Database::fetchOne("SELECT setting_value FROM settings WHERE setting_key='gemini_api_key'");
+    $geminiKey = !empty($geminiKeyRow['setting_value']) ? trim($geminiKeyRow['setting_value']) : (defined('GEMINI_API_KEY') ? GEMINI_API_KEY : '');
+
+    if (empty($geminiKey)) {
+        throw new Exception('Gemini API Key belum diset. Silakan isi di Admin → Pengaturan → API Keys.');
     }
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . GEMINI_API_KEY;
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . $geminiKey;
 
     $payload = json_encode([
         'contents' => [[ 'parts' => [[ 'text' => $prompt ]] ]],

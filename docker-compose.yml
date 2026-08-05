@@ -18,6 +18,9 @@ services:
     container_name: ktb_php
     volumes:
       - ./public_html:/var/www/html
+      # Lampiran feedback (app + demo) — sengaja di luar webroot,
+      # tidak bisa diakses langsung lewat URL
+      - ./storage:/var/www/storage
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306

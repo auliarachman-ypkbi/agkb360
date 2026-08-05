@@ -27,7 +27,7 @@ $action  = $_REQUEST['action'] ?? '';
 
 function respondentLabel(string $key): string {
     return [
-        'atasan'        => 'Atasan / Yayasan (YPKBI)',
+        'atasan'        => 'Atasan / Yayasan',
         'leader'        => 'Pimpinan Sekolah',
         'guru'          => 'Guru (Rekan Sejawat)',
         'ortu'          => 'Orang Tua',

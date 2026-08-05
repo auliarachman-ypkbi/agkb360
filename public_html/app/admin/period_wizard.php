@@ -405,7 +405,7 @@ ob_start(); ?>
       <?php foreach ($steps as $n => $s): ?>
       <div class="flex-grow-1 text-center">
         <div class="d-flex flex-column align-items-center gap-1">
-          <div style="width:32px;height:32px;border-radius:50%;border:2px solid <?= $n==$viewStep?'#ffc901':($n<=$currentStep?'#4ade80':'rgba(255,255,255,.3)') ?>;background:<?= $n==$viewStep?'#ffc901':($n<=$currentStep?'#16a34a':'transparent') ?>;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:<?= $n==$viewStep?'#001f3e':'white' ?>">
+          <div style="width:32px;height:32px;border-radius:50%;border:2px solid <?= $n==$viewStep?'#ff9101':($n<=$currentStep?'#43c58c':'rgba(255,255,255,.3)') ?>;background:<?= $n==$viewStep?'#ff9101':($n<=$currentStep?'#027a48':'transparent') ?>;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:<?= $n==$viewStep?'#02001f':'white' ?>">
             <?php if ($n < $viewStep && $n <= $currentStep): ?>
             <i class="bi bi-check"></i>
             <?php else: ?>
@@ -419,7 +419,7 @@ ob_start(); ?>
       </div>
       <?php if ($n < 6): ?>
       <div class="flex-grow-0 d-flex align-items-center pb-4" style="padding:0 2px">
-        <div style="height:2px;width:20px;background:<?= $n<$currentStep?'#4ade80':'rgba(255,255,255,.2)' ?>"></div>
+        <div style="height:2px;width:20px;background:<?= $n<$currentStep?'#43c58c':'rgba(255,255,255,.2)' ?>"></div>
       </div>
       <?php endif; ?>
       <?php endforeach; ?>
@@ -604,9 +604,9 @@ ob_start(); ?>
         if (empty($members)) continue;
         $grpCbId = 'grp_' . $grp['id'];
       ?>
-      <div class="card mb-2 border-0" style="background:#f8faff">
+      <div class="card mb-2 border-0" style="background:#eeebfc">
         <div class="card-header py-2 d-flex justify-content-between align-items-center"
-             style="background:#eef2ff">
+             style="background:#eeebfc">
           <div class="d-flex align-items-center gap-2">
             <i class="bi bi-people-fill text-primary" style="font-size:.85rem"></i>
             <span class="fw-semibold text-navy"><?= h($grp['name']) ?></span>
@@ -865,7 +865,7 @@ ob_start(); ?>
           <i class="bi bi-arrow-left me-1"></i>Kembali
         </a>
         <button type="submit" class="btn btn-lg"
-          style="background:#16a34a;color:white;padding:.6rem 2rem"
+          style="background:#027a48;color:white;padding:.6rem 2rem"
           <?= $otherActive ? 'disabled title="Tutup periode aktif dulu"' : '' ?>
           onclick="return confirm('Yakin aktifkan periode ini? Setting akan terkunci.')">
           <i class="bi bi-rocket-takeoff me-2"></i>AKTIFKAN SEKARANG

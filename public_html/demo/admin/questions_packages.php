@@ -105,15 +105,16 @@ if ($viewPkg) {
 }
 
 // Key sesuai respondent_type di DB
+// Palet kategori responden — AGKB 360° (semua lolos AA dengan teks putih)
 $respColors = [
-    'atasan'        => ['bg'=>'#1040B0','label'=>'Yayasan (YPKBI/YPKTB)'],
-    'leader'        => ['bg'=>'#7c3aed','label'=>'Pimpinan Sekolah'],
-    'peer'          => ['bg'=>'#6f42c1','label'=>'Rekan Sejawat'],
-    'guru'          => ['bg'=>'#0891b2','label'=>'Guru'],
-    'ortu'          => ['bg'=>'#d97706','label'=>'Komite Orang Tua'],
-    'siswa'         => ['bg'=>'#16a34a','label'=>'OSIS / Siswa'],
-    'student_class' => ['bg'=>'#0d9488','label'=>'Murid yang Diajar'],
-    'self'          => ['bg'=>'#64748b','label'=>'Self Evaluation'],
+    'atasan'        => ['bg'=>'#02001f','label'=>'Yayasan'],
+    'leader'        => ['bg'=>'#030870','label'=>'Pimpinan Sekolah'],
+    'peer'          => ['bg'=>'#2201b2','label'=>'Rekan Sejawat'],
+    'guru'          => ['bg'=>'#5b3fd6','label'=>'Guru'],
+    'ortu'          => ['bg'=>'#a85a01','label'=>'Komite Orang Tua'],
+    'siswa'         => ['bg'=>'#0f7a3d','label'=>'OSIS / Siswa'],
+    'student_class' => ['bg'=>'#0a6e78','label'=>'Murid yang Diajar'],
+    'self'          => ['bg'=>'#6b6a83','label'=>'Self Evaluation'],
 ];
 
 $langOptions = [
@@ -126,7 +127,7 @@ ob_start();
 
 // ── VIEW: DETAIL PAKET ────────────────────────────────────────
 if ($viewPkg && $pkgDetail):
-    $rc          = $respColors[$pkgDetail['respondent_type']] ?? ['bg'=>'#888','label'=>$pkgDetail['respondent_type']];
+    $rc          = $respColors[$pkgDetail['respondent_type']] ?? ['bg'=>'#6b6a83','label'=>$pkgDetail['respondent_type']];
     $currentLang = $pkgDetail['question_lang'] ?? 'both';
     $lo          = $langOptions[$currentLang] ?? $langOptions['both'];
     $totalSoal   = array_sum(array_map(fn($d) => count($d['items']), $pkgQuestions));
@@ -196,7 +197,7 @@ if ($viewPkg && $pkgDetail):
 
 <?php $qNum = 0; foreach ($pkgQuestions as $dCode => $domain): ?>
 <div class="card mb-3">
-  <div class="card-header py-2 d-flex align-items-center gap-2" style="background:#f0f4fb">
+  <div class="card-header py-2 d-flex align-items-center gap-2" style="background:#f3f4f6">
     <span class="badge badge-navy"><?= h($domain['code']) ?></span>
     <strong class="text-navy small"><?= h($domain['name']) ?></strong>
   </div>
@@ -222,13 +223,13 @@ if ($viewPkg && $pkgDetail):
 
           <?php if (in_array($currentLang, ['both','id'])): ?>
           <p class="mb-1 small" style="line-height:1.6">
-            <?= str_replace('[Nama]','<span class="badge" style="background:#001f3e;color:#ffc901">[Nama]</span>',h($activeId)) ?>
+            <?= str_replace('[Nama]','<span class="badge" style="background:#02001f;color:#ff9101">[Nama]</span>',h($activeId)) ?>
           </p>
           <?php endif; ?>
 
           <?php if (in_array($currentLang, ['both','en']) && $activeEn): ?>
           <p class="mb-0 text-muted" style="font-size:.8rem;font-style:italic">
-            <?= str_replace('[Name]','<span class="badge" style="background:#001f3e;color:#ffc901">[Name]</span>',h($activeEn)) ?>
+            <?= str_replace('[Name]','<span class="badge" style="background:#02001f;color:#ff9101">[Name]</span>',h($activeEn)) ?>
           </p>
           <?php endif; ?>
         </div>
@@ -309,7 +310,7 @@ else: ?>
 <h6 class="fw-bold text-navy mb-3"><?= h($etGroup['name']) ?></h6>
 <div class="row g-3 mb-4">
   <?php foreach ($etGroup['packages'] as $pkg):
-    $rc          = $respColors[$pkg['respondent_type']] ?? ['bg'=>'#888','label'=>ucfirst($pkg['respondent_type'])];
+    $rc          = $respColors[$pkg['respondent_type']] ?? ['bg'=>'#6b6a83','label'=>ucfirst($pkg['respondent_type'])];
     $currentLang = $pkg['question_lang'] ?? 'both';
     $lo          = $langOptions[$currentLang] ?? $langOptions['both'];
     $overrideCount = Database::fetchOne("
@@ -322,7 +323,7 @@ else: ?>
        class="text-decoration-none">
       <div class="card h-100 border-0 shadow-sm package-card"
            style="transition:all .2s;cursor:pointer"
-           onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+           onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(4,1,54,.12)'"
            onmouseleave="this.style.transform='';this.style.boxShadow=''">
         <div class="card-body text-center p-3">
           <!-- Folder icon -->

@@ -208,7 +208,7 @@ ob_start(); ?>
 
       <!-- Domain subheader -->
       <div class="px-3 py-2 d-flex align-items-center gap-2"
-           style="background:#f0f4fb;border-bottom:1px solid #dee2e6">
+           style="background:#f3f4f6;border-bottom:1px solid #e3e5ea">
         <span class="badge" style="background:var(--ktb-navy);font-size:.7rem">
           <?= h($domain['code']) ?>
         </span>
@@ -238,7 +238,7 @@ ob_start(); ?>
               <?php endif; ?>
               <?php if (!empty($q['elaboration_id'])): ?>
               <button type="button" class="btn btn-sm py-0 px-2 ms-auto"
-                style="background:#6f42c1;color:white;font-size:.7rem"
+                style="background:#2201b2;color:white;font-size:.7rem"
                 data-bs-toggle="modal" data-bs-target="#elab<?= $q['s_id'] ?>">
                 <i class="bi bi-lightbulb me-1"></i>Elaborasi
               </button>
@@ -247,11 +247,11 @@ ob_start(); ?>
 
             <!-- Teks aktif -->
             <p class="mb-1 fw-semibold" style="line-height:1.6;font-size:.95rem">
-              <?= str_replace('[Nama]', '<span class="badge" style="background:#001f3e;color:#ffc901">[Nama]</span>', h($activeId)) ?>
+              <?= str_replace('[Nama]', '<span class="badge" style="background:#02001f;color:#ff9101">[Nama]</span>', h($activeId)) ?>
             </p>
             <?php if ($activeEn): ?>
             <p class="mb-0 text-muted" style="font-size:.85rem;font-style:italic;line-height:1.5">
-              <?= str_replace('[Name]', '<span class="badge" style="background:#001f3e;color:#ffc901">[Name]</span>', h($activeEn)) ?>
+              <?= str_replace('[Name]', '<span class="badge" style="background:#02001f;color:#ff9101">[Name]</span>', h($activeEn)) ?>
             </p>
             <?php endif; ?>
           </div>
@@ -402,7 +402,7 @@ ob_start(); ?>
       <div class="modal fade" id="elab<?= $q['s_id'] ?>" tabindex="-1">
         <div class="modal-dialog modal-lg">
           <div class="modal-content">
-            <div class="modal-header" style="background:#6f42c1;color:white">
+            <div class="modal-header" style="background:#2201b2;color:white">
               <h6 class="modal-title">
                 <i class="bi bi-lightbulb me-2"></i><?= h($q['s_name']) ?>
               </h6>
@@ -425,7 +425,7 @@ ob_start(); ?>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn" style="background:#6f42c1;color:white">
+                <button type="submit" class="btn" style="background:#2201b2;color:white">
                   <i class="bi bi-save me-1"></i>Simpan Elaborasi
                 </button>
               </div>

@@ -10,7 +10,7 @@ requireRole(['superadmin','admin']);
 
 // ── Save Settings ─────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_settings') {
-    $keys = ['app_name','school_name','ai_enabled','default_language'];
+    $keys = ['app_name','school_name','ai_enabled','default_language','gemini_api_key','apps_script_url'];
     foreach ($keys as $k) {
         $val = trim($_POST[$k] ?? '');
         $exists = Database::fetchOne("SELECT setting_key FROM settings WHERE setting_key=?", [$k]);
@@ -77,6 +77,51 @@ ob_start(); ?>
           </div>
           <button type="submit" class="btn btn-navy">
             <i class="bi bi-save me-1"></i>Simpan Pengaturan
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- API KEYS -->
+    <div class="card mb-4">
+      <div class="card-header"><i class="bi bi-key me-2"></i>API Keys & Integrasi</div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="action" value="save_settings">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Gemini API Key
+              <span class="badge bg-secondary ms-1" style="font-size:.7rem">AI Saran Perkembangan</span>
+            </label>
+            <div class="input-group">
+              <input type="password" name="gemini_api_key" id="gemini_api_key"
+                class="form-control font-monospace"
+                placeholder="Paste API key dari Google AI Studio..."
+                value="<?= h($settings['gemini_api_key'] ?? '') ?>"
+                autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" onclick="toggleKey('gemini_api_key')">
+                <i class="bi bi-eye" id="eye_gemini_api_key"></i>
+              </button>
+            </div>
+            <div class="form-text">Dapatkan key di <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a>. Key disimpan di database, tidak di file kode.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Google Apps Script URL
+              <span class="badge bg-secondary ms-1" style="font-size:.7rem">Email Relay</span>
+            </label>
+            <div class="input-group">
+              <input type="password" name="apps_script_url" id="apps_script_url"
+                class="form-control font-monospace"
+                placeholder="https://script.google.com/macros/s/..."
+                value="<?= h($settings['apps_script_url'] ?? '') ?>"
+                autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" onclick="toggleKey('apps_script_url')">
+                <i class="bi bi-eye" id="eye_apps_script_url"></i>
+              </button>
+            </div>
+            <div class="form-text">URL Web App Google Apps Script untuk blast email.</div>
+          </div>
+          <button type="submit" class="btn btn-navy">
+            <i class="bi bi-save me-1"></i>Simpan API Keys
           </button>
         </form>
       </div>
@@ -175,7 +220,7 @@ ob_start(); ?>
 
     <!-- HARD RESET -->
     <div class="card border-danger">
-      <div class="card-header" style="background:#dc3545;color:white">
+      <div class="card-header" style="background:#b42318;color:white">
         <i class="bi bi-exclamation-triangle me-2"></i>Danger Zone
       </div>
       <div class="card-body">
@@ -212,7 +257,7 @@ async function fullReset() {
     html: 'Ini akan <strong>MENGHAPUS SEMUA DATA</strong> termasuk user, pertanyaan, dan seluruh struktur, lalu install ulang dari awal.<br><br>Ketik <code>FULLRESET</code> untuk konfirmasi.',
     input: 'text', icon: 'error',
     showCancelButton: true,
-    confirmButtonColor: '#dc3545',
+    confirmButtonColor: '#b42318',
     confirmButtonText: 'Hapus Semua',
     preConfirm: (val) => {
       if (val !== 'FULLRESET') { Swal.showValidationMessage('Ketik FULLRESET'); return false; }
@@ -232,4 +277,18 @@ async function fullReset() {
 }
 </script>
 
-<?php $content = ob_get_clean(); pageWrapper('Pengaturan Sistem', $content); ?>
+<?php $content = ob_get_clean(); ?>
+<script>
+function toggleKey(id) {
+  const inp = document.getElementById(id);
+  const icon = document.getElementById('eye_' + id);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.classList.replace('bi-eye', 'bi-eye-slash');
+  } else {
+    inp.type = 'password';
+    icon.classList.replace('bi-eye-slash', 'bi-eye');
+  }
+}
+</script>
+<?php pageWrapper('Pengaturan Sistem', $content); ?>

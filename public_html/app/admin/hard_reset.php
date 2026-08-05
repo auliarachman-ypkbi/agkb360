@@ -84,12 +84,12 @@ ob_start(); ?>
 .reset-card{border-radius:14px;overflow:hidden;margin-bottom:20px}
 .reset-hdr{padding:14px 20px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px}
 .reset-body{padding:20px;background:#fff}
-.stat-pill{display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-size:13px;margin:4px}
-.stat-pill strong{color:#2C5282}
+.stat-pill{display:inline-flex;align-items:center;gap:6px;background:#fafafb;border:1px solid #e3e5ea;border-radius:8px;padding:6px 12px;font-size:13px;margin:4px}
+.stat-pill strong{color:#040136}
 .impact-list{list-style:none;padding:0;margin:12px 0}
 .impact-list li{padding:5px 0;font-size:13px;display:flex;align-items:center;gap:8px}
-.impact-list li::before{content:'✕';color:#dc3545;font-weight:700}
-.keep-list li::before{content:'✓';color:#198754;font-weight:700}
+.impact-list li::before{content:'✕';color:#b42318;font-weight:700}
+.keep-list li::before{content:'✓';color:#027a48;font-weight:700}
 </style>
 
 <?php if ($result): ?>
@@ -100,7 +100,7 @@ ob_start(); ?>
 <?php endif; ?>
 
 <!-- STATUS DATABASE -->
-<div class="card mb-4" style="border-left:4px solid #2C5282">
+<div class="card mb-4" style="border-left:4px solid #040136">
   <div class="card-body">
     <h6 class="fw-bold text-navy mb-3"><i class="bi bi-database me-2"></i>Status Database Saat Ini</h6>
     <div>
@@ -119,7 +119,7 @@ ob_start(); ?>
   <!-- SOFT RESET -->
   <div class="col-md-6">
     <div class="reset-card border border-warning">
-      <div class="reset-hdr" style="background:#fff3cd;color:#856404">
+      <div class="reset-hdr" style="background:#fff1dc;color:#b83a01">
         <i class="bi bi-arrow-counterclockwise fs-5"></i>
         Soft Reset
       </div>
@@ -161,7 +161,7 @@ ob_start(); ?>
   <!-- HARD RESET -->
   <div class="col-md-6">
     <div class="reset-card border border-danger">
-      <div class="reset-hdr" style="background:#dc3545;color:white">
+      <div class="reset-hdr" style="background:#b42318;color:white">
         <i class="bi bi-radiation fs-5"></i>
         Hard Reset
       </div>

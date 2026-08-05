@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// KTB 360° Evaluation Platform — functions.php
+// AGKB 360° — Platform Evaluasi Kinerja · functions.php
 // ============================================================
 // CATATAN:
 // - getScoreLevel() ada di config.php
@@ -44,23 +44,59 @@ function showFlash(): string {
 }
 
 // ── ROLE & RESPONDENT LABELS ──────────────────────────────────
+/**
+ * Daftar peran resmi, dikelompokkan.
+ *
+ * Sengaja didefinisikan di sini, BUKAN di config.php — karena config.php
+ * gitignored, sehingga penambahan peran di sana tidak akan ikut ke VPS.
+ * Harus selaras dengan enum kolom `users.role` di basis data.
+ */
+function appRoleGroups(): array {
+    return [
+        'Pengelola Sistem' => [
+            'superadmin' => 'Super Administrator',
+            'admin'      => 'Administrator',
+        ],
+        'Yayasan & Pimpinan' => [
+            'foundation' => 'Pengurus Yayasan (YPKBI)',
+            'leader'     => 'Pimpinan Sekolah',
+        ],
+        'Tenaga Pendidik' => [
+            'teacher'    => 'Guru',
+            'mentor'     => 'Mentor / Pembina',
+        ],
+        'Tenaga Kependidikan (Non-Akademik)' => [
+            'staff'      => 'Staf Non-Akademik',
+        ],
+        'Komunitas Sekolah' => [
+            'student'    => 'Siswa',
+            'parent'     => 'Orang Tua / Wali',
+        ],
+        'Uji Coba' => [
+            'tester'     => 'Tester',
+        ],
+    ];
+}
+
+/** Semua peran sebagai satu larik datar: key => label. */
+function appRoles(): array {
+    $out = [];
+    foreach (appRoleGroups() as $daftar) $out += $daftar;
+    return $out;
+}
+
+/** Peran yang termasuk tenaga non-akademik. */
+function isNonAkademik(string $role): bool {
+    return in_array($role, ['staff'], true);
+}
+
 function roleLabel(string $role): string {
-    return match($role) {
-        'superadmin' => 'Super Administrator',
-        'admin'      => 'Administrator',
-        'foundation' => 'Pengurus Yayasan',
-        'leader'     => 'Pimpinan Sekolah',
-        'teacher'    => 'Guru',
-        'student'    => 'Siswa',
-        'parent'     => 'Orang Tua / Wali',
-        'tester'     => 'Tester',
-        default      => ucfirst($role),
-    };
+    return appRoles()[$role] ?? ucfirst($role);
 }
 
 function respondentLabel(string $type): string {
     return match($type) {
-        'atasan'        => 'Yayasan (YPKBI/YPKTB)',
+        'atasan'        => 'Yayasan',
         'leader'        => 'Pimpinan Sekolah',
         'peer'          => 'Rekan Sejawat',
         'guru'          => 'Guru',

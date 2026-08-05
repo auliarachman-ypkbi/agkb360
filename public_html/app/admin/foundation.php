@@ -531,7 +531,7 @@ ob_start(); ?>
           <?php foreach ($etDomains as $d): ?>
           <div class="d-flex justify-content-between align-items-center
                       px-3 py-2 rounded mb-1"
-               style="background:#f8f9fa;border-left:3px solid var(--ktb-navy)">
+               style="background:#f3f4f6;border-left:3px solid var(--ktb-navy)">
             <div class="d-flex align-items-center gap-2">
               <span class="badge badge-navy"><?= h($d['code'] ?: '—') ?></span>
               <strong class="small"><?= h($d['name']) ?></strong>
@@ -677,7 +677,7 @@ ob_start(); ?>
           <!-- Domain Sub-accordion -->
           <div class="mb-2 border rounded overflow-hidden">
             <div class="d-flex justify-content-between align-items-center px-3 py-2"
-                 style="background:#eef1f7;cursor:pointer"
+                 style="background:#f3f4f6;cursor:pointer"
                  data-bs-toggle="collapse"
                  data-bs-target="#<?= $dCollapseId ?>">
               <div class="d-flex align-items-center gap-2">
@@ -854,7 +854,7 @@ ob_start(); ?>
           // Domain subheader
         ?>
         <div class="px-3 py-1 small fw-bold text-muted border-bottom"
-             style="background:#f8f9fa;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase">
+             style="background:#f3f4f6;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase">
           <?= h($domainName) ?>
         </div>
         <?php foreach ($standards as $ms):

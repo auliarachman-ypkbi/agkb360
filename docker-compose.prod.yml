@@ -27,6 +27,8 @@ services:
     container_name: ktb_php
     volumes:
       - ./public_html:/var/www/html:ro
+      # Lampiran feedback — di luar webroot, harus writable (public_html read-only)
+      - ./storage:/var/www/storage
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306

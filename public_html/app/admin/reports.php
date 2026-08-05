@@ -178,56 +178,56 @@ ob_start(); ?>
 
 <style>
 .page-wrap{display:flex;flex-direction:column;gap:16px}
-.top-selector{background:#ffffff;border:1px solid #e2e8f0;border-left:3px solid #2C5282;border-radius:12px;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.person-sel{height:36px;border:1px solid #cbd5e1;border-radius:8px;padding:0 12px;font-size:13px;background:#f8fafc;color:#1e293b;min-width:280px;cursor:pointer}
-.period-nav{background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px}
-.nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:18px;text-decoration:none;line-height:1}
-.nav-btn:hover{border-color:#2C5282;color:#2C5282;background:#EBF4FF}
+.top-selector{background:#ffffff;border:1px solid #e3e5ea;border-left:3px solid #040136;border-radius:12px;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.person-sel{height:36px;border:1px solid #cdd0d8;border-radius:8px;padding:0 12px;font-size:13px;background:#fafafb;color:#040136;min-width:280px;cursor:pointer}
+.period-nav{background:#ffffff;border:1px solid #e3e5ea;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid #e3e5ea;background:#fafafb;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6b6a83;font-size:18px;text-decoration:none;line-height:1}
+.nav-btn:hover{border-color:#040136;color:#040136;background:#eeebfc}
 .nav-btn.disabled{opacity:.35;pointer-events:none}
-.period-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:#1e293b}
+.period-name{flex:1;text-align:center;font-size:13px;font-weight:500;color:#040136}
 .tab-row{display:flex;gap:6px}
-.tab-lnk{padding:6px 18px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid #e2e8f0;background:#fff;color:#64748b;text-decoration:none;transition:all .15s}
-.tab-lnk.active{background:#2C5282;color:#fff;border-color:#2C5282}
+.tab-lnk{padding:6px 18px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid #e3e5ea;background:#fff;color:#6b6a83;text-decoration:none;transition:all .15s}
+.tab-lnk.active{background:#040136;color:#fff;border-color:#040136}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.mc{background:#f8fafc;border-radius:10px;padding:12px 14px;border:1px solid #e2e8f0}
-.mc-val{font-size:22px;font-weight:500;color:#1e293b;line-height:1.1}
-.mc-lbl{font-size:11px;color:#64748b;margin-top:3px}
+.mc{background:#fafafb;border-radius:10px;padding:12px 14px;border:1px solid #e3e5ea}
+.mc-val{font-size:22px;font-weight:500;color:#040136;line-height:1.1}
+.mc-lbl{font-size:11px;color:#6b6a83;margin-top:3px}
 .mc-sub{font-size:11px;margin-top:4px}
-.up{color:#3B6D11}.down{color:#A32D2D}.neutral{color:#64748b}
+.up{color:#027a48}.down{color:#b42318}.neutral{color:#6b6a83}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.dcard{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
-.dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#1e293b;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:space-between;align-items:center}
+.dcard{background:#fff;border:1px solid #e3e5ea;border-radius:12px;overflow:hidden}
+.dcard-hdr{padding:10px 16px;font-size:12px;font-weight:600;color:#040136;border-bottom:1px solid #e3e5ea;background:#fafafb;display:flex;justify-content:space-between;align-items:center}
 .dcard-body{padding:14px}
 .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .bar-row:last-child{margin-bottom:0}
-.bar-lbl{font-size:11px;color:#64748b;width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar-track{width:120px;flex-shrink:0;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.bar-lbl{font-size:11px;color:#6b6a83;width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{width:120px;flex-shrink:0;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .6s}
-.bar-val{font-size:11px;font-weight:500;color:#1e293b;width:32px;text-align:right;flex-shrink:0}
+.bar-val{font-size:11px;font-weight:500;color:#040136;width:32px;text-align:right;flex-shrink:0}
 .bar-chip{font-size:10px;font-weight:500;padding:1px 7px;border-radius:20px;width:80px;text-align:center;flex-shrink:0;white-space:nowrap}
-.self-banner{background:#f5f3ff;border:1px solid #ddd6fe;border-left:3px solid #7c3aed;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.accordion-domain{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:8px}
-.accordion-hdr{padding:10px 14px;background:#f8fafc;cursor:pointer;font-size:13px;font-weight:500;color:#1e293b;display:flex;justify-content:space-between;align-items:center;border:none;width:100%;text-align:left}
-.accordion-hdr:hover{background:#f1f5f9}
-.accordion-body{display:none;border-top:1px solid #e2e8f0}
+.self-banner{background:#eeebfc;border:1px solid #b9aef2;border-left:3px solid #2201b2;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.accordion-domain{border:1px solid #e3e5ea;border-radius:8px;overflow:hidden;margin-bottom:8px}
+.accordion-hdr{padding:10px 14px;background:#fafafb;cursor:pointer;font-size:13px;font-weight:500;color:#040136;display:flex;justify-content:space-between;align-items:center;border:none;width:100%;text-align:left}
+.accordion-hdr:hover{background:#f3f4f6}
+.accordion-body{display:none;border-top:1px solid #e3e5ea}
 .accordion-body.open{display:block}
 .std-table{width:100%;font-size:12px;border-collapse:collapse}
-.std-table td{padding:6px 14px;border-bottom:0.5px solid #f1f5f9}
+.std-table td{padding:6px 14px;border-bottom:0.5px solid #f3f4f6}
 .std-table tr:last-child td{border-bottom:none}
 .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
-.chip-green{background:#EAF3DE;color:#27500A}
-.chip-blue{background:#E6F1FB;color:#0C447C}
-.chip-amber{background:#FAEEDA;color:#633806}
-.chip-red{background:#FCEBEB;color:#791F1F}
-.empty-hint{text-align:center;padding:48px 20px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:12px}
+.chip-green{background:#e7f6ef;color:#015c36}
+.chip-blue{background:#eeebfc;color:#030870}
+.chip-amber{background:#fff1dc;color:#b83a01}
+.chip-red{background:#fdeceb;color:#8c1610}
+.empty-hint{text-align:center;padding:48px 20px;color:#6b6a83;background:#fff;border:1px solid #e3e5ea;border-radius:12px}
 </style>
 
 <div class="page-wrap">
 
   <!-- SELECTOR ORANG -->
   <div class="top-selector">
-    <i class="bi bi-person-fill" style="color:#2C5282;font-size:16px"></i>
-    <label style="font-size:12px;font-weight:600;color:#475569;white-space:nowrap">Analisis per orang:</label>
+    <i class="bi bi-person-fill" style="color:#040136;font-size:16px"></i>
+    <label style="font-size:12px;font-weight:600;color:#2f2d4d;white-space:nowrap">Analisis per orang:</label>
     <form method="GET" style="display:flex;align-items:center;gap:8px;flex:1">
       <?php if ($selectedPid): ?>
       <input type="hidden" name="period_id" value="<?= $selectedPid ?>">
@@ -288,7 +288,7 @@ ob_start(); ?>
     <div class="period-name">
       <?= $curPeriod ? h($curPeriod['name']) : '—' ?>
       <?php if ($curPeriod && $curPeriod['status'] !== 'closed'): ?>
-      <span class="chip" style="background:#FAEEDA;color:#633806;border:1px solid #fac775;font-size:10px;margin-left:6px;vertical-align:middle">
+      <span class="chip" style="background:#fff1dc;color:#b83a01;border:1px solid #ffc36b;font-size:10px;margin-left:6px;vertical-align:middle">
         <i class="bi bi-hourglass-split me-1"></i>Sementara
       </span>
       <?php endif; ?>
@@ -298,7 +298,7 @@ ob_start(); ?>
   </div>
 
   <?php if ($curPeriod && $curPeriod['status'] !== 'closed'): ?>
-  <div style="background:#FAEEDA;border:1px solid #fac775;border-radius:10px;padding:10px 16px;font-size:12px;color:#633806;display:flex;align-items:center;gap:8px">
+  <div style="background:#fff1dc;border:1px solid #ffc36b;border-radius:10px;padding:10px 16px;font-size:12px;color:#b83a01;display:flex;align-items:center;gap:8px">
     <i class="bi bi-exclamation-triangle-fill"></i>
     Periode ini masih berjalan — angka di bawah adalah <strong>skor sementara</strong> dari responden yang sudah mengisi, dan bisa berubah sampai periode ditutup.
   </div>
@@ -349,19 +349,19 @@ ob_start(); ?>
   </div>
 
   <!-- LEGEND -->
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:600;color:#64748b;margin-right:4px">Skala:</span>
-    <span class="chip" style="background:#EAF3DE;color:#27500A;border:1px solid #c0dd97">≥ 3.75 Sempurna</span>
-    <span class="chip" style="background:#E6F1FB;color:#0C447C;border:1px solid #b5d4f4">≥ 3.25 Sangat Baik</span>
-    <span class="chip" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">≥ 2.75 Baik</span>
-    <span class="chip" style="background:#FAEEDA;color:#633806;border:1px solid #fac775">≥ 2.25 Cukup</span>
-    <span class="chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">≥ 1.75 Kurang</span>
-    <span class="chip" style="background:#FCEBEB;color:#791F1F;border:1px solid #f7c1c1">&lt; 1.75 Sangat Kurang</span>
+  <div style="background:#fff;border:1px solid #e3e5ea;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:600;color:#6b6a83;margin-right:4px">Skala:</span>
+    <span class="chip" style="background:#e7f6ef;color:#015c36;border:1px solid #a5dcc3">≥ 3.75 Sempurna</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 3.25 Sangat Baik</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 2.75 Baik</span>
+    <span class="chip" style="background:#fff1dc;color:#b83a01;border:1px solid #ffc36b">≥ 2.25 Cukup</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">≥ 1.75 Kurang</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">&lt; 1.75 Sangat Kurang</span>
   </div>
 
   <!-- TREN + TRAIT + DOMAIN -->
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
-    <div class="dcard" style="border-left:3px solid #185FA5">
+    <div class="dcard" style="border-left:3px solid #030870">
       <div class="dcard-hdr">
         Tren skor keseluruhan
         <?php if($trendDir==='up'): ?>
@@ -377,7 +377,7 @@ ob_start(); ?>
       </div>
     </div>
 
-    <div class="dcard" style="border-left:3px solid #533AB7">
+    <div class="dcard" style="border-left:3px solid #030870">
       <div class="dcard-hdr">Skor per trait — periode ini</div>
       <div class="dcard-body">
         <?php if (!empty($sortedTraits)): ?>
@@ -387,19 +387,19 @@ ob_start(); ?>
         <div class="bar-row">
           <div class="bar-lbl"><?= h($t['name']) ?></div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($t['avg']/4)*100) ?>%;background:#533AB7"></div>
+            <div class="bar-fill" style="width:<?= round(($t['avg']/4)*100) ?>%;background:#030870"></div>
           </div>
           <div class="bar-val"><?= number_format($t['avg'],2) ?></div>
           <span class="bar-chip" style="background:<?= $tl['bg'] ?>;color:<?= $tl['color'] ?>;border:1px solid <?= $tl['color'] ?>"><?= $tl['label_id'] ?></span>
         </div>
         <?php endforeach; ?>
         <?php else: ?>
-        <p style="font-size:12px;color:#64748b;text-align:center;padding:20px 0">Belum ada data</p>
+        <p style="font-size:12px;color:#6b6a83;text-align:center;padding:20px 0">Belum ada data</p>
         <?php endif; ?>
       </div>
     </div>
 
-    <div class="dcard" style="border-left:3px solid #854F0B">
+    <div class="dcard" style="border-left:3px solid #b83a01">
       <div class="dcard-hdr">Skor per domain — periode ini</div>
       <div class="dcard-body">
         <?php if (!empty($scores['byDomain'])): ?>
@@ -409,14 +409,14 @@ ob_start(); ?>
         <div class="bar-row">
           <div class="bar-lbl"><?= h($d['name']) ?></div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#854F0B"></div>
+            <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#b83a01"></div>
           </div>
           <div class="bar-val"><?= number_format($d['avg'],2) ?></div>
           <span class="bar-chip" style="background:<?= $dl['bg'] ?>;color:<?= $dl['color'] ?>;border:1px solid <?= $dl['color'] ?>"><?= $dl['label_id'] ?></span>
         </div>
         <?php endforeach; ?>
         <?php else: ?>
-        <p style="font-size:12px;color:#64748b;text-align:center;padding:20px 0">Belum ada data</p>
+        <p style="font-size:12px;color:#6b6a83;text-align:center;padding:20px 0">Belum ada data</p>
         <?php endif; ?>
       </div>
     </div>
@@ -442,9 +442,9 @@ ob_start(); ?>
           <div class="mc-val"><?= number_format($src['avg'],2) ?></div>
           <div class="mc-lbl"><?= h($label) ?></div>
           <div class="bar-track" style="margin-top:8px;height:6px">
-            <div class="bar-fill" style="width:<?= $pct ?>%;background:#185FA5;height:6px"></div>
+            <div class="bar-fill" style="width:<?= $pct ?>%;background:#030870;height:6px"></div>
           </div>
-          <div style="margin-top:6px;font-size:10.5px;color:#94a3b8">
+          <div style="margin-top:6px;font-size:10.5px;color:#6f6e85">
             <i class="bi bi-people-fill me-1"></i>
             <?= $nTotal !== null ? "{$nDone}/{$nTotal} review masuk" : "{$nDone} review masuk" ?>
           </div>
@@ -452,7 +452,7 @@ ob_start(); ?>
         <?php endforeach; ?>
       </div>
       <?php else: ?>
-      <p style="font-size:12px;color:#64748b;text-align:center;padding:12px 0">Belum ada data responden</p>
+      <p style="font-size:12px;color:#6b6a83;text-align:center;padding:12px 0">Belum ada data responden</p>
       <?php endif; ?>
     </div>
   </div>
@@ -469,28 +469,28 @@ ob_start(); ?>
   </div>
 
   <!-- LEGEND -->
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:600;color:#64748b;margin-right:4px">Skala:</span>
-    <span class="chip" style="background:#EAF3DE;color:#27500A;border:1px solid #c0dd97">≥ 3.75 Sempurna</span>
-    <span class="chip" style="background:#E6F1FB;color:#0C447C;border:1px solid #b5d4f4">≥ 3.25 Sangat Baik</span>
-    <span class="chip" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">≥ 2.75 Baik</span>
-    <span class="chip" style="background:#FAEEDA;color:#633806;border:1px solid #fac775">≥ 2.25 Cukup</span>
-    <span class="chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">≥ 1.75 Kurang</span>
-    <span class="chip" style="background:#FCEBEB;color:#791F1F;border:1px solid #f7c1c1">&lt; 1.75 Sangat Kurang</span>
+  <div style="background:#fff;border:1px solid #e3e5ea;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:600;color:#6b6a83;margin-right:4px">Skala:</span>
+    <span class="chip" style="background:#e7f6ef;color:#015c36;border:1px solid #a5dcc3">≥ 3.75 Sempurna</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 3.25 Sangat Baik</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 2.75 Baik</span>
+    <span class="chip" style="background:#fff1dc;color:#b83a01;border:1px solid #ffc36b">≥ 2.25 Cukup</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">≥ 1.75 Kurang</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">&lt; 1.75 Sangat Kurang</span>
   </div>
 
   <!-- SELF BANNER -->
   <div class="self-banner">
     <div>
-      <div style="font-size:13px;font-weight:500;color:#5b21b6">
+      <div style="font-size:13px;font-weight:500;color:#030870">
         <i class="bi bi-journal-text me-2"></i>Refleksi Mandiri
       </div>
-      <div style="font-size:12px;color:#64748b;margin-top:3px">
+      <div style="font-size:12px;color:#6b6a83;margin-top:3px">
         Penilaian diri sendiri — <strong>tidak dihitung</strong> dalam indeks skor evaluasi.
       </div>
     </div>
     <?php if ($selfScores['overall'] > 0): ?>
-    <span class="chip chip-blue" style="background:#f5f3ff;color:#5b21b6;border:1px solid #ddd6fe;font-size:13px;padding:4px 14px">
+    <span class="chip chip-blue" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2;font-size:13px;padding:4px 14px">
       <?= number_format($selfScores['overall'],2) ?> / 4.00
     </span>
     <?php endif; ?>
@@ -505,19 +505,19 @@ ob_start(); ?>
         <div class="bar-row">
           <div class="bar-lbl">Skor evaluasi</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($scores['overall']/4)*100) ?>%;background:#185FA5"></div>
+            <div class="bar-fill" style="width:<?= round(($scores['overall']/4)*100) ?>%;background:#030870"></div>
           </div>
           <div class="bar-val"><?= number_format($scores['overall'],2) ?></div>
         </div>
         <div class="bar-row">
           <div class="bar-lbl">Refleksi diri</div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($selfScores['overall']/4)*100) ?>%;background:#7c3aed"></div>
+            <div class="bar-fill" style="width:<?= round(($selfScores['overall']/4)*100) ?>%;background:#2201b2"></div>
           </div>
           <div class="bar-val"><?= number_format($selfScores['overall'],2) ?></div>
         </div>
         <?php $gap = round($scores['overall'] - $selfScores['overall'],2); ?>
-        <p style="font-size:11px;color:#64748b;margin-top:12px">
+        <p style="font-size:11px;color:#6b6a83;margin-top:12px">
           <?php if (abs($gap) < 0.2): ?>
           <i class="bi bi-check-circle-fill text-success me-1"></i>Persepsi diri selaras dengan penilaian eksternal.
           <?php elseif ($gap > 0): ?>
@@ -539,7 +539,7 @@ ob_start(); ?>
         <div class="bar-row">
           <div class="bar-lbl"><?= h($d['domain_name']) ?></div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#7c3aed"></div>
+            <div class="bar-fill" style="width:<?= round(($d['avg']/4)*100) ?>%;background:#2201b2"></div>
           </div>
           <div class="bar-val"><?= number_format($d['avg'],2) ?></div>
           <span class="bar-chip" style="background:<?= $sdl['bg'] ?>;color:<?= $sdl['color'] ?>;border:1px solid <?= $sdl['color'] ?>"><?= $sdl['label_id'] ?></span>
@@ -579,18 +579,18 @@ ob_start(); ?>
 
   <?php if (!empty($byDomainAccordion)): ?>
   <!-- LEVEL LEGEND -->
-  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:11px;font-weight:600;color:#64748b;margin-right:4px">Skala:</span>
-    <span class="chip" style="background:#EAF3DE;color:#27500A;border:1px solid #c0dd97">≥ 3.75 Sempurna</span>
-    <span class="chip" style="background:#E6F1FB;color:#0C447C;border:1px solid #b5d4f4">≥ 3.25 Sangat Baik</span>
-    <span class="chip" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">≥ 2.75 Baik</span>
-    <span class="chip" style="background:#FAEEDA;color:#633806;border:1px solid #fac775">≥ 2.25 Cukup</span>
-    <span class="chip" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">≥ 1.75 Kurang</span>
-    <span class="chip" style="background:#FCEBEB;color:#791F1F;border:1px solid #f7c1c1">&lt; 1.75 Sangat Kurang</span>
+  <div style="background:#fff;border:1px solid #e3e5ea;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:600;color:#6b6a83;margin-right:4px">Skala:</span>
+    <span class="chip" style="background:#e7f6ef;color:#015c36;border:1px solid #a5dcc3">≥ 3.75 Sempurna</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 3.25 Sangat Baik</span>
+    <span class="chip" style="background:#eeebfc;color:#030870;border:1px solid #b9aef2">≥ 2.75 Baik</span>
+    <span class="chip" style="background:#fff1dc;color:#b83a01;border:1px solid #ffc36b">≥ 2.25 Cukup</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">≥ 1.75 Kurang</span>
+    <span class="chip" style="background:#fdeceb;color:#8c1610;border:1px solid #f3b5b0">&lt; 1.75 Sangat Kurang</span>
   </div>
 
   <?php if (!empty($sortedTraits)): ?>
-  <div class="dcard" style="border-left:3px solid #533AB7">
+  <div class="dcard" style="border-left:3px solid #030870">
     <div class="dcard-hdr">Skor per Trait</div>
     <div class="dcard-body">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:8px 20px">
@@ -600,7 +600,7 @@ ob_start(); ?>
         <div class="bar-row">
           <div class="bar-lbl"><?= h($t['name']) ?></div>
           <div class="bar-track">
-            <div class="bar-fill" style="width:<?= round(($t['avg']/4)*100) ?>%;background:#533AB7"></div>
+            <div class="bar-fill" style="width:<?= round(($t['avg']/4)*100) ?>%;background:#030870"></div>
           </div>
           <div class="bar-val"><?= number_format($t['avg'],2) ?></div>
         </div>
@@ -622,12 +622,12 @@ ob_start(); ?>
       ?>
       <div class="accordion-domain">
         <button class="accordion-hdr" onclick="toggleAcc(this)">
-          <span><?= h($domainName) ?> <span style="font-size:11px;color:#64748b">(<?= count($standards) ?> standard)</span></span>
+          <span><?= h($domainName) ?> <span style="font-size:11px;color:#6b6a83">(<?= count($standards) ?> standard)</span></span>
           <span>
             <span class="chip" style="background:<?= $level['bg'] ?>;color:<?= $level['color'] ?>;border:1px solid <?= $level['color'] ?>">
               <?= number_format($domAvg,2) ?>
             </span>
-            <i class="bi bi-chevron-down ms-2" style="font-size:11px;color:#64748b"></i>
+            <i class="bi bi-chevron-down ms-2" style="font-size:11px;color:#6b6a83"></i>
           </span>
         </button>
         <div class="accordion-body open">
@@ -636,7 +636,7 @@ ob_start(); ?>
               $sl = getScoreLevel($s['avg']);
             ?>
             <tr>
-              <td style="color:#1e293b"><?= h($s['name']) ?></td>
+              <td style="color:#040136"><?= h($s['name']) ?></td>
               <td style="width:60px;text-align:center;font-weight:500;color:<?= $sl['color'] ?>"><?= number_format($s['avg'],2) ?></td>
               <td style="width:120px">
                 <span class="chip" style="background:<?= $sl['bg'] ?>;color:<?= $sl['color'] ?>;border:1px solid <?= $sl['color'] ?>">
@@ -684,7 +684,7 @@ ob_start(); ?>
       <div style="white-space:pre-wrap;font-size:13px;line-height:1.7"><?= h($aiSuggestion['edited_suggestion'] ?? $aiSuggestion['raw_suggestion']) ?></div>
       <?php endif; ?>
       <?php else: ?>
-      <div style="text-align:center;padding:24px;color:#64748b">
+      <div style="text-align:center;padding:24px;color:#6b6a83">
         <i class="bi bi-stars" style="font-size:32px;display:block;margin-bottom:8px;opacity:.4"></i>
         <p style="font-size:13px">Belum ada saran AI. Klik "Generate" untuk membuat.</p>
         <div id="aiResult" style="display:none;text-align:left;margin-top:12px"></div>
@@ -718,8 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return m ? 'Sem ' + m[1] + ' ' + m[2] : d.name;
     });
     const data   = TREND_DATA.map(d => d.score || null);
-    const colors = TREND_DATA.map(d => d.id === SELECTED_PID ? '#185FA5' : 'rgba(24,95,165,0.35)');
-    const borderColors = TREND_DATA.map(d => d.status === 'active' ? '#d97706' : 'transparent');
+    const colors = TREND_DATA.map(d => d.id === SELECTED_PID ? '#030870' : 'rgba(3,8,112,0.35)');
+    const borderColors = TREND_DATA.map(d => d.status === 'active' ? '#d97701' : 'transparent');
     const borderWidths = TREND_DATA.map(d => d.status === 'active' ? 2 : 0);
     new Chart(tc, {
       type: 'bar',
@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}} },
         scales: {
-          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(0,0,0,.05)'} },
+          y: { min:1.5, max:4.0, ticks:{stepSize:.5,font:{size:10}}, grid:{color:'rgba(4,1,54,.05)'} },
           x: { ticks:{font:{size:9},maxRotation:30}, grid:{display:false} }
         }
       }
@@ -758,10 +758,10 @@ document.addEventListener('DOMContentLoaded', () => {
         labels,
         datasets: [{
           data: SELF_TREND.map(d => d.score || null),
-          borderColor: '#7c3aed',
-          backgroundColor: 'rgba(124,58,237,0.06)',
+          borderColor: '#2201b2',
+          backgroundColor: 'rgba(34,1,178,0.06)',
           fill: true, tension: 0.4,
-          pointRadius: 5, pointBackgroundColor: '#7c3aed',
+          pointRadius: 5, pointBackgroundColor: '#2201b2',
           pointBorderColor: '#fff', pointBorderWidth: 2,
         }]
       },
@@ -769,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
         responsive: true, maintainAspectRatio: false,
         plugins: {legend:{display:false}, tooltip:{callbacks:{label:c=>' '+parseFloat(c.raw).toFixed(2)+' / 4.00'}}},
         scales: {
-          y: {min:1.5,max:4.0,ticks:{stepSize:.5,font:{size:10}},grid:{color:'rgba(0,0,0,.05)'}},
+          y: {min:1.5,max:4.0,ticks:{stepSize:.5,font:{size:10}},grid:{color:'rgba(4,1,54,.05)'}},
           x: {ticks:{font:{size:9}},grid:{display:false}}
         }
       }

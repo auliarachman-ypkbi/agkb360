@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/feedback.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
@@ -33,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'is_osis'             => ($role==='student' && !empty($_POST['is_osis'])) ? 1 : 0,
                 'is_parent_committee' => ($role==='parent'  && !empty($_POST['is_parent_committee'])) ? 1 : 0,
             ]);
+            $newId = Database::lastId();
+            fbSimpanUnitPengguna($newId, $_POST['handler_units'] ?? []);
             flash("Pengguna $name berhasil ditambahkan.", 'success');
         }
     }
@@ -48,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         if ($password) $data['password'] = password_hash($password, PASSWORD_BCRYPT);
         Database::update('users', $data, 'id=?', [$userId]);
+        fbSimpanUnitPengguna($userId, $_POST['handler_units'] ?? []);
         flash("Data pengguna berhasil diperbarui.", 'success');
     }
 
@@ -153,8 +157,12 @@ ob_start();
     <label class="form-label small text-muted mb-1">Peran</label>
     <select name="role" class="form-select form-select-sm">
       <option value="">Semua Peran</option>
-      <?php foreach (ROLES as $key => $label): ?>
-      <option value="<?= $key ?>" <?= $roleFilter===$key?'selected':'' ?>><?= h($label) ?></option>
+      <?php foreach (appRoleGroups() as $grup => $daftar): ?>
+      <optgroup label="<?= h($grup) ?>">
+        <?php foreach ($daftar as $key => $label): ?>
+        <option value="<?= $key ?>" <?= $roleFilter===$key?'selected':'' ?>><?= h($label) ?></option>
+        <?php endforeach; ?>
+      </optgroup>
       <?php endforeach; ?>
     </select>
   </div>
@@ -317,12 +325,20 @@ ob_start();
             <label class="form-label fw-semibold">Peran <span class="text-danger">*</span></label>
             <select name="role" class="form-select" required id="roleSelect"
               onchange="toggleStudentFields(this.value)">
-              <?php foreach (ROLES as $key => $label): ?>
-              <option value="<?= $key ?>" <?= ($editUser['role']??'') === $key ? 'selected' : '' ?>>
-                <?= h($label) ?>
-              </option>
+              <?php foreach (appRoleGroups() as $grup => $daftar): ?>
+              <optgroup label="<?= h($grup) ?>">
+                <?php foreach ($daftar as $key => $label): ?>
+                <option value="<?= $key ?>" <?= ($editUser['role']??'') === $key ? 'selected' : '' ?>>
+                  <?= h($label) ?>
+                </option>
+                <?php endforeach; ?>
+              </optgroup>
               <?php endforeach; ?>
             </select>
+            <div class="small text-muted mt-1" style="line-height:1.6">
+              <strong>Staf Non-Akademik</strong> untuk tenaga kependidikan — tata usaha, sarana,
+              IT, humas. Mereka umumnya penangan keluhan, dan saat ini belum masuk matriks evaluasi 360°.
+            </div>
           </div>
 
           <!-- Khusus Siswa -->
@@ -369,6 +385,45 @@ ob_start();
               </div>
             </div>
           </div>
+          <!-- Unit Penanganan Feedback -->
+          <?php
+          $semuaUnit = fbUnits();
+          $unitDipilih = $editUser
+              ? array_column(fbUserUnits((int)$editUser['id']), 'id')
+              : [];
+          if ($semuaUnit): ?>
+          <div class="mb-3 pt-3" style="border-top:1px solid #e3e5ea">
+            <label class="form-label fw-semibold mb-1">
+              Unit Penanganan Feedback
+              <span class="text-muted fw-normal small">(opsional, boleh lebih dari satu)</span>
+            </label>
+            <div class="small text-muted mb-2" style="line-height:1.6">
+              Menentukan antrean tiket mana yang dilihat orang ini. Terpisah dari matriks evaluasi 360° —
+              tidak memengaruhi siapa menilai siapa.
+            </div>
+            <div class="row g-2">
+              <?php foreach ($semuaUnit as $g): ?>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="handler_units[]"
+                         value="<?= (int)$g['id'] ?>" id="unit<?= (int)$g['id'] ?>"
+                         <?= in_array((int)$g['id'], array_map('intval', $unitDipilih), true) ? 'checked' : '' ?>>
+                  <label class="form-check-label small" for="unit<?= (int)$g['id'] ?>">
+                    <?= h($g['name']) ?>
+                    <span class="text-muted">· <?= (int)$g['anggota'] ?> anggota</span>
+                  </label>
+                </div>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <div class="small text-muted mt-2">
+              <i class="bi bi-info-circle me-1"></i>
+              Kelola daftar unitnya di
+              <a href="<?= APP_URL ?>/admin/feedback_units.php">Unit Penanganan</a>.
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="mb-3">
             <label class="form-label fw-semibold">
               Password <?= $editUser ? '<span class="text-muted small">(kosongkan jika tidak diubah)</span>' : '<span class="text-danger">*</span>' ?>

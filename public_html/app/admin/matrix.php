@@ -19,7 +19,7 @@ foreach ($evalTypes as $et) {
 
 // Semua respondent types — harus cocok dengan nilai di DB
 $allRespondentTypes = [
-    'atasan'        => 'Yayasan (YPKBI/YPKTB)',
+    'atasan'        => 'Yayasan',
     'leader'        => 'Pimpinan Sekolah',
     'guru'          => 'Guru',
     'ortu'          => 'Komite Orang Tua',
@@ -217,9 +217,9 @@ $langOptions = [
 ob_start(); ?>
 <style>
 .standard-row.row-even { background: #ffffff; }
-.standard-row.row-odd  { background: #f8fafc; }
-.standard-row:hover    { background: #EBF4FF !important; cursor: pointer; }
-.standard-row:hover .std-name-cell { color: #2C5282; font-weight: 500; }
+.standard-row.row-odd  { background: #fafafb; }
+.standard-row:hover    { background: #eeebfc !important; cursor: pointer; }
+.standard-row:hover .std-name-cell { color: #040136; font-weight: 500; }
 .matrix-cb { transition: transform .1s; }
 .standard-row:hover .matrix-cb { transform: scale(1.15); }
 </style>
@@ -263,7 +263,7 @@ ob_start(); ?>
   <input type="hidden" name="eval_type_code" value="<?= h($currentEt['code']) ?>">
 
   <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center" style="background:#2C5282;color:white;border-bottom:none">
+    <div class="card-header d-flex justify-content-between align-items-center" style="background:#040136;color:white;border-bottom:none">
       <span style="font-weight:600">
         <i class="bi bi-grid me-2"></i>
         Matriks: <?= h($currentEt['name']) ?>
@@ -277,7 +277,7 @@ ob_start(); ?>
           style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.4)">
           <i class="bi bi-x me-1"></i>Hapus Semua
         </button>
-        <button type="submit" class="btn btn-sm" style="background:#ffc901;color:#1a1a1a;border:none;font-weight:600">
+        <button type="submit" class="btn btn-sm" style="background:#ff9101;color:#2f2d4d;border:none;font-weight:600">
           <i class="bi bi-save me-1"></i>Simpan & Generate Paket
         </button>
       </div>
@@ -286,7 +286,7 @@ ob_start(); ?>
       <div class="table-responsive">
         <table class="table table-bordered mb-0" style="min-width:700px">
           <thead>
-            <tr style="background:#1A365D;color:white">
+            <tr style="background:#02001f;color:white">
               <th style="min-width:280px;vertical-align:middle;padding:10px 14px;font-size:.85rem">Standard</th>
               <?php foreach ($currentRespTypes as $rType => $rLabel): ?>
               <th class="text-center" style="min-width:110px;vertical-align:middle;font-size:.78rem;padding:10px 6px;border-left:1px solid rgba(255,255,255,0.15)">
@@ -299,7 +299,7 @@ ob_start(); ?>
             <?php foreach ($domains as $did => $domain): ?>
 
             <!-- Domain row -->
-            <tr style="background:#2C5282">
+            <tr style="background:#040136">
               <td colspan="<?= count($currentRespTypes) + 1 ?>" class="py-2 px-3">
                 <span class="badge me-2" style="background:rgba(255,255,255,0.2);color:white">
                   <?= h($domain['code']??'—') ?>
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const lang   = this.value;
       const status = this.closest('div').querySelector('.pkg-lang-status');
       status.textContent = '…';
-      status.style.color = '#888';
+      status.style.color = '#6b6a83';
 
       fetch('<?= APP_URL ?>/admin/set_pkg_lang.php', {
         method: 'POST',
@@ -458,16 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         if (data.ok) {
           status.textContent = '✓';
-          status.style.color = '#198754';
+          status.style.color = '#027a48';
         } else {
           status.textContent = '✗';
-          status.style.color = '#dc3545';
+          status.style.color = '#b42318';
         }
         setTimeout(() => { status.textContent = ''; }, 2000);
       })
       .catch(() => {
         status.textContent = '✗';
-        status.style.color = '#dc3545';
+        status.style.color = '#b42318';
         setTimeout(() => { status.textContent = ''; }, 2000);
       });
     });
@@ -475,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Highlight row on hover
   document.querySelectorAll('.standard-row').forEach(row => {
-    row.addEventListener('mouseenter', () => row.style.background = '#f0f7ff');
+    row.addEventListener('mouseenter', () => row.style.background = '#eeebfc');
     row.addEventListener('mouseleave', () => row.style.background = '');
   });
 });

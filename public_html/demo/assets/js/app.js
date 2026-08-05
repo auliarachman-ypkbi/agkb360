@@ -1,5 +1,5 @@
 // ============================================================
-// KTB 360° Evaluation Platform — Main JavaScript
+// AGKB 360° — Platform Evaluasi Kinerja · app.js
 // ============================================================
 
 // ── CSRF helper ───────────────────────────────────────────────
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await Swal.fire({
         title: 'Konfirmasi', text: msg, icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#0D2D5E', cancelButtonColor: '#6c757d',
+        confirmButtonColor: '#040136', cancelButtonColor: '#6b6a83',
         confirmButtonText: 'Ya, lanjutkan', cancelButtonText: 'Batal'
       });
       if (result.isConfirmed) {
@@ -66,10 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Score color helper ────────────────────────────────────────
 function scoreColor(score) {
-  if (score < 1.75) return '#dc3545';
-  if (score < 2.50) return '#fd7e14';
-  if (score < 3.25) return '#0d6efd';
-  return '#198754';
+  if (score < 1.75) return '#b42318';
+  if (score < 2.50) return '#ee4c01';
+  if (score < 3.25) return '#2201b2';
+  return '#027a48';
 }
 
 // ── Render radar chart ────────────────────────────────────────
@@ -83,10 +83,10 @@ function renderRadarChart(canvasId, labels, data, label = 'Skor') {
       datasets: [{
         label,
         data,
-        backgroundColor: 'rgba(13,45,94,0.15)',
-        borderColor: '#0D2D5E',
-        pointBackgroundColor: '#C9A227',
-        pointBorderColor: '#0D2D5E',
+        backgroundColor: 'rgba(4,1,54,0.15)',
+        borderColor: '#040136',
+        pointBackgroundColor: '#ff9101',
+        pointBorderColor: '#040136',
         pointRadius: 5
       }]
     },
@@ -172,7 +172,7 @@ async function hardReset() {
     html: 'Ini akan <strong>menghapus semua data</strong> (responses, assignments, AI suggestions) dan mereset ke kondisi awal.<br><br>Ketik <code>RESET</code> untuk konfirmasi.',
     input: 'text', icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+    confirmButtonColor: '#b42318', cancelButtonColor: '#6b6a83',
     confirmButtonText: 'Reset', cancelButtonText: 'Batal',
     preConfirm: (val) => {
       if (val !== 'RESET') { Swal.showValidationMessage('Ketik RESET untuk konfirmasi'); return false; }

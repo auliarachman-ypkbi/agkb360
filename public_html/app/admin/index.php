@@ -125,7 +125,7 @@ ob_start(); ?>
           </div>
           <div class="progress" style="height:8px">
             <?php $pct = $tp['total'] > 0 ? round($tp['done']/$tp['total']*100) : 0; ?>
-            <div class="progress-bar" style="width:<?= $pct ?>%;background:<?= $pct>=80?'#198754':($pct>=50?'#0d6efd':'#fd7e14') ?>"></div>
+            <div class="progress-bar" style="width:<?= $pct ?>%;background:<?= $pct>=80?'#027a48':($pct>=50?'#2201b2':'#ee4c01') ?>"></div>
           </div>
         </div>
         <?php endforeach; ?>

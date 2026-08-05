@@ -1,0 +1,843 @@
+<?php
+// ============================================================
+// AGKB 360° — Modul Feedback & Ticketing
+// Library inti: SLA, prioritas, eskalasi, audit, izin, lampiran
+// ============================================================
+
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/functions.php';
+
+// ── LABEL & KONSTANTA ───────────────────────────────────────
+
+function fbTracks(): array {
+    return [
+        'apresiasi'    => ['label'=>'Apresiasi',    'icon'=>'bi-star-fill',            'color'=>'#0f7a3d'],
+        'inquiry'      => ['label'=>'Kendala / Masukan', 'icon'=>'bi-exclamation-circle-fill','color'=>'#030870'],
+        'safeguarding' => ['label'=>'Perlindungan Anak',  'icon'=>'bi-shield-fill-exclamation','color'=>'#b42318'],
+    ];
+}
+
+function fbStatuses(): array {
+    return [
+        'baru'             => ['label'=>'Baru',              'color'=>'#030870','bg'=>'#eeebfc','sla'=>true],
+        'ditinjau'         => ['label'=>'Ditinjau',          'color'=>'#2201b2','bg'=>'#eeebfc','sla'=>true],
+        'ditindaklanjuti'  => ['label'=>'Ditindaklanjuti',   'color'=>'#a85a01','bg'=>'#fff8ef','sla'=>true],
+        'menunggu_pelapor' => ['label'=>'Menunggu Pelapor',  'color'=>'#6b6a83','bg'=>'#f3f4f6','sla'=>false],
+        'selesai'          => ['label'=>'Selesai',           'color'=>'#015c36','bg'=>'#e7f6ef','sla'=>false],
+        'ditutup'          => ['label'=>'Ditutup',           'color'=>'#2f2d4d','bg'=>'#f3f4f6','sla'=>false],
+    ];
+}
+
+function fbPriorities(): array {
+    return [
+        'P1' => ['label'=>'Kritis', 'color'=>'#b42318','bg'=>'#fdeceb','rank'=>1],
+        'P2' => ['label'=>'Tinggi', 'color'=>'#b83a01','bg'=>'#fff1dc','rank'=>2],
+        'P3' => ['label'=>'Sedang', 'color'=>'#030870','bg'=>'#eeebfc','rank'=>3],
+        'P4' => ['label'=>'Rendah', 'color'=>'#6b6a83','bg'=>'#f3f4f6','rank'=>4],
+    ];
+}
+
+function fbImpacts(): array {
+    return [
+        'individu' => 'Perorangan',
+        'kelompok' => 'Satu kelas / kelompok',
+        'sekolah'  => 'Seluruh sekolah',
+    ];
+}
+
+function fbResolutions(): array {
+    return [
+        'diselesaikan'                => 'Diselesaikan',
+        'diteruskan_eksternal'        => 'Diteruskan ke pihak eksternal',
+        'kebijakan_diubah'            => 'Kebijakan diubah',
+        'tidak_dapat_ditindaklanjuti' => 'Tidak dapat ditindaklanjuti',
+        'duplikat'                    => 'Duplikat',
+        'informasi_tidak_cukup'       => 'Informasi tidak cukup',
+        'tidak_terbukti'              => 'Tidak terbukti',
+    ];
+}
+
+function fbLevels(): array {
+    return [1=>'Admin & Staf Sekolah', 2=>'Pimpinan Sekolah', 3=>'Yayasan'];
+}
+
+/** SLA bawaan per prioritas — dipakai kalau kategori tidak menetapkan sendiri. */
+function fbSlaDefaults(): array {
+    return [
+        'P1' => ['response'=>4,  'resolve'=>24],
+        'P2' => ['response'=>24, 'resolve'=>72],
+        'P3' => ['response'=>48, 'resolve'=>120],
+        'P4' => ['response'=>72, 'resolve'=>240],
+    ];
+}
+
+// ── KOMPONEN TAMPILAN ───────────────────────────────────────
+
+function fbChip(string $text, string $color, string $bg, string $border = ''): string {
+    $b = $border ?: $bg;
+    return '<span style="display:inline-block;background:' . $bg . ';color:' . $color
+         . ';border:1px solid ' . $b . ';border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;white-space:nowrap">'
+         . h($text) . '</span>';
+}
+
+function fbBadgeStatus(string $s): string {
+    $x = fbStatuses()[$s] ?? ['label'=>$s,'color'=>'#6b6a83','bg'=>'#f3f4f6'];
+    return fbChip($x['label'], $x['color'], $x['bg']);
+}
+
+function fbBadgePriority(string $p): string {
+    $x = fbPriorities()[$p] ?? ['label'=>$p,'color'=>'#6b6a83','bg'=>'#f3f4f6'];
+    return fbChip($p . ' · ' . $x['label'], $x['color'], $x['bg']);
+}
+
+function fbBadgeTrack(string $t): string {
+    $x = fbTracks()[$t] ?? ['label'=>$t,'color'=>'#6b6a83'];
+    return fbChip($x['label'], '#fff', $x['color'], $x['color']);
+}
+
+function fbBadgeOverdue(array $t): string {
+    if (!fbIsOverdue($t)) return '';
+    $late = abs((int)floor(fbHoursLeft($t)));
+    $txt  = $late >= 48 ? round($late / 24) . ' hari' : $late . ' jam';
+    return fbChip('Terlambat ' . $txt, '#fff', '#b42318', '#b42318');
+}
+
+function fbRelTime(?string $ts): string {
+    if (!$ts) return '—';
+    $d = time() - strtotime($ts);
+    if ($d < 60)     return 'baru saja';
+    if ($d < 3600)   return floor($d/60) . ' menit lalu';
+    if ($d < 86400)  return floor($d/3600) . ' jam lalu';
+    if ($d < 604800) return floor($d/86400) . ' hari lalu';
+    return date('d M Y', strtotime($ts));
+}
+
+function fbDurationText(?string $from, ?string $to): string {
+    if (!$from || !$to) return '—';
+    $s = strtotime($to) - strtotime($from);
+    if ($s < 3600)  return max(1, round($s/60)) . ' menit';
+    if ($s < 86400) return round($s/3600, 1) . ' jam';
+    return round($s/86400, 1) . ' hari';
+}
+
+// ── WAKTU & SLA ─────────────────────────────────────────────
+
+/**
+ * Tambah jam kerja, melewati Sabtu & Minggu.
+ * Disederhanakan: hari kerja penuh 24 jam, bukan jam kantor.
+ */
+function fbAddWorkingHours(string $from, int $hours): string {
+    $dt = new DateTime($from, new DateTimeZone('Asia/Jakarta'));
+    $remaining = $hours;
+    while ($remaining > 0) {
+        $step = min($remaining, 24);
+        $dt->modify("+{$step} hours");
+        $remaining -= $step;
+        // Kalau mendarat di akhir pekan, geser ke Senin
+        while (in_array((int)$dt->format('N'), [6, 7], true)) {
+            $dt->modify('+1 day');
+        }
+    }
+    return $dt->format('Y-m-d H:i:s');
+}
+
+/** Prioritas = default kategori, digeser oleh dampak. Safeguarding selalu P1. */
+function fbComputePriority(string $categoryPriority, ?string $impact, string $track): string {
+    if ($track === 'safeguarding') return 'P1';
+
+    $order = ['P1','P2','P3','P4'];
+    $idx   = array_search($categoryPriority, $order, true);
+    if ($idx === false) $idx = 2;
+
+    if ($impact === 'sekolah')  $idx--;   // naik tingkat
+    if ($impact === 'individu') $idx++;   // turun tingkat
+
+    return $order[max(0, min(3, $idx))];
+}
+
+/** Hitung ulang tenggat respons & penyelesaian untuk level saat ini. */
+function fbComputeDueDates(array $ticket, ?array $category = null, ?string $from = null): array {
+    $from = $from ?: date('Y-m-d H:i:s');
+    $def  = fbSlaDefaults()[$ticket['priority']] ?? fbSlaDefaults()['P3'];
+
+    $respH = $category['sla_response_hours'] ?? $def['response'];
+    $resH  = $category['sla_resolve_hours']  ?? $def['resolve'];
+
+    // Safeguarding tidak mengenal hari kerja — jam kalender
+    if ($ticket['track'] === 'safeguarding') {
+        $tz = new DateTimeZone('Asia/Jakarta');
+        $r  = (new DateTime($from, $tz))->modify("+{$respH} hours")->format('Y-m-d H:i:s');
+        $d  = (new DateTime($from, $tz))->modify("+{$resH} hours")->format('Y-m-d H:i:s');
+        return ['response_due_at'=>$r, 'due_at'=>$d];
+    }
+
+    return [
+        'response_due_at' => fbAddWorkingHours($from, (int)$respH),
+        'due_at'          => fbAddWorkingHours($from, (int)$resH),
+    ];
+}
+
+/** Apakah tiket sudah melewati tenggat? */
+function fbIsOverdue(array $t): bool {
+    if (!in_array($t['status'], ['baru','ditinjau','ditindaklanjuti'], true)) return false;
+    return !empty($t['due_at']) && strtotime($t['due_at']) < time();
+}
+
+/** Sisa waktu dalam jam (negatif = terlambat). */
+function fbHoursLeft(array $t): ?float {
+    if (empty($t['due_at'])) return null;
+    return round((strtotime($t['due_at']) - time()) / 3600, 1);
+}
+
+// ── NOMOR TIKET ─────────────────────────────────────────────
+
+function fbGenerateTicketNo(string $track): string {
+    $prefix = $track === 'safeguarding' ? 'SG' : 'AGKB';
+    $year   = date('Y');
+    $row = Database::fetchOne(
+        "SELECT ticket_no FROM feedback_tickets
+         WHERE ticket_no LIKE ? ORDER BY id DESC LIMIT 1",
+        ["$prefix-$year-%"]
+    );
+    $next = $row ? ((int)substr($row['ticket_no'], -4)) + 1 : 1;
+    return sprintf('%s-%s-%04d', $prefix, $year, $next);
+}
+
+// ── AUDIT LOG ───────────────────────────────────────────────
+
+function fbLogEvent(int $ticketId, string $type, ?string $from = null, ?string $to = null, ?string $note = null): void {
+    Database::insert('feedback_events', [
+        'ticket_id'  => $ticketId,
+        'actor_id'   => $_SESSION['user_id'] ?? null,
+        'event_type' => $type,
+        'from_value' => $from,
+        'to_value'   => $to,
+        'note'       => $note ? mb_substr($note, 0, 255) : null,
+        'ip'         => $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
+}
+
+function fbEventLabel(string $type): string {
+    return [
+        'dibuat'              => 'Tiket dibuat',
+        'dilihat'             => 'Dibuka',
+        'status_diubah'       => 'Status diubah',
+        'prioritas_diubah'    => 'Prioritas diubah',
+        'pic_diubah'          => 'Penanggung jawab diubah',
+        'dieskalasi_otomatis' => 'Dieskalasi otomatis (SLA terlampaui)',
+        'dieskalasi_manual'   => 'Dieskalasi manual',
+        'dibalas'             => 'Dibalas',
+        'catatan_internal'    => 'Catatan internal ditambahkan',
+        'lampiran_diunggah'   => 'Lampiran diunggah',
+        'lampiran_diunduh'    => 'Lampiran diunduh',
+        'diselesaikan'        => 'Diselesaikan',
+        'ditutup'             => 'Ditutup',
+        'dibuka_kembali'      => 'Dibuka kembali',
+        'diteruskan'          => 'Apresiasi diteruskan',
+        'diambil'             => 'Diambil dari antrean unit',
+        'identitas_dibuka'    => 'Identitas pelapor dibuka',
+        'dipindahkan_dari_lama' => 'Dipindahkan dari sistem feedback lama',
+    ][$type] ?? $type;
+}
+
+// ── PESAN / THREAD ──────────────────────────────────────────
+
+function fbAddMessage(int $ticketId, ?int $authorId, string $body, string $visibility = 'publik', bool $isSystem = false): int {
+    return Database::insert('feedback_messages', [
+        'ticket_id'  => $ticketId,
+        'author_id'  => $authorId,
+        'body'       => $body,
+        'visibility' => $visibility,
+        'is_system'  => $isSystem ? 1 : 0,
+    ]);
+}
+
+// ── UNIT PENANGANAN ─────────────────────────────────────────
+// Unit memakai tabel `groups` dengan type='penanganan' dan
+// respondent_type=NULL, sehingga tidak pernah masuk matriks evaluasi.
+
+function fbUnits(bool $onlyActive = true): array {
+    return Database::fetchAll(
+        "SELECT g.*,
+                (SELECT COUNT(*) FROM user_groups ug WHERE ug.group_id = g.id) AS anggota,
+                (SELECT COUNT(*) FROM feedback_categories c WHERE c.handler_group_id = g.id) AS kategori
+         FROM `groups` g WHERE g.type = 'penanganan'
+         ORDER BY g.order_num, g.name");
+}
+
+function fbUnitMembers(int $groupId): array {
+    return Database::fetchAll(
+        "SELECT u.id, u.name, u.email, u.role
+         FROM user_groups ug JOIN users u ON u.id = ug.user_id
+         WHERE ug.group_id = ? AND u.is_active = 1
+         ORDER BY u.name", [$groupId]);
+}
+
+/** Unit penanganan yang diikuti seorang pengguna. */
+function fbUserUnits(int $userId): array {
+    return Database::fetchAll(
+        "SELECT g.id, g.name FROM user_groups ug
+         JOIN `groups` g ON g.id = ug.group_id
+         WHERE ug.user_id = ? AND g.type = 'penanganan'
+         ORDER BY g.order_num", [$userId]);
+}
+
+/**
+ * Simpan keanggotaan unit penanganan seorang pengguna.
+ * Hanya menyentuh grup ber-type 'penanganan', sehingga keanggotaan
+ * pengguna di kelompok evaluasi 360° tidak ikut terhapus.
+ */
+function fbSimpanUnitPengguna(int $userId, array $groupIds): void {
+    $sah = array_column(
+        Database::fetchAll("SELECT id FROM `groups` WHERE type='penanganan'"), 'id');
+    $pilih = array_values(array_intersect(array_map('intval', $groupIds), array_map('intval', $sah)));
+
+    if ($sah) {
+        $ph = implode(',', array_fill(0, count($sah), '?'));
+        Database::query(
+            "DELETE FROM user_groups WHERE user_id = ? AND group_id IN ($ph)",
+            array_merge([$userId], $sah));
+    }
+    foreach ($pilih as $gid) {
+        Database::query("INSERT IGNORE INTO user_groups (user_id, group_id) VALUES (?,?)", [$userId, $gid]);
+    }
+}
+
+function fbIsUnitMember(?int $groupId, int $userId): bool {
+    if (!$groupId) return false;
+    return (bool) Database::fetchOne(
+        "SELECT 1 FROM user_groups WHERE group_id = ? AND user_id = ?", [$groupId, $userId]);
+}
+
+/** Unit penanganan untuk sebuah tiket, lewat kategorinya. */
+function fbTicketUnit(array $t): ?array {
+    if (empty($t['category_id'])) return null;
+    return Database::fetchOne(
+        "SELECT g.id, g.name FROM feedback_categories c
+         JOIN `groups` g ON g.id = c.handler_group_id
+         WHERE c.id = ?", [$t['category_id']]);
+}
+
+/** Seorang anggota unit mengambil tiket dari antrean. */
+function fbClaimTicket(int $ticketId, int $userId): bool {
+    $t = Database::fetchOne("SELECT * FROM feedback_tickets WHERE id=?", [$ticketId]);
+    if (!$t || !empty($t['assignee_id'])) return false;
+
+    $unit = fbTicketUnit($t);
+    $u    = Database::fetchOne("SELECT name, role FROM users WHERE id=?", [$userId]);
+    $boleh = ($unit && fbIsUnitMember((int)$unit['id'], $userId))
+          || in_array($u['role'] ?? '', ['superadmin','admin','foundation'], true);
+    if (!$boleh) return false;
+
+    Database::update('feedback_tickets', ['assignee_id' => $userId], 'id = ?', [$ticketId]);
+    fbLogEvent($ticketId, 'diambil', 'Antrean ' . ($unit['name'] ?? 'unit'), $u['name'] ?? '');
+    fbAddMessage($ticketId, null,
+        ($u['name'] ?? 'Seseorang') . ' mengambil tiket ini dari antrean '
+        . ($unit['name'] ?? 'unit') . '.', 'internal', true);
+    return true;
+}
+
+// ── RUTE / PIC ──────────────────────────────────────────────
+
+/** Cari PIC untuk level tertentu. Kategori spesifik menang atas rute umum. */
+function fbResolveAssignee(int $level, string $track, ?int $categoryId): ?array {
+    if ($categoryId) {
+        $row = Database::fetchOne(
+            "SELECT * FROM feedback_escalation_levels
+             WHERE level=? AND category_id=? AND is_active=1 AND user_id IS NOT NULL
+             ORDER BY order_num LIMIT 1", [$level, $categoryId]);
+        if ($row) return $row;
+    }
+    $row = Database::fetchOne(
+        "SELECT * FROM feedback_escalation_levels
+         WHERE level=? AND (track=? OR track IS NULL) AND category_id IS NULL
+           AND is_active=1 AND user_id IS NOT NULL
+         ORDER BY order_num LIMIT 1", [$level, $track]);
+    if ($row) return $row;
+
+    // Cadangan: level 3 selalu jatuh ke Yayasan
+    if ($level >= 3) {
+        $f = Database::fetchOne("SELECT id AS user_id FROM users WHERE role='foundation' AND is_active=1 ORDER BY id LIMIT 1");
+        if ($f) return $f;
+    }
+    return null;
+}
+
+/** Semua penerima notifikasi pada satu level (bisa lebih dari satu). */
+function fbLevelRecipients(int $level, string $track, ?int $categoryId): array {
+    $rows = Database::fetchAll(
+        "SELECT el.user_id, el.email, u.name, u.email AS user_email
+         FROM feedback_escalation_levels el
+         LEFT JOIN users u ON u.id = el.user_id
+         WHERE el.level=? AND el.is_active=1
+           AND (el.track=? OR el.track IS NULL)
+           AND (el.category_id IS NULL OR el.category_id=?)",
+        [$level, $track, $categoryId]);
+    $out = [];
+    foreach ($rows as $r) {
+        $mail = $r['user_email'] ?: $r['email'];
+        if ($mail) $out[$mail] = $r['name'] ?: $mail;
+    }
+    return $out;
+}
+
+// ── BUAT TIKET ──────────────────────────────────────────────
+
+function fbCreateTicket(array $in): int {
+    $cat = $in['category_id']
+        ? Database::fetchOne("SELECT * FROM feedback_categories WHERE id=?", [$in['category_id']])
+        : null;
+
+    $track    = $cat['track'] ?? ($in['track'] ?? 'inquiry');
+    $priority = fbComputePriority($cat['default_priority'] ?? 'P3', $in['impact'] ?? null, $track);
+    $level    = (int)($cat['start_level'] ?? 1);
+
+    // Kalau kategori punya unit penanganan, tiket masuk ANTREAN unit —
+    // sengaja tanpa PIC, supaya diambil oleh salah satu anggota.
+    // Kalau tidak, jatuh ke PIC default kategori atau rute eskalasi.
+    $unitId   = $cat['handler_group_id'] ?? null;
+    $assignee = $unitId ? null
+              : (fbResolveAssignee($level, $track, $in['category_id'] ?? null)
+                 ?: ['user_id' => $cat['default_pic_id'] ?? null]);
+    $due      = fbComputeDueDates(['priority'=>$priority, 'track'=>$track], $cat);
+
+    $isTester = ($_SESSION['user_role'] ?? '') === 'tester';
+
+    $ticketNo = fbGenerateTicketNo($track);
+
+    $id = Database::insert('feedback_tickets', [
+        'ticket_no'           => $ticketNo,
+        'track'               => $track,
+        'category_id'         => $in['category_id'] ?: null,
+        'sender_id'           => $in['sender_id'],
+        'is_anonymous'        => !empty($in['is_anonymous']) ? 1 : 0,
+        'subject'             => $in['subject'],
+        'message'             => $in['message'],
+        'impact'              => $in['impact'] ?: null,
+        'priority'            => $priority,
+        'status'              => 'baru',
+        'level'               => $level,
+        'assignee_id'         => $assignee['user_id'] ?? null,
+        'appreciated_user_id' => $in['appreciated_user_id'] ?: null,
+        'response_due_at'     => $track === 'apresiasi' ? null : $due['response_due_at'],
+        'due_at'              => $track === 'apresiasi' ? null : $due['due_at'],
+        'is_test'             => $isTester ? 1 : 0,
+    ]);
+
+    fbLogEvent($id, 'dibuat', null, $ticketNo,
+        $isTester ? 'Dikirim oleh tester — tidak dihitung dalam metrik' : null);
+
+    // Seluruh anggota unit otomatis memantau, agar antrean terlihat
+    // walau belum ada yang mengambil.
+    if ($unitId) {
+        foreach (fbUnitMembers((int)$unitId) as $m) {
+            Database::query(
+                "INSERT IGNORE INTO feedback_watchers (ticket_id,user_id) VALUES (?,?)",
+                [$id, $m['id']]);
+        }
+    }
+
+    return $id;
+}
+
+// ── UBAH STATUS ─────────────────────────────────────────────
+
+function fbSetStatus(int $ticketId, string $new, ?string $note = null): bool {
+    $t = Database::fetchOne("SELECT * FROM feedback_tickets WHERE id=?", [$ticketId]);
+    if (!$t || !isset(fbStatuses()[$new]) || $t['status'] === $new) return false;
+
+    $upd = ['status' => $new];
+    $now = date('Y-m-d H:i:s');
+
+    // Respons pertama tercatat sekali
+    if (empty($t['first_response_at']) && in_array($new, ['ditinjau','ditindaklanjuti'], true)) {
+        $upd['first_response_at'] = $now;
+    }
+
+    // Jeda SLA saat menunggu pelapor
+    if ($new === 'menunggu_pelapor') {
+        $upd['paused_at'] = $now;
+    } elseif ($t['status'] === 'menunggu_pelapor' && !empty($t['paused_at'])) {
+        $paused = time() - strtotime($t['paused_at']);
+        $upd['paused_seconds'] = (int)$t['paused_seconds'] + $paused;
+        $upd['paused_at']      = null;
+        if (!empty($t['due_at'])) {
+            $upd['due_at'] = date('Y-m-d H:i:s', strtotime($t['due_at']) + $paused);
+        }
+    }
+
+    if ($new === 'selesai') $upd['resolved_at'] = $now;
+    if ($new === 'ditutup') $upd['closed_at']   = $now;
+    if (in_array($t['status'], ['selesai','ditutup'], true) && !in_array($new, ['selesai','ditutup'], true)) {
+        $upd['resolved_at'] = null;
+        $upd['closed_at']   = null;
+    }
+
+    Database::update('feedback_tickets', $upd, 'id = ?', [$ticketId]);
+
+    $evt = $new === 'selesai' ? 'diselesaikan'
+         : ($new === 'ditutup' ? 'ditutup'
+         : (in_array($t['status'], ['selesai','ditutup'], true) ? 'dibuka_kembali' : 'status_diubah'));
+    fbLogEvent($ticketId, $evt, $t['status'], $new, $note);
+
+    return true;
+}
+
+// ── ESKALASI ────────────────────────────────────────────────
+
+function fbEscalate(int $ticketId, bool $automatic = false, ?string $reason = null): bool {
+    $t = Database::fetchOne("SELECT * FROM feedback_tickets WHERE id=?", [$ticketId]);
+    if (!$t || $t['level'] >= 3) return false;
+    if (in_array($t['status'], ['selesai','ditutup'], true)) return false;
+
+    $newLevel = (int)$t['level'] + 1;
+    $cat = $t['category_id']
+        ? Database::fetchOne("SELECT * FROM feedback_categories WHERE id=?", [$t['category_id']])
+        : null;
+
+    $assignee = fbResolveAssignee($newLevel, $t['track'], $t['category_id']);
+    $due      = fbComputeDueDates($t, $cat);
+
+    Database::update('feedback_tickets', [
+        'level'       => $newLevel,
+        'assignee_id' => $assignee['user_id'] ?? $t['assignee_id'],
+        'due_at'      => $due['due_at'],
+        'status'      => $t['status'] === 'baru' ? 'baru' : $t['status'],
+    ], 'id = ?', [$ticketId]);
+
+    // PIC lama otomatis jadi watcher agar tetap terpantau
+    if (!empty($t['assignee_id'])) {
+        Database::query(
+            "INSERT IGNORE INTO feedback_watchers (ticket_id,user_id,added_by) VALUES (?,?,?)",
+            [$ticketId, $t['assignee_id'], $_SESSION['user_id'] ?? null]);
+    }
+
+    fbLogEvent($ticketId, $automatic ? 'dieskalasi_otomatis' : 'dieskalasi_manual',
+        'Level ' . $t['level'], 'Level ' . $newLevel, $reason);
+
+    fbAddMessage($ticketId, null, sprintf(
+        'Tiket dieskalasi %s dari %s ke %s.%s',
+        $automatic ? 'otomatis karena melewati batas waktu' : 'secara manual',
+        fbLevels()[$t['level']] ?? 'Level ' . $t['level'],
+        fbLevels()[$newLevel]   ?? 'Level ' . $newLevel,
+        $reason ? ' Alasan: ' . $reason : ''
+    ), 'internal', true);
+
+    fbNotifyEscalation($ticketId, $newLevel);
+    return true;
+}
+
+/** Dipanggil cron atau saat halaman admin dibuka. Mengembalikan jumlah tiket yang naik level. */
+function fbRunAutoEscalation(int $limit = 50): int {
+    // LIMIT tidak boleh di-bind sebagai parameter karena PDO::ATTR_EMULATE_PREPARES = false.
+    $limit = max(1, min(500, $limit));
+    $rows = Database::fetchAll(
+        "SELECT id FROM feedback_tickets
+         WHERE status IN ('baru','ditinjau','ditindaklanjuti')
+           AND level < 3 AND due_at IS NOT NULL AND due_at < NOW()
+           AND track <> 'apresiasi'
+         ORDER BY due_at ASC LIMIT $limit");
+    $n = 0;
+    foreach ($rows as $r) { if (fbEscalate((int)$r['id'], true)) $n++; }
+    return $n;
+}
+
+// ── IZIN AKSES ──────────────────────────────────────────────
+
+function fbCanSeeSafeguarding(?array $u = null): bool {
+    $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
+    return in_array($role, ['superadmin','foundation'], true);
+}
+
+function fbCanManage(?array $u = null): bool {
+    $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
+    return in_array($role, ['superadmin','admin','foundation'], true);
+}
+
+/** Track apa saja yang boleh dilihat di inbox oleh peran ini. */
+function fbAllowedTracks(?array $u = null): array {
+    $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
+    if (in_array($role, ['superadmin','foundation'], true)) return ['apresiasi','inquiry','safeguarding'];
+    if (in_array($role, ['admin','leader'], true))           return ['apresiasi','inquiry'];
+    return [];
+}
+
+function fbCanView(array $t, array $u): bool {
+    if ((int)$t['sender_id'] === (int)$u['id'])   return true;
+    if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) {
+        if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
+        return true;
+    }
+    // Anggota unit penanganan boleh melihat antrean unitnya
+    $unit = fbTicketUnit($t);
+    if ($unit && fbIsUnitMember((int)$unit['id'], (int)$u['id'])) {
+        if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
+        return true;
+    }
+    if (!in_array($t['track'], fbAllowedTracks($u), true)) return false;
+    if (in_array($u['role'], ['superadmin','foundation'], true)) return true;
+    if ($u['role'] === 'admin') return true;
+    if ($u['role'] === 'leader') return (int)$t['level'] >= 2;
+
+    return (bool)Database::fetchOne(
+        "SELECT 1 FROM feedback_watchers WHERE ticket_id=? AND user_id=?", [$t['id'], $u['id']]);
+}
+
+/** Konflik kepentingan: tidak boleh menangani tiket tentang diri sendiri. */
+function fbHasConflict(array $t, array $u): bool {
+    return (int)($t['appreciated_user_id'] ?? 0) === (int)$u['id'] && $t['track'] !== 'apresiasi';
+}
+
+/** Sembunyikan identitas pelapor sesuai aturan anonimitas. */
+function fbSenderDisplay(array $t, array $viewer): array {
+    $anon = !empty($t['is_anonymous']);
+    $mayUnmask = ($viewer['role'] ?? '') === 'superadmin';
+    if ($anon && !$mayUnmask && (int)$t['sender_id'] !== (int)$viewer['id']) {
+        return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null, 'masked'=>true];
+    }
+    return [
+        'name'   => $t['sender_name'] ?? '—',
+        'email'  => $t['sender_email'] ?? null,
+        'role'   => $t['sender_role'] ?? null,
+        'masked' => false,
+    ];
+}
+
+// ── LAMPIRAN ────────────────────────────────────────────────
+
+function fbUploadDir(): string {
+    if (defined('FEEDBACK_UPLOAD_DIR')) return rtrim(FEEDBACK_UPLOAD_DIR, '/');
+    // BASE_PATH = .../public_html/app  →  naik dua tingkat = akar repo (di luar webroot)
+    return dirname(dirname(BASE_PATH)) . '/storage/feedback';
+}
+
+function fbAllowedMimes(): array {
+    return [
+        'image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp',
+        'application/pdf'=>'pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'=>'docx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=>'xlsx',
+        'audio/mpeg'=>'mp3', 'audio/mp4'=>'m4a', 'video/mp4'=>'mp4',
+    ];
+}
+
+const FB_MAX_FILE_BYTES = 10485760; // 10 MB
+const FB_MAX_FILES      = 5;
+
+/** @return array{ok:bool, error?:string, id?:int} */
+function fbStoreUpload(int $ticketId, array $file, ?int $messageId, bool $sealed): array {
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return ['ok'=>false,'error'=>'Berkas gagal diunggah.'];
+    if ($file['size'] > FB_MAX_FILE_BYTES)                        return ['ok'=>false,'error'=>'Ukuran melebihi 10 MB.'];
+
+    $count = Database::fetchOne("SELECT COUNT(*) c FROM feedback_attachments WHERE ticket_id=?", [$ticketId])['c'];
+    if ($count >= FB_MAX_FILES) return ['ok'=>false,'error'=>'Maksimal ' . FB_MAX_FILES . ' lampiran per tiket.'];
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime  = $finfo->file($file['tmp_name']) ?: '';
+    $allowed = fbAllowedMimes();
+    if (!isset($allowed[$mime])) return ['ok'=>false,'error'=>'Tipe berkas tidak diizinkan.'];
+
+    $dir = fbUploadDir();
+    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    if (!is_dir($dir) || !is_writable($dir)) return ['ok'=>false,'error'=>'Direktori penyimpanan tidak siap.'];
+
+    // Lapisan kedua kalau direktori telanjur berada di dalam webroot
+    $ht = $dir . '/.htaccess';
+    if (!file_exists($ht)) @file_put_contents($ht, "Require all denied\nphp_flag engine off\n");
+
+    $stored = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $stored)) {
+        return ['ok'=>false,'error'=>'Gagal menyimpan berkas.'];
+    }
+    @chmod($dir . '/' . $stored, 0640);
+
+    $id = Database::insert('feedback_attachments', [
+        'ticket_id'     => $ticketId,
+        'message_id'    => $messageId,
+        'uploader_id'   => $_SESSION['user_id'] ?? null,
+        'original_name' => mb_substr($file['name'], 0, 255),
+        'stored_name'   => $stored,
+        'mime'          => $mime,
+        'size_bytes'    => (int)$file['size'],
+        'sha256'        => hash_file('sha256', $dir . '/' . $stored),
+        'is_sealed'     => $sealed ? 1 : 0,
+    ]);
+
+    fbLogEvent($ticketId, 'lampiran_diunggah', null, $file['name']);
+    return ['ok'=>true, 'id'=>$id];
+}
+
+function fbFormatBytes(int $b): string {
+    if ($b >= 1048576) return round($b / 1048576, 1) . ' MB';
+    if ($b >= 1024)    return round($b / 1024) . ' KB';
+    return $b . ' B';
+}
+
+// ── NOTIFIKASI EMAIL ────────────────────────────────────────
+
+function fbSendMail(string $to, string $subject, string $htmlBody): void {
+    // Mode demo: email tidak pernah benar-benar dikirim.
+    // Aktifkan dengan define('FEEDBACK_DEMO_MODE', true); di config.php.
+    if (defined('FEEDBACK_DEMO_MODE') && FEEDBACK_DEMO_MODE) {
+        @error_log('[AGKB demo] email ditahan — tujuan: ' . $to . ' · subjek: ' . $subject);
+        return;
+    }
+    $url = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
+    if (!$url || !$to) return;
+    $payload = json_encode(['to'=>$to, 'subject'=>$subject, 'htmlBody'=>$htmlBody]);
+    @file_get_contents($url, false, stream_context_create([
+        'http' => ['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload,'timeout'=>8]
+    ]));
+}
+
+function fbAppUrl(): string {
+    $host = defined('PUBLIC_BASE_URL') ? PUBLIC_BASE_URL : 'https://agkb360.app';
+    return rtrim($host, '/') . APP_URL;
+}
+
+/** Template email AGKB 360°. */
+function fbMailTemplate(string $heading, string $bodyHtml, ?string $ctaUrl = null, ?string $ctaLabel = null, string $accent = '#ff9101'): string {
+    $cta = '';
+    if ($ctaUrl && $ctaLabel) {
+        $cta = '<tr><td style="padding:22px 32px;text-align:center">'
+             . '<a href="' . $ctaUrl . '" style="display:inline-block;background:#040136;color:#ffffff;text-decoration:none;padding:13px 28px;border-radius:8px;font-size:14px;font-weight:700">' . h($ctaLabel) . ' &rarr;</a>'
+             . '</td></tr>';
+    }
+    return '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"></head>'
+      . '<body style="margin:0;padding:0;background:#f3f4f6;font-family:\'Host Grotesk\',-apple-system,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif">'
+      . '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px"><tr><td align="center">'
+      . '<table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e3e5ea">'
+      . '<tr><td style="background:#040136;padding:26px 32px;text-align:center;border-bottom:3px solid ' . $accent . '">'
+      . '<img src="' . fbAppUrl() . '/assets/img/brand/agkb-mark.png" width="38" height="38" alt="" style="display:block;margin:0 auto 10px;border:0">'
+      . '<div style="font-size:24px;font-weight:700;color:#ffffff;letter-spacing:-.5px">AGKB <span style="color:#ff9101">360&deg;</span></div>'
+      . '<div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;letter-spacing:1px;text-transform:uppercase">Platform Evaluasi Kinerja</div>'
+      . '</td></tr>'
+      . '<tr><td style="padding:26px 32px 0"><h2 style="margin:0;font-size:18px;font-weight:700;color:#040136">' . h($heading) . '</h2></td></tr>'
+      . '<tr><td style="padding:14px 32px 0;font-size:14px;color:#2f2d4d;line-height:1.75">' . $bodyHtml . '</td></tr>'
+      . $cta
+      . '<tr><td style="background:#fafafb;padding:14px 32px;border-top:1px solid #e3e5ea;text-align:center">'
+      . '<div style="font-size:11px;color:#6f6e85">Email otomatis dari AGKB 360&deg; &bull; Yayasan Pendidikan Kader Bangsa Indonesia</div>'
+      . '</td></tr></table></td></tr></table></body></html>';
+}
+
+function fbTicketMetaHtml(array $t): string {
+    $cat = $t['category_name'] ?? '—';
+    $pri = fbPriorities()[$t['priority']]['label'] ?? $t['priority'];
+    return '<table cellpadding="0" cellspacing="0" style="margin:14px 0;font-size:13px;color:#2f2d4d">'
+        . '<tr><td style="padding:3px 14px 3px 0;color:#6b6a83">Nomor tiket</td><td><strong>' . h($t['ticket_no']) . '</strong></td></tr>'
+        . '<tr><td style="padding:3px 14px 3px 0;color:#6b6a83">Kategori</td><td>' . h($cat) . '</td></tr>'
+        . '<tr><td style="padding:3px 14px 3px 0;color:#6b6a83">Prioritas</td><td>' . h($pri) . '</td></tr>'
+        . '</table>';
+}
+
+function fbLoadFull(int $id): ?array {
+    return Database::fetchOne(
+        "SELECT t.*, c.name AS category_name, c.track AS category_track,
+                s.name AS sender_name, s.email AS sender_email, s.role AS sender_role,
+                a.name AS assignee_name, a.email AS assignee_email
+         FROM feedback_tickets t
+         LEFT JOIN feedback_categories c ON c.id = t.category_id
+         LEFT JOIN users s ON s.id = t.sender_id
+         LEFT JOIN users a ON a.id = t.assignee_id
+         WHERE t.id = ?", [$id]);
+}
+
+function fbNotifyNew(int $ticketId): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test']) return;
+
+    $link  = fbAppUrl() . '/admin/ticket.php?id=' . $t['id'];
+    $who   = $t['is_anonymous'] ? 'Pelapor Anonim' : ($t['sender_name'] ?? '—');
+    $isSg  = $t['track'] === 'safeguarding';
+
+    $body = ($isSg
+        ? '<div style="background:#fdeceb;border:1px solid #f3b5b0;border-radius:8px;padding:12px 14px;color:#b42318;font-weight:600;margin-bottom:12px">Laporan Perlindungan Anak — memerlukan tindak lanjut dalam 24 jam.</div>'
+        : '')
+      . '<p style="margin:0 0 6px">Tiket baru masuk dari <strong>' . h($who) . '</strong>.</p>'
+      . fbTicketMetaHtml($t)
+      . '<div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Subjek</div>'
+      . '<div style="font-size:15px;font-weight:600;color:#040136">' . h($t['subject']) . '</div>'
+      . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;border-radius:8px;padding:14px;border-left:3px solid #040136;margin-top:10px">'
+      . nl2br(h(mb_substr($t['message'], 0, 600))) . '</div>';
+
+    $subject = ($isSg ? '[AGKB 360° · PRIORITAS] ' : '[AGKB 360°] ') . $t['ticket_no'] . ' — ' . $t['subject'];
+    $html    = fbMailTemplate('Tiket Baru', $body, $link, 'Buka Tiket', $isSg ? '#b42318' : '#ff9101');
+
+    $tujuan = fbLevelRecipients((int)$t['level'], $t['track'], $t['category_id'] ? (int)$t['category_id'] : null);
+
+    // Seluruh anggota unit penanganan ikut diberi tahu — tiket masuk antrean mereka
+    $unit = fbTicketUnit($t);
+    if ($unit) {
+        foreach (fbUnitMembers((int)$unit['id']) as $m) {
+            if (!empty($m['email'])) $tujuan[$m['email']] = $m['name'];
+        }
+    }
+    if (!empty($t['assignee_email'])) $tujuan[$t['assignee_email']] = $t['assignee_name'] ?? '';
+
+    foreach ($tujuan as $mail => $name) fbSendMail($mail, $subject, $html);
+}
+
+function fbNotifyEscalation(int $ticketId, int $newLevel): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test']) return;
+
+    $body = '<p style="margin:0 0 6px">Tiket ini dieskalasi ke <strong>' . h(fbLevels()[$newLevel] ?? "Level $newLevel") . '</strong> karena melewati batas waktu penanganan.</p>'
+          . fbTicketMetaHtml($t)
+          . '<div style="font-size:15px;font-weight:600;color:#040136;margin-top:10px">' . h($t['subject']) . '</div>';
+
+    $html = fbMailTemplate('Tiket Dieskalasi', $body, fbAppUrl() . '/admin/ticket.php?id=' . $t['id'], 'Tangani Sekarang', '#ee4c01');
+    foreach (fbLevelRecipients($newLevel, $t['track'], $t['category_id'] ? (int)$t['category_id'] : null) as $mail => $n) {
+        fbSendMail($mail, '[AGKB 360° · ESKALASI] ' . $t['ticket_no'] . ' — ' . $t['subject'], $html);
+    }
+}
+
+function fbNotifyStatus(int $ticketId, string $newStatus): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test'] || empty($t['sender_email'])) return;
+
+    $label = fbStatuses()[$newStatus]['label'] ?? $newStatus;
+    $body  = '<p style="margin:0 0 6px">Status laporan Anda kini <strong>' . h($label) . '</strong>.</p>'
+           . fbTicketMetaHtml($t)
+           . '<div style="font-size:15px;font-weight:600;color:#040136">' . h($t['subject']) . '</div>';
+
+    fbSendMail($t['sender_email'],
+        '[AGKB 360°] ' . $t['ticket_no'] . ' — ' . $label,
+        fbMailTemplate('Perkembangan Laporan Anda', $body, fbAppUrl() . '/feedback/view.php?id=' . $t['id'], 'Lihat Detail'));
+}
+
+function fbNotifyResolved(int $ticketId): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test'] || empty($t['sender_email'])) return;
+
+    $resLabel = fbResolutions()[$t['resolution_type']] ?? '—';
+    $body = '<p style="margin:0 0 6px">Laporan Anda telah diselesaikan. Terima kasih telah menyampaikannya.</p>'
+          . fbTicketMetaHtml($t)
+          . '<div style="font-size:15px;font-weight:600;color:#040136">' . h($t['subject']) . '</div>'
+          . '<div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px">Jenis Penyelesaian</div>'
+          . '<div style="display:inline-block;background:#e7f6ef;color:#015c36;border:1px solid #a5dcc3;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600">' . h($resLabel) . '</div>'
+          . '<div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px">Keterangan</div>'
+          . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;border-radius:8px;padding:14px;border-left:3px solid #027a48">' . nl2br(h($t['resolution_note'] ?? '')) . '</div>'
+          . '<p style="margin:16px 0 0;font-size:12px;color:#6b6a83">Jika penyelesaian ini belum sesuai, Anda dapat membalas melalui tautan di bawah dalam 14 hari.</p>';
+
+    fbSendMail($t['sender_email'],
+        '[AGKB 360°] Selesai — ' . $t['ticket_no'] . ' · ' . $t['subject'],
+        fbMailTemplate('Laporan Anda Telah Diselesaikan', $body, fbAppUrl() . '/feedback/view.php?id=' . $t['id'], 'Lihat Detail', '#027a48'));
+}
+
+function fbNotifyAppreciation(int $ticketId): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test'] || empty($t['appreciated_user_id'])) return;
+    $to = Database::fetchOne("SELECT name,email FROM users WHERE id=?", [$t['appreciated_user_id']]);
+    if (!$to || empty($to['email'])) return;
+
+    $from = $t['is_anonymous'] ? 'seorang rekan' : ($t['sender_name'] ?? 'seorang rekan');
+    $body = '<p style="margin:0 0 10px">Halo ' . h($to['name']) . ', ada apresiasi untuk Anda dari <strong>' . h($from) . '</strong>.</p>'
+          . '<div style="font-size:15px;font-weight:600;color:#040136;margin-top:10px">' . h($t['subject']) . '</div>'
+          . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fff8ef;border-radius:8px;padding:14px;border-left:3px solid #ff9101;margin-top:10px">'
+          . nl2br(h($t['message'])) . '</div>';
+
+    fbSendMail($to['email'], '[AGKB 360°] Apresiasi untuk Anda',
+        fbMailTemplate('Ada Apresiasi untuk Anda', $body, null, null, '#ff9101'));
+    fbLogEvent($ticketId, 'diteruskan', null, $to['email']);
+}
