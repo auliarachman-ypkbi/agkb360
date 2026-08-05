@@ -8,7 +8,10 @@ require_once __DIR__ . '/../includes/feedback.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['superadmin','admin','foundation','leader']);
+// Peran pengelola selalu boleh. Peran lain boleh masuk HANYA kalau
+// dia anggota unit penanganan — penyaringnya fbAllowedTracks() di
+// bawah, yang mengembalikan daftar kosong untuk yang bukan penangan.
+requireRole(['superadmin','admin','foundation','leader','staff','teacher','mentor']);
 $user = currentUser();
 
 // Eskalasi otomatis dijalankan saat inbox dibuka (pengganti cron)
@@ -61,6 +64,22 @@ switch ($modeCari ? 'semua' : $fStatus) {
         break;
 }
 if ($user['role'] === 'leader') { $w[] = "(t.level >= 2 OR t.assignee_id = ?)"; $p[] = $user['id']; }
+
+// Penangan yang bukan pengelola hanya melihat tiket unitnya sendiri
+// atau yang ditugaskan langsung kepadanya — bukan seluruh tiket sekolah.
+if (!fbCanManage($user) && $user['role'] !== 'leader') {
+    $myUnits = array_column(fbUserUnits((int)$user['id']), 'id');
+    if ($myUnits) {
+        $uph = implode(',', array_fill(0, count($myUnits), '?'));
+        $w[] = "(t.assignee_id = ? OR t.category_id IN
+                 (SELECT id FROM feedback_categories WHERE handler_group_id IN ($uph)))";
+        $p[] = $user['id'];
+        $p   = array_merge($p, $myUnits);
+    } else {
+        $w[] = "t.assignee_id = ?";
+        $p[] = $user['id'];
+    }
+}
 
 $where = 'WHERE ' . implode(' AND ', $w);
 
@@ -180,9 +199,11 @@ ob_start(); ?>
     <button class="btn btn-navy btn-sm px-3">Terapkan</button>
     <a href="?" class="btn btn-sm btn-outline-navy px-3">Reset</a>
     <span class="ms-auto d-flex gap-1 flex-wrap">
+      <?php if (fbCanManage($user) || $user['role'] === 'leader'): ?>
       <a href="<?= APP_URL ?>/admin/feedback_dashboard.php" class="btn btn-sm btn-catalyst px-3">
         <i class="bi bi-graph-up me-1"></i>Dashboard
       </a>
+      <?php endif; ?>
       <?php if (fbCanManage($user)): ?>
       <a href="<?= APP_URL ?>/admin/feedback_units.php" class="btn btn-sm btn-outline-navy px-3">
         <i class="bi bi-diagram-3 me-1"></i>Unit Penanganan

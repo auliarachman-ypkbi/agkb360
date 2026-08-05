@@ -555,11 +555,25 @@ function fbCanManage(?array $u = null): bool {
     return in_array($role, ['superadmin','admin','foundation'], true);
 }
 
-/** Track apa saja yang boleh dilihat di inbox oleh peran ini. */
+/**
+ * Apakah pengguna ini penangan tiket, yaitu anggota minimal satu
+ * unit penanganan. Keanggotaan unit — bukan role — yang menentukan
+ * seseorang punya antrean untuk dikerjakan.
+ */
+function fbIsHandler(?array $u = null): bool {
+    $uid = (int)($u['id'] ?? ($_SESSION['user_id'] ?? 0));
+    return $uid > 0 && fbUserUnits($uid) !== [];
+}
+
+/** Track apa saja yang boleh dilihat di inbox oleh pengguna ini. */
 function fbAllowedTracks(?array $u = null): array {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
     if (in_array($role, ['superadmin','foundation'], true)) return ['apresiasi','inquiry','safeguarding'];
     if (in_array($role, ['admin','leader'], true))           return ['apresiasi','inquiry'];
+    // Anggota unit penanganan boleh membuka inbox untuk mengerjakan
+    // antrean unitnya. Track safeguarding tetap tertutup rapat —
+    // hanya Pengelola Sistem dan Yayasan, apa pun keanggotaan unitnya.
+    if (fbIsHandler($u)) return ['apresiasi','inquiry'];
     return [];
 }
 
@@ -676,19 +690,44 @@ function fbFormatBytes(int $b): string {
 
 // ── NOTIFIKASI EMAIL ────────────────────────────────────────
 
-function fbSendMail(string $to, string $subject, string $htmlBody): void {
+/**
+ * Satu-satunya pintu keluar email dari platform.
+ *
+ * SEMUA pengiriman wajib lewat sini — notifikasi tiket, eskalasi,
+ * blast, maupun kampanye. Kalau ada kode yang memanggil Apps Script
+ * langsung, gerbang mode demo terlewati dan email benar-benar
+ * terkirim dari lingkungan peragaan.
+ *
+ * Mengembalikan true bila dianggap berhasil ditangani.
+ */
+function fbSendMail(string $to, string $subject, string $htmlBody): bool {
+    if (!$to) return false;
+
     // Mode demo: email tidak pernah benar-benar dikirim.
     // Aktifkan dengan define('FEEDBACK_DEMO_MODE', true); di config.php.
     if (defined('FEEDBACK_DEMO_MODE') && FEEDBACK_DEMO_MODE) {
         @error_log('[AGKB demo] email ditahan — tujuan: ' . $to . ' · subjek: ' . $subject);
-        return;
+        return true;
     }
+
     $url = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
-    if (!$url || !$to) return;
-    $payload = json_encode(['to'=>$to, 'subject'=>$subject, 'htmlBody'=>$htmlBody]);
-    @file_get_contents($url, false, stream_context_create([
-        'http' => ['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload,'timeout'=>8]
+    if (!$url) {
+        @error_log('[AGKB] APPS_SCRIPT_URL belum diatur — email ke ' . $to . ' tidak terkirim.');
+        return false;
+    }
+
+    $payload = json_encode(['to' => $to, 'subject' => $subject, 'htmlBody' => $htmlBody]);
+    $res = @file_get_contents($url, false, stream_context_create([
+        'http' => ['method' => 'POST', 'header' => 'Content-Type: application/json',
+                   'content' => $payload, 'timeout' => 10]
     ]));
+    return $res !== false;
+}
+
+/** Apakah lingkungan ini menahan email (peragaan / tanpa gerbang). */
+function fbEmailDitahan(): bool {
+    if (defined('FEEDBACK_DEMO_MODE') && FEEDBACK_DEMO_MODE) return true;
+    return !defined('APPS_SCRIPT_URL') || !APPS_SCRIPT_URL;
 }
 
 function fbAppUrl(): string {

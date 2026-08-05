@@ -3,11 +3,42 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/feedback.php';
+require_once __DIR__ . '/../includes/campaigns.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
 requireRole(['superadmin','admin']);
 $me = currentUser();
+
+// ── SIMPAN PENGATURAN KAMPANYE ───────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_kampanye'])) {
+    $code = (string)$_POST['simpan_kampanye'];
+    if (isset(kmpDefinisi()[$code])) {
+        kmpSimpan(
+            $code,
+            !empty($_POST['aktif']),
+            (int)($_POST['jeda_hari']  ?? 7),
+            (int)($_POST['maks_kirim'] ?? 0),
+            (array)($_POST['roles']    ?? []),
+            trim($_POST['ends_at'] ?? '') ?: null
+        );
+        flash('Pengaturan kampanye "' . h(kmpDefinisi()[$code]['nama']) . '" disimpan.', 'success');
+    }
+    header('Location: ' . APP_URL . '/admin/blast_email.php#kampanye');
+    exit;
+}
+
+// ── JALANKAN KAMPANYE SEKARANG (manual) ──────────────────────
+$kmpHasil = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['jalankan_kampanye'])) {
+    $code     = (string)$_POST['jalankan_kampanye'];
+    $simulasi = !empty($_POST['simulasi']);
+    if (isset(kmpDefinisi()[$code])) {
+        $kmpHasil = kmpJalankan($code, $simulasi);
+        $kmpHasil['simulasi'] = $simulasi;
+    }
+}
 
 $baseUrl     = (defined('PUBLIC_BASE_URL') ? PUBLIC_BASE_URL : 'https://agkb360.app') . APP_URL;
 $scriptUrl   = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
@@ -140,18 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['blast_type'])) {
             . '</td></tr>'
             . '</table></td></tr></table></body></html>';
 
-        // Kirim via Apps Script
-        $ok = false;
-        if ($scriptUrl) {
-            $payload = json_encode([
-                'to'       => $r['email'],
-                'subject'  => $subject,
-                'htmlBody' => $htmlEmail,
-            ]);
-            $ctx = stream_context_create(['http'=>['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload,'timeout'=>10]]);
-            $res = @file_get_contents($scriptUrl, false, $ctx);
-            $ok  = $res !== false;
-        }
+        // Kirim lewat gerbang tunggal — ini yang menghormati
+        // FEEDBACK_DEMO_MODE, sehingga demo tidak pernah mengirim nyata.
+        $ok = fbSendMail($r['email'], $subject, $htmlEmail);
 
         // Log
         Database::insert('email_blast_log', [
@@ -209,17 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['test_blast'])) {
         . '</td></tr>'
         . '</table></td></tr></table></body></html>';
 
-    $ok = false;
-    if ($scriptUrl) {
-        $payload = json_encode([
-            'to'       => $testEmail,
-            'subject'  => '[TEST] ' . $subject,
-            'htmlBody' => $htmlEmail,
-        ]);
-        $ctx = stream_context_create(['http'=>['method'=>'POST','header'=>'Content-Type: application/json','content'=>$payload,'timeout'=>10]]);
-        $res = @file_get_contents($scriptUrl, false, $ctx);
-        $ok  = $res !== false;
-    }
+    $ok = fbSendMail($testEmail, '[TEST] ' . $subject, $htmlEmail);
 
     $blastResult = ['sent'=>$ok?1:0,'failed'=>$ok?0:1,'type'=>'test','test'=>true];
 }
@@ -247,8 +259,8 @@ $logPagi    = paginate($logTotal, $logPerPage, $logPage);
 $logs = Database::fetchAll("
     SELECT l.*, u.name as recipient_name, s.name as sender_name
     FROM email_blast_log l
-    JOIN users u ON u.id = l.recipient_id
-    JOIN users s ON s.id = l.sent_by
+    LEFT JOIN users u ON u.id = l.recipient_id
+    LEFT JOIN users s ON s.id = l.sent_by
     ORDER BY l.sent_at DESC, l.id DESC
     LIMIT {$logPerPage} OFFSET {$logPagi['offset']}
 ");
@@ -320,6 +332,33 @@ ob_start(); ?>
 .log-pager-btns{display:flex;gap:8px}
 .log-pager-btn{padding:5px 12px;border-radius:7px;border:1px solid #e3e5ea;background:#fff;color:#2f2d4d;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px}
 .log-pager-btn.disabled{opacity:.4;pointer-events:none}
+
+/* ── Kampanye terjadwal ── */
+.kmp{border:1px solid #e3e5ea;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff}
+.kmp.on{border-color:#027a48;box-shadow:0 0 0 2px rgba(2,122,72,.08)}
+.kmp-top{display:flex;align-items:center;gap:12px;padding:13px 16px;background:#fafafb;border-bottom:1px solid #f3f4f6;flex-wrap:wrap}
+.kmp-nama{font-size:13.5px;font-weight:700;color:#040136}
+.kmp-ket{font-size:11.5px;color:#6b6a83;margin-top:2px;line-height:1.5}
+.kmp-lampu{width:9px;height:9px;border-radius:50%;background:#cdd0d8;flex-shrink:0}
+.kmp-lampu.on{background:#027a48;box-shadow:0 0 0 3px rgba(2,122,72,.18)}
+.kmp-sasaran{margin-left:auto;text-align:right;flex-shrink:0}
+.kmp-sasaran b{font-size:20px;color:#040136;font-weight:700;line-height:1}
+.kmp-sasaran span{display:block;font-size:10px;color:#6f6e85;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.kmp-isi{padding:14px 16px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.kmp-f{display:flex;flex-direction:column;gap:5px}
+.kmp-f label{font-size:10px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px}
+.kmp-f input[type=number],.kmp-f input[type=date]{width:104px;border:1px solid #e3e5ea;border-radius:7px;padding:7px 10px;font-size:13px;outline:none}
+.kmp-f input:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
+.kmp-peran{display:flex;gap:6px;flex-wrap:wrap;max-width:430px}
+.kmp-peran label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#2f2d4d;border:1px solid #e3e5ea;border-radius:20px;padding:4px 11px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500}
+.kmp-peran label:has(input:checked){background:#eeebfc;border-color:#b9aef2;color:#030870;font-weight:600}
+.kmp-saklar{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#040136;cursor:pointer}
+.kmp-aksi{margin-left:auto;display:flex;gap:7px;align-items:center}
+.kmp-btn{border:1px solid #e3e5ea;background:#fff;color:#2f2d4d;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.kmp-btn:hover{background:#fafafb}
+.kmp-btn.primer{background:#040136;color:#fff;border-color:#040136}
+.kmp-pratinjau{background:#fafafb;border:1px solid #e3e5ea;border-radius:9px;padding:13px 16px;margin-bottom:14px;font-size:12.5px}
+.kmp-pratinjau ul{margin:8px 0 0;padding-left:18px;color:#2f2d4d;line-height:1.75}
 </style>
 
 <?php if ($blastResult): ?>
@@ -335,8 +374,129 @@ ob_start(); ?>
 </div>
 <?php endif; ?>
 
+<?php if (fbEmailDitahan()): ?>
+<div class="result-box result-warn">
+  <i class="bi bi-shield-fill-check"></i>
+  <div>
+    <strong>Email ditahan di lingkungan ini.</strong>
+    <?php if (defined('FEEDBACK_DEMO_MODE') && FEEDBACK_DEMO_MODE): ?>
+      Ini lingkungan peragaan — tombol kirim tetap bisa ditekan dan tercatat di log,
+      tetapi tidak ada satu pun email yang benar-benar keluar.
+    <?php else: ?>
+      <code>APPS_SCRIPT_URL</code> belum diatur di config, jadi tidak ada gerbang pengiriman.
+      Aman untuk mencoba-coba.
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if ($kmpHasil): ?>
+<div class="kmp-pratinjau" id="hasil">
+  <strong><?= h($kmpHasil['nama']) ?></strong> —
+  <?= !empty($kmpHasil['simulasi']) ? 'SIMULASI, tidak ada email yang dikirim' : 'dijalankan' ?>.
+  Sasaran <b><?= (int)$kmpHasil['sasaran'] ?></b> orang ·
+  <?= !empty($kmpHasil['simulasi']) ? 'akan dikirim' : 'terkirim' ?> <b><?= (int)$kmpHasil['terkirim'] ?></b> ·
+  gagal <b><?= (int)$kmpHasil['gagal'] ?></b> ·
+  dilewati <b><?= (int)$kmpHasil['dilewati'] ?></b> (belum waktunya atau sudah cukup)
+  <?php if (!empty($kmpHasil['daftar'])): ?>
+  <ul>
+    <?php foreach (array_slice($kmpHasil['daftar'], 0, 12) as $d): ?>
+    <li><?= h($d) ?></li>
+    <?php endforeach; ?>
+    <?php if (count($kmpHasil['daftar']) > 12): ?>
+    <li style="color:#6b6a83">… dan <?= count($kmpHasil['daftar']) - 12 ?> orang lagi</li>
+    <?php endif; ?>
+  </ul>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<div class="blast-card" id="kampanye">
+  <div class="blast-hdr">
+    <i class="bi bi-calendar-check-fill"></i>Kampanye Terjadwal
+    <span style="margin-left:auto;font-weight:400;font-size:11.5px;color:#6b6a83">
+      Dijalankan otomatis tiap pagi oleh penjadwal. Yang mati tidak akan mengirim apa pun.
+    </span>
+  </div>
+  <div class="blast-body">
+    <?php foreach (kmpStatus() as $code => $k):
+        $aktif   = (bool)$k['is_active'];
+        $terpilih = array_filter(array_map('trim', explode(',', $k['roles'])));
+        $sasaran = kmpHitungSasaran($code);
+    ?>
+    <form method="post" class="kmp <?= $aktif ? 'on' : '' ?>">
+      <div class="kmp-top">
+        <span class="kmp-lampu <?= $aktif ? 'on' : '' ?>"></span>
+        <div style="flex:1;min-width:230px">
+          <div class="kmp-nama"><?= h($k['nama']) ?></div>
+          <div class="kmp-ket"><?= h($k['penjelasan']) ?></div>
+        </div>
+        <div class="kmp-sasaran">
+          <b><?= $sasaran ?></b><span>sasaran saat ini</span>
+        </div>
+      </div>
+
+      <div class="kmp-isi">
+        <label class="kmp-saklar">
+          <input type="checkbox" name="aktif" value="1" <?= $aktif ? 'checked' : '' ?>>
+          Aktif
+        </label>
+
+        <div class="kmp-f">
+          <label>Jeda (hari)</label>
+          <input type="number" name="jeda_hari" min="1" max="90" value="<?= (int)$k['jeda_hari'] ?>">
+        </div>
+
+        <div class="kmp-f">
+          <label>Maks kirim</label>
+          <input type="number" name="maks_kirim" min="0" max="50" value="<?= (int)$k['maks_kirim'] ?>"
+                 title="0 = kirim terus sampai orangnya bertindak">
+        </div>
+
+        <div class="kmp-f">
+          <label>Berhenti pada</label>
+          <input type="date" name="ends_at" value="<?= h(substr((string)$k['ends_at'], 0, 10)) ?>">
+        </div>
+
+        <?php if ($k['atur_peran']): ?>
+        <div class="kmp-f" style="flex:1;min-width:300px">
+          <label>Peran sasaran — tidak ada yang dicentang berarti semua</label>
+          <div class="kmp-peran">
+            <?php foreach (kmpSemuaPeran() as $r): ?>
+            <label>
+              <input type="checkbox" name="roles[]" value="<?= h($r) ?>"
+                     <?= in_array($r, $terpilih, true) ? 'checked' : '' ?>>
+              <?= h(roleLabel($r)) ?>
+            </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="kmp-aksi">
+          <button class="kmp-btn primer" name="simpan_kampanye" value="<?= h($code) ?>">Simpan</button>
+          <button class="kmp-btn" name="jalankan_kampanye" value="<?= h($code) ?>"
+                  formnovalidate onclick="this.form.simulasi.value='1'">Simulasi</button>
+          <button class="kmp-btn" name="jalankan_kampanye" value="<?= h($code) ?>"
+                  onclick="return confirm('Kirim sekarang ke <?= $sasaran ?> sasaran? Email akan benar-benar keluar.')">
+            Kirim Sekarang
+          </button>
+          <input type="hidden" name="simulasi" value="">
+        </div>
+      </div>
+    </form>
+    <?php endforeach; ?>
+
+    <div style="font-size:11.5px;color:#6b6a83;margin-top:12px;line-height:1.7">
+      <strong>Jeda</strong> menjaga jarak antar kiriman ke orang yang sama, jadi penjadwal boleh jalan tiap hari tanpa membanjiri siapa pun.
+      <strong>Maks kirim</strong> membatasi total kiriman per orang — isi <strong>0</strong> untuk mengirim terus sampai orangnya bertindak.
+      Sasaran menyusut sendiri: yang sudah login hilang dari Aktivasi, yang sudah mengirim tiket hilang dari Ajakan.
+    </div>
+  </div>
+</div>
+
 <div class="blast-card">
-  <div class="blast-hdr"><i class="bi bi-send-fill"></i>Blast Email</div>
+  <div class="blast-hdr"><i class="bi bi-send-fill"></i>Blast Manual Sekali Kirim</div>
   <div class="blast-body">
 
     <!-- Stat cards -->

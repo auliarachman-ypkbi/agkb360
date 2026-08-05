@@ -1,4 +1,9 @@
 <?php
+// Navigasi perlu tahu apakah pengguna ini anggota unit penanganan,
+// dan layout dimuat di semua halaman — termasuk yang tidak memuat
+// modul feedback. require_once membuatnya aman dipanggil berulang.
+require_once __DIR__ . '/feedback.php';
+
 function renderHead(string $title = '', string $extraCss = ''): void {
     $t    = $title ? h($title) . ' — ' : '';
     $base = APP_URL;
@@ -138,9 +143,11 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/feedback/my.php'><i class='bi bi-list-ul me-2'></i>Laporan Saya</a></li>
           </ul>
         </li>
-        " . (in_array($role, ['superadmin','admin','foundation','leader']) ? "
-        <li class='nav-item'><a class='nav-link' href='{$base}/admin/feedback.php'><i class='bi bi-inbox me-1'></i>Inbox Tiket</a></li>
-        " : '') . "
+        " . (in_array($role, ['superadmin','admin','foundation','leader'])
+             ? "<li class='nav-item'><a class='nav-link' href='{$base}/admin/feedback.php'><i class='bi bi-inbox me-1'></i>Inbox Tiket</a></li>"
+             : (function_exists('fbIsHandler') && fbIsHandler()
+                ? "<li class='nav-item'><a class='nav-link' href='{$base}/admin/feedback.php?status=antrean'><i class='bi bi-inbox me-1'></i>Antrean Unit Saya</a></li>"
+                : '')) . "
         {$adminMenu}
       </ul>
       <ul class='navbar-nav'>
