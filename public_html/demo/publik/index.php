@@ -37,9 +37,10 @@ foreach ($categories as $c) $catByTrack[$c['track']][] = $c;
 
 $ipBin = pubClientIpBin();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !pubCsrfSah()) {
+    $error = pubPesanCsrf();
+}
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama    = trim($_POST['guest_name'] ?? '');
     $email   = trim(mb_strtolower($_POST['guest_email'] ?? ''));
     $telepon = trim($_POST['guest_phone'] ?? '');

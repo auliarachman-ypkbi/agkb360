@@ -17,6 +17,33 @@ const PUB_TOKEN_TTL_DAYS = 180;
 const PUB_RATE_PER_HOUR = 3;
 const PUB_RATE_PER_DAY  = 8;
 
+// ── CSRF ────────────────────────────────────────────────────
+
+/**
+ * Versi verifyCsrf() yang tidak mematikan permintaan.
+ *
+ * verifyCsrf() membalas JSON lalu die() — pantas untuk API, tapi
+ * merusak untuk form publik: pengunjung melihat teks mentah dan
+ * kehilangan seluruh ketikannya. Di sini kegagalan cukup dilaporkan
+ * sebagai pesan, sehingga halaman dapat menampilkannya kembali
+ * lengkap dengan isian yang sudah diketik.
+ *
+ * Penyebab paling sering bukan serangan, melainkan sesi yang habis
+ * atau server yang di-restart saat form dibiarkan terbuka lama.
+ */
+function pubCsrfSah(): bool {
+    startSession();
+    $dikirim = $_POST['csrf_token'] ?? '';
+    $simpan  = $_SESSION['csrf_token'] ?? '';
+    return $simpan !== '' && hash_equals($simpan, $dikirim);
+}
+
+function pubPesanCsrf(): string {
+    return 'Sesi Anda kedaluwarsa sebelum laporan terkirim — biasanya karena halaman '
+         . 'dibiarkan terbuka terlalu lama. Isian Anda masih utuh di bawah; '
+         . 'silakan tekan Kirim sekali lagi.';
+}
+
 // ── IP ──────────────────────────────────────────────────────
 
 /**

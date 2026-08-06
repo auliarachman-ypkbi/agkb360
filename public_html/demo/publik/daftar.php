@@ -29,9 +29,10 @@ $tiket   = $tiketId
                             FROM feedback_tickets WHERE id=? AND sender_id IS NULL", [$tiketId])
     : null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !pubCsrfSah()) {
+    $error = pubPesanCsrf();
+}
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama   = trim($_POST['name'] ?? '');
     $email  = trim(mb_strtolower($_POST['email'] ?? ''));
     $telp   = trim($_POST['phone'] ?? '');
