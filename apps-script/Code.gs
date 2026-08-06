@@ -41,6 +41,10 @@ function doPost(e) {
       to: d.to,
       subject: d.subject,
       htmlBody: d.htmlBody || '',
+      // Versi teks biasa. Pesan yang hanya berisi HTML tanpa
+      // padanan teks adalah salah satu penanda spam paling tua,
+      // dan sebagian klien email memang hanya membaca yang ini.
+      body: d.body || 'Email ini memuat tampilan HTML. Buka dengan klien email yang mendukungnya.',
       name: NAMA_PENGIRIM
     };
     if (bcc) opsi.bcc = bcc;

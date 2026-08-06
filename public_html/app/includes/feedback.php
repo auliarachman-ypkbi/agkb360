@@ -724,6 +724,36 @@ function fbFormatBytes(int $b): string {
  *
  * Mengembalikan true bila dianggap berhasil ditangani.
  */
+/**
+ * Alamat balasan. Email tanpa Reply-To datang dari kotak yang tidak
+ * bisa dibalas — merepotkan penerima sekaligus menurunkan reputasi
+ * pengirim. Bisa ditimpa lewat MAIL_REPLY_TO di config.php.
+ */
+function fbReplyTo(): string {
+    return defined('MAIL_REPLY_TO') && MAIL_REPLY_TO
+         ? MAIL_REPLY_TO
+         : 'info@sma-ktb.sch.id';
+}
+
+/**
+ * Padanan teks biasa dari badan HTML.
+ *
+ * Bukan sekadar strip_tags: tautan diubah jadi "teks (alamat)"
+ * supaya tombol ajakan tidak lenyap tanpa jejak bagi pembaca yang
+ * klien emailnya hanya menampilkan teks.
+ */
+function fbTeksBiasa(string $html): string {
+    $s = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#is', '', $html);
+    $s = preg_replace('#<a\b[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>#is',
+                      '$2 ($1)', $s);
+    $s = preg_replace('#<br\s*/?>#i', "\n", $s);
+    $s = preg_replace('#</(p|div|tr|h[1-6])>#i', "\n\n", $s);
+    $s = html_entity_decode(strip_tags($s), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $s = preg_replace('/[ \t]+/', ' ', $s);
+    $s = preg_replace('/\n{3,}/', "\n\n", $s);
+    return trim($s);
+}
+
 function fbSendMail(string $to, string $subject, string $htmlBody): bool {
     if (!$to) return false;
 
@@ -740,7 +770,13 @@ function fbSendMail(string $to, string $subject, string $htmlBody): bool {
         return false;
     }
 
-    $payload = json_encode(['to' => $to, 'subject' => $subject, 'htmlBody' => $htmlBody]);
+    $payload = json_encode([
+        'to'       => $to,
+        'subject'  => $subject,
+        'htmlBody' => $htmlBody,
+        'body'     => fbTeksBiasa($htmlBody),
+        'replyTo'  => fbReplyTo(),
+    ]);
     $res = @file_get_contents($url, false, stream_context_create([
         'http' => ['method' => 'POST', 'header' => 'Content-Type: application/json',
                    'content' => $payload, 'timeout' => 10]
