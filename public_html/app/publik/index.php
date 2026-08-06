@@ -144,6 +144,14 @@ ob_start(); ?>
 .success-title{font-size:19px;font-weight:700;color:#040136;margin-bottom:8px}
 .success-sub{font-size:14px;color:#6b6a83;line-height:1.7;margin-bottom:18px}
 .ticket-chip{display:inline-block;background:#040136;color:#fff;border-radius:8px;padding:9px 20px;font-size:15px;font-weight:700;letter-spacing:.05em;margin-bottom:16px}
+/* Peringatan folder spam — sengaja mencolok. Selama DKIM domain
+   pengirim belum terpasang, email pertama hampir selalu mendarat di
+   spam, dan pelapor tamu tidak punya cara lain melacak tiketnya. */
+.spam-box{background:#fff4e0;border:2px solid #ff9101;border-radius:11px;padding:15px 17px;margin:4px 0 18px;text-align:left;display:flex;gap:12px;align-items:flex-start}
+.spam-ikon{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#ff9101;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.spam-judul{font-size:14px;font-weight:700;color:#8a4b00;margin-bottom:4px}
+.spam-teks{font-size:12.5px;color:#7a4400;line-height:1.65}
+.spam-teks strong{color:#5c3300}
 .ajak{border-top:1px dashed #e3e5ea;margin-top:26px;padding-top:22px;text-align:left}
 .ajak-title{font-size:14.5px;font-weight:700;color:#040136;margin-bottom:5px}
 .ajak-desc{font-size:12.5px;color:#6b6a83;line-height:1.65;margin-bottom:12px}
@@ -173,6 +181,20 @@ ob_start(); ?>
   </div>
 
   <?php if ($token): ?>
+  <div class="spam-box">
+    <span class="spam-ikon"><i class="bi bi-exclamation-lg"></i></span>
+    <div>
+      <div class="spam-judul">Periksa folder Spam Anda</div>
+      <div class="spam-teks">
+        Email berisi tautan pelacakan sering mendarat di <strong>Spam</strong> atau
+        <strong>Promosi</strong>, bukan di kotak masuk. Kalau tidak ada dalam beberapa menit,
+        cari di sana dengan kata kunci <strong><?= h($sukses['ticket_no']) ?></strong>.<br>
+        Begitu ketemu, tandai <strong>“Bukan spam”</strong> supaya kabar berikutnya
+        langsung masuk kotak masuk.
+      </div>
+    </div>
+  </div>
+
   <a href="<?= h(pubUrlLacak($token)) ?>" class="btn btn-navy btn-sm px-3">
     <i class="bi bi-search me-1"></i>Lacak Laporan Ini
   </a>

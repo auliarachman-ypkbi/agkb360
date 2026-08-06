@@ -112,6 +112,15 @@ ob_start(); ?>
     pembuatan kata sandi kalau disetujui, atau pemberitahuan kalau tidak.<br>
     Belum ada akun yang aktif sampai peninjauan selesai.
   </div>
+  <div style="background:#fff4e0;border:2px solid #ff9101;border-radius:11px;padding:14px 16px;
+              margin-bottom:18px;text-align:left;font-size:12.5px;color:#7a4400;line-height:1.65">
+    <strong style="color:#8a4b00;display:block;margin-bottom:3px">
+      <i class="bi bi-exclamation-lg me-1"></i>Periksa folder Spam Anda
+    </strong>
+    Email dari AGKB 360° sering mendarat di Spam atau Promosi. Kalau kabarnya tidak
+    muncul di kotak masuk, cari di sana — dan tandai <strong>“Bukan spam”</strong>
+    supaya tautan kata sandi nanti tidak ikut tersasar.
+  </div>
   <a href="<?= APP_URL ?>/publik/" class="btn btn-outline-navy btn-sm px-3">
     <i class="bi bi-arrow-left me-1"></i>Kembali
   </a>
