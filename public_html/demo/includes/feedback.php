@@ -908,7 +908,7 @@ function fbPelaporUrl(array $t): string {
     return fbAppUrl() . '/feedback/view.php?id=' . $t['id'];
 }
 
-function fbNotifyStatus(int $ticketId, string $newStatus): void {
+function fbNotifyStatus(int $ticketId, string $newStatus, ?string $catatan = null): void {
     $t = fbLoadFull($ticketId);
     if (!$t || $t['is_test']) return;
     $to = fbPelaporEmail($t);
@@ -918,6 +918,17 @@ function fbNotifyStatus(int $ticketId, string $newStatus): void {
     $body  = '<p style="margin:0 0 6px">Status laporan Anda kini <strong>' . h($label) . '</strong>.</p>'
            . fbTicketMetaHtml($t)
            . '<div style="font-size:15px;font-weight:600;color:#040136">' . h($t['subject']) . '</div>';
+
+    // Catatan yang ditulis saat mengubah status dulu hanya masuk ke
+    // log peristiwa dan tidak pernah sampai ke pelapor — padahal di
+    // situlah penjelasannya berada.
+    if ($catatan !== null && trim($catatan) !== '') {
+        $body .= '<div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;'
+              . 'letter-spacing:.5px;margin:16px 0 6px">Keterangan</div>'
+              . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;'
+              . 'border-radius:8px;padding:14px;border-left:3px solid #2201b2">'
+              . nl2br(h(trim($catatan))) . '</div>';
+    }
 
     fbSendMail($to,
         '[AGKB 360°] ' . $t['ticket_no'] . ' — ' . $label,

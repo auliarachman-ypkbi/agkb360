@@ -39,8 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
 
     if ($act === 'status' && !$isClosed) {
         $new = $_POST['status'] ?? '';
-        if (fbSetStatus($t['id'], $new, $_POST['note'] ?? null)) {
-            fbNotifyStatus($t['id'], $new);
+        $catatan = $_POST['note'] ?? null;
+        if (fbSetStatus($t['id'], $new, $catatan)) {
+            fbNotifyStatus($t['id'], $new, $catatan);
             flash('Status diperbarui.', 'success');
         }
 
