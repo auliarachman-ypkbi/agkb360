@@ -91,6 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
                     ], $mid, $t['track'] === 'safeguarding');
                 }
             }
+            // Balasan publik dikirim ke pelapor lewat email. Catatan
+            // internal sengaja tidak — isinya tidak untuk pelapor.
+            if ($vis === 'publik') fbNotifyReply($t['id'], $body);
+
             flash($vis === 'internal' ? 'Catatan internal disimpan.' : 'Balasan terkirim ke pelapor.', 'success');
         }
 

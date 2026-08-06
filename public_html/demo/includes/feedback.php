@@ -885,23 +885,70 @@ function fbNotifyEscalation(int $ticketId, int $newLevel): void {
     }
 }
 
+/**
+ * Alamat pelapor, apa pun jalurnya.
+ *
+ * Tiket dari formulir publik tidak punya baris users, jadi
+ * sender_email-nya NULL. Semua notifikasi ke pelapor harus lewat
+ * sini — kalau tidak, pelapor tamu tidak pernah dikabari apa pun.
+ */
+function fbPelaporEmail(array $t): ?string {
+    return $t['sender_email'] ?: ($t['guest_email'] ?? null) ?: null;
+}
+
+/**
+ * Tautan yang benar-benar bisa dibuka pelapor.
+ * Pelapor tamu tidak punya akun, jadi diarahkan ke halaman
+ * pelacakan bertoken, bukan ke halaman yang menuntut login.
+ */
+function fbPelaporUrl(array $t): string {
+    if (empty($t['sender_id']) && !empty($t['guest_token'])) {
+        return fbAppUrl() . '/publik/lacak.php?t=' . $t['guest_token'];
+    }
+    return fbAppUrl() . '/feedback/view.php?id=' . $t['id'];
+}
+
 function fbNotifyStatus(int $ticketId, string $newStatus): void {
     $t = fbLoadFull($ticketId);
-    if (!$t || $t['is_test'] || empty($t['sender_email'])) return;
+    if (!$t || $t['is_test']) return;
+    $to = fbPelaporEmail($t);
+    if (!$to) return;
 
     $label = fbStatuses()[$newStatus]['label'] ?? $newStatus;
     $body  = '<p style="margin:0 0 6px">Status laporan Anda kini <strong>' . h($label) . '</strong>.</p>'
            . fbTicketMetaHtml($t)
            . '<div style="font-size:15px;font-weight:600;color:#040136">' . h($t['subject']) . '</div>';
 
-    fbSendMail($t['sender_email'],
+    fbSendMail($to,
         '[AGKB 360°] ' . $t['ticket_no'] . ' — ' . $label,
-        fbMailTemplate('Perkembangan Laporan Anda', $body, fbAppUrl() . '/feedback/view.php?id=' . $t['id'], 'Lihat Detail'));
+        fbMailTemplate('Perkembangan Laporan Anda', $body, fbPelaporUrl($t), 'Lihat Detail'));
+}
+
+/** Balasan penanganan yang ditujukan ke pelapor. */
+function fbNotifyReply(int $ticketId, string $isi): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test']) return;
+    $to = fbPelaporEmail($t);
+    if (!$to) return;
+
+    $body = '<p style="margin:0 0 12px">Ada balasan baru untuk laporan Anda.</p>'
+          . fbTicketMetaHtml($t)
+          . '<div style="font-size:15px;font-weight:600;color:#040136;margin-top:10px">' . h($t['subject']) . '</div>'
+          . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;border-radius:8px;'
+          . 'padding:14px;border-left:3px solid #2201b2;margin-top:10px">'
+          . nl2br(h(mb_substr($isi, 0, 1200))) . '</div>';
+
+    fbSendMail($to,
+        '[AGKB 360°] Balasan — ' . $t['ticket_no'] . ' · ' . $t['subject'],
+        fbMailTemplate('Balasan atas Laporan Anda', $body, fbPelaporUrl($t), 'Lihat Detail'));
 }
 
 function fbNotifyResolved(int $ticketId): void {
     $t = fbLoadFull($ticketId);
-    if (!$t || $t['is_test'] || empty($t['sender_email'])) return;
+    if (!$t || $t['is_test']) return;
+    $to = fbPelaporEmail($t);
+    if (!$to) return;
+    $tamu = empty($t['sender_id']);
 
     $resLabel = fbResolutions()[$t['resolution_type']] ?? '—';
     $body = '<p style="margin:0 0 6px">Laporan Anda telah diselesaikan. Terima kasih telah menyampaikannya.</p>'
@@ -911,11 +958,18 @@ function fbNotifyResolved(int $ticketId): void {
           . '<div style="display:inline-block;background:#e7f6ef;color:#015c36;border:1px solid #a5dcc3;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600">' . h($resLabel) . '</div>'
           . '<div style="font-size:11px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px">Keterangan</div>'
           . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;border-radius:8px;padding:14px;border-left:3px solid #027a48">' . nl2br(h($t['resolution_note'] ?? '')) . '</div>'
-          . '<p style="margin:16px 0 0;font-size:12px;color:#6b6a83">Jika penyelesaian ini belum sesuai, Anda dapat membalas melalui tautan di bawah dalam 14 hari.</p>';
+          . ($tamu
+             // Pelapor tamu tidak bisa membalas di dalam tiket —
+             // halaman pelacakan sengaja hanya menampilkan status.
+             // Jangan menjanjikan sesuatu yang tidak ada tombolnya.
+             ? '<p style="margin:16px 0 0;font-size:12px;color:#6b6a83">Jika penyelesaian ini belum sesuai, '
+             . 'balas email ini atau kirim laporan baru dengan menyebut nomor tiket di atas.</p>'
+             : '<p style="margin:16px 0 0;font-size:12px;color:#6b6a83">Jika penyelesaian ini belum sesuai, '
+             . 'Anda dapat membalas melalui tautan di bawah dalam 14 hari.</p>');
 
-    fbSendMail($t['sender_email'],
+    fbSendMail($to,
         '[AGKB 360°] Selesai — ' . $t['ticket_no'] . ' · ' . $t['subject'],
-        fbMailTemplate('Laporan Anda Telah Diselesaikan', $body, fbAppUrl() . '/feedback/view.php?id=' . $t['id'], 'Lihat Detail', '#027a48'));
+        fbMailTemplate('Laporan Anda Telah Diselesaikan', $body, fbPelaporUrl($t), 'Lihat Detail', '#027a48'));
 }
 
 function fbNotifyAppreciation(int $ticketId): void {
