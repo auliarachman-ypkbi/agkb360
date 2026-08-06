@@ -385,7 +385,7 @@ function fbLevelRecipients(int $level, string $track, ?int $categoryId): array {
 // ── BUAT TIKET ──────────────────────────────────────────────
 
 function fbCreateTicket(array $in): int {
-    $cat = $in['category_id']
+    $cat = !empty($in['category_id'])
         ? Database::fetchOne("SELECT * FROM feedback_categories WHERE id=?", [$in['category_id']])
         : null;
 
@@ -416,17 +416,20 @@ function fbCreateTicket(array $in): int {
     $id = Database::insert('feedback_tickets', [
         'ticket_no'           => $ticketNo,
         'track'               => $track,
-        'category_id'         => $in['category_id'] ?: null,
-        'sender_id'           => $in['sender_id'],
+        // Kunci opsional dibaca dengan ?? lebih dulu: pemanggil tidak
+        // semuanya mengirim seluruh kolom — jalur publik, misalnya,
+        // tidak mengenal apresiasi ke orang tertentu.
+        'category_id'         => ($in['category_id'] ?? null) ?: null,
+        'sender_id'           => $in['sender_id'] ?? null,
         'is_anonymous'        => !empty($in['is_anonymous']) ? 1 : 0,
         'subject'             => $in['subject'],
         'message'             => $in['message'],
-        'impact'              => $in['impact'] ?: null,
+        'impact'              => ($in['impact'] ?? null) ?: null,
         'priority'            => $priority,
         'status'              => 'baru',
         'level'               => $level,
         'assignee_id'         => $assignee['user_id'] ?? null,
-        'appreciated_user_id' => $in['appreciated_user_id'] ?: null,
+        'appreciated_user_id' => ($in['appreciated_user_id'] ?? null) ?: null,
         'response_due_at'     => $track === 'apresiasi' ? null : $due['response_due_at'],
         'due_at'              => $track === 'apresiasi' ? null : $due['due_at'],
         'is_test'             => $isTester ? 1 : 0,
