@@ -3,6 +3,8 @@
 // dan layout dimuat di semua halaman — termasuk yang tidak memuat
 // modul feedback. require_once membuatnya aman dipanggil berulang.
 require_once __DIR__ . '/feedback.php';
+// Lencana pengajuan akun di menu admin butuh pubHitungPengajuanMenunggu().
+require_once __DIR__ . '/publik.php';
 
 function renderHead(string $title = '', string $extraCss = ''): void {
     $t    = $title ? h($title) . ' — ' : '';
@@ -62,6 +64,16 @@ function renderNav(): void {
         <li><hr class='dropdown-divider'></li>
         <li><a class='dropdown-item text-warning fw-semibold' href='{$base}/admin/hard_reset.php'><i class='bi bi-radiation me-2'></i>Hard Reset</a></li>" : '';
 
+    // Lencana jumlah pengajuan akun yang menunggu. Dibungkus try
+    // supaya navigasi tidak ikut mati kalau migrasi 017 belum jalan.
+    $lencanaDaftar = '';
+    if (in_array($role, ['superadmin','admin'], true) && function_exists('pubHitungPengajuanMenunggu')) {
+        try {
+            $n = pubHitungPengajuanMenunggu();
+            if ($n > 0) $lencanaDaftar = " <span class='badge rounded-pill bg-warning text-dark ms-1'>{$n}</span>";
+        } catch (Throwable $e) { /* tabel belum ada — abaikan */ }
+    }
+
     if (in_array($role, ['superadmin','admin','foundation'])) {
         $adminMenu = "
         <li class='nav-item dropdown'>
@@ -92,6 +104,7 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/admin/feedback_dashboard.php'><i class='bi bi-graph-up me-2'></i>Dashboard Feedback</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/feedback_units.php'><i class='bi bi-diagram-3 me-2'></i>Unit Penanganan</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/feedback_categories.php'><i class='bi bi-tags me-2'></i>Kategori & Eskalasi</a></li>
+            <li><a class='dropdown-item' href='{$base}/admin/pendaftaran.php'><i class='bi bi-person-plus me-2'></i>Pengajuan Akun{$lencanaDaftar}</a></li>
 
             <li><hr class='dropdown-divider'></li>
             <li><h6 class='dropdown-header'>Lainnya</h6></li>
@@ -192,6 +205,36 @@ function renderFooter(): void {
 <script src='https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.1/sweetalert2.all.min.js'></script>
 <script src='{$base}/assets/js/app.js?v={$jsV}'></script>
 </body></html>";
+}
+
+/**
+ * Bingkai untuk halaman yang dibuka tanpa login.
+ *
+ * Sengaja tidak memakai renderNav(): navigasi itu membaca peran dari
+ * sesi, dan pada halaman publik tidak ada sesi. Yang tampil hanya
+ * logo dan satu tautan masuk, supaya pengunjung tidak melihat menu
+ * yang tidak bisa ia buka.
+ */
+function publicWrapper(string $title, string $content, string $extraCss = ''): void {
+    renderHead($title, $extraCss);
+    $base = APP_URL;
+    echo "
+<nav class='navbar navbar-dark' style='background:#040136'>
+  <div class='container-fluid px-3 px-md-4 py-2 d-flex align-items-center justify-content-between'>
+    <a class='navbar-brand agkb-brand d-flex align-items-center' href='{$base}/publik/'>
+      <img src='{$base}/assets/img/brand/agkb-lockup-white.svg' alt='AGKB 360°'
+           onerror=\"this.onerror=null;this.src='{$base}/assets/img/brand/agkb-mark-white.svg'\">
+    </a>
+    <a href='{$base}/login.php' class='btn btn-sm btn-outline-light rounded-pill px-3'
+       style='font-size:12.5px'>
+      <i class='bi bi-box-arrow-in-right me-1'></i>Masuk
+    </a>
+  </div>
+</nav>
+<div class='container-fluid py-4 flex-grow-1'>";
+    echo $content;
+    echo '</div>';
+    renderFooter();
 }
 
 function pageWrapper(string $title, string $content, string $extraCss = ''): void {

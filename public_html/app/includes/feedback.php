@@ -393,13 +393,20 @@ function fbCreateTicket(array $in): int {
     $priority = fbComputePriority($cat['default_priority'] ?? 'P3', $in['impact'] ?? null, $track);
     $level    = (int)($cat['start_level'] ?? 1);
 
-    // Kalau kategori punya unit penanganan, tiket masuk ANTREAN unit —
-    // sengaja tanpa PIC, supaya diambil oleh salah satu anggota.
-    // Kalau tidak, jatuh ke PIC default kategori atau rute eskalasi.
+    // Penentuan penanggung jawab, berurutan:
+    //   1. Kategori punya PIC tetap  → langsung dipegang PIC itu,
+    //      tanpa perlu ada yang mengambil dari antrean lebih dulu.
+    //   2. Kategori punya unit tanpa PIC → masuk ANTREAN unit,
+    //      sengaja tanpa penanggung jawab supaya diambil anggota.
+    //   3. Sisanya → jatuh ke rute eskalasi level awal.
+    // Anggota unit tetap dijadikan pemantau pada semua kasus, jadi
+    // tiket ber-PIC pun tetap terlihat oleh satu unit penuh.
     $unitId   = $cat['handler_group_id'] ?? null;
-    $assignee = $unitId ? null
-              : (fbResolveAssignee($level, $track, $in['category_id'] ?? null)
-                 ?: ['user_id' => $cat['default_pic_id'] ?? null]);
+    $picTetap = $cat['default_pic_id'] ?? null;
+    $assignee = $picTetap ? ['user_id' => $picTetap]
+              : ($unitId ? null
+                 : (fbResolveAssignee($level, $track, $in['category_id'] ?? null)
+                    ?: ['user_id' => null]));
     $due      = fbComputeDueDates(['priority'=>$priority, 'track'=>$track], $cat);
 
     $isTester = ($_SESSION['user_role'] ?? '') === 'tester';
@@ -605,16 +612,30 @@ function fbHasConflict(array $t, array $u): bool {
 
 /** Sembunyikan identitas pelapor sesuai aturan anonimitas. */
 function fbSenderDisplay(array $t, array $viewer): array {
+    // Tiket dari formulir publik: tidak ada baris users di baliknya.
+    // Identitasnya diisi sendiri oleh pelapor dan TIDAK diverifikasi
+    // — penanganan harus tahu itu sebelum menindaklanjuti.
+    if (empty($t['sender_id']) && !empty($t['guest_email'])) {
+        return [
+            'name'   => $t['guest_name'] ?: 'Pelapor Publik',
+            'email'  => $t['guest_email'],
+            'role'   => $t['guest_role'] ?: 'Publik',
+            'masked' => false,
+            'tamu'   => true,
+        ];
+    }
+
     $anon = !empty($t['is_anonymous']);
     $mayUnmask = ($viewer['role'] ?? '') === 'superadmin';
     if ($anon && !$mayUnmask && (int)$t['sender_id'] !== (int)$viewer['id']) {
-        return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null, 'masked'=>true];
+        return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null, 'masked'=>true, 'tamu'=>false];
     }
     return [
         'name'   => $t['sender_name'] ?? '—',
         'email'  => $t['sender_email'] ?? null,
         'role'   => $t['sender_role'] ?? null,
         'masked' => false,
+        'tamu'   => false,
     ];
 }
 
@@ -782,12 +803,38 @@ function fbLoadFull(int $id): ?array {
          WHERE t.id = ?", [$id]);
 }
 
+/**
+ * Tembusan tetap — pihak yang selalu ikut diberi tahu, di luar
+ * rute kategori mana pun.
+ *
+ * Sengaja hardcode dan bukan tabel: ini pengaturan sementara masa
+ * pengembangan, dan menaruhnya di sini membuatnya terlihat jelas
+ * saat waktunya dicabut. Pindahkan ke Admin CMS begitu susunan
+ * Customer Care sudah tetap.
+ *
+ * Jalur safeguarding hanya menembus ke pengembang, karena penerima
+ * laporan perlindungan anak belum ditetapkan kebijakannya.
+ */
+function fbTembusanTetap(string $track): array {
+    $out = ['aulia.rachman@kaderbangsa.foundation' => 'Aulia (Pengembang)'];
+
+    if ($track !== 'safeguarding') {
+        $out['tasya.intern@kaderbangsa.foundation'] = 'Tasya (Customer Care)';
+    }
+    return $out;
+}
+
 function fbNotifyNew(int $ticketId): void {
     $t = fbLoadFull($ticketId);
     if (!$t || $t['is_test']) return;
 
     $link  = fbAppUrl() . '/admin/ticket.php?id=' . $t['id'];
-    $who   = $t['is_anonymous'] ? 'Pelapor Anonim' : ($t['sender_name'] ?? '—');
+    $who   = $t['is_anonymous']
+           ? 'Pelapor Anonim'
+           : ($t['sender_name']
+              ?? (!empty($t['guest_name'])
+                  ? $t['guest_name'] . ' (publik — identitas belum diverifikasi)'
+                  : '—'));
     $isSg  = $t['track'] === 'safeguarding';
 
     $body = ($isSg
@@ -814,6 +861,8 @@ function fbNotifyNew(int $ticketId): void {
     }
     if (!empty($t['assignee_email'])) $tujuan[$t['assignee_email']] = $t['assignee_name'] ?? '';
 
+    $tujuan += fbTembusanTetap($t['track']);
+
     foreach ($tujuan as $mail => $name) fbSendMail($mail, $subject, $html);
 }
 
@@ -826,7 +875,9 @@ function fbNotifyEscalation(int $ticketId, int $newLevel): void {
           . '<div style="font-size:15px;font-weight:600;color:#040136;margin-top:10px">' . h($t['subject']) . '</div>';
 
     $html = fbMailTemplate('Tiket Dieskalasi', $body, fbAppUrl() . '/admin/ticket.php?id=' . $t['id'], 'Tangani Sekarang', '#ee4c01');
-    foreach (fbLevelRecipients($newLevel, $t['track'], $t['category_id'] ? (int)$t['category_id'] : null) as $mail => $n) {
+    $tujuan = fbLevelRecipients($newLevel, $t['track'], $t['category_id'] ? (int)$t['category_id'] : null)
+            + fbTembusanTetap($t['track']);
+    foreach ($tujuan as $mail => $n) {
         fbSendMail($mail, '[AGKB 360° · ESKALASI] ' . $t['ticket_no'] . ' — ' . $t['subject'], $html);
     }
 }

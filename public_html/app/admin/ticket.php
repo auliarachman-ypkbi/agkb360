@@ -339,6 +339,14 @@ ob_start(); ?>
   <div class="pnl">
     <div class="pnl-t">Ringkasan</div>
     <div class="kv"><span class="k">Pelapor</span><span class="v"><?= h($sd['name']) ?><?= $sd['masked']?' 🔒':'' ?></span></div>
+    <?php if (!empty($sd['tamu'])): ?>
+    <div style="background:#fff8ef;border:1px solid #f5d9b0;border-radius:8px;padding:9px 12px;
+                font-size:11.5px;color:#a85a01;line-height:1.6;margin:8px 0">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i><strong>Pelapor publik.</strong>
+      Dikirim lewat formulir tanpa login — nama dan kontak diisi sendiri dan
+      <strong>belum diverifikasi</strong>. Pastikan kebenarannya sebelum menindaklanjuti.
+    </div>
+    <?php endif; ?>
     <?php if ($unit): ?>
     <div class="kv"><span class="k">Unit penanganan</span><span class="v"><?= h($unit['name']) ?></span></div>
     <?php endif; ?>

@@ -245,6 +245,7 @@ ob_start(); ?>
     <?php if ($t['track']!=='apresiasi') echo fbBadgePriority($t['priority']); ?>
     <?= fbBadgeOverdue($t) ?>
     <?php if ($t['is_test']) echo fbChip('TESTER', '#fff', '#2201b2', '#2201b2'); ?>
+    <?php if (!empty($sd['tamu'])) echo fbChip('PUBLIK', '#a85a01', '#fff8ef', '#f5d9b0'); ?>
     <span style="margin-left:auto;font-size:11px;color:#6b6a83"><?= fbRelTime($t['created_at']) ?></span>
   </div>
   <div class="trow-subj"><?= h($t['subject']) ?></div>
