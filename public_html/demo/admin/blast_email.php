@@ -29,6 +29,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_kampanye'])) {
     exit;
 }
 
+// ── SIMPAN NASKAH EMAIL KAMPANYE ─────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_naskah'])) {
+    $code = (string)$_POST['simpan_naskah'];
+    if (isset(kmpDefinisi()[$code])) {
+        if (!empty($_POST['kembalikan_bawaan'])) {
+            kmpSimpanNaskah($code, null, null, null, null);
+            flash('Naskah dikembalikan ke bawaan.', 'success');
+        } else {
+            kmpSimpanNaskah(
+                $code,
+                $_POST['subjek'] ?? '',
+                $_POST['judul']  ?? '',
+                $_POST['body']   ?? '',
+                $_POST['cta']    ?? ''
+            );
+            flash('Naskah email disimpan.', 'success');
+        }
+    }
+    header('Location: ' . APP_URL . '/admin/blast_email.php#kmp-' . urlencode($code));
+    exit;
+}
+
 // ── JALANKAN KAMPANYE SEKARANG (manual) ──────────────────────
 $kmpHasil = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['jalankan_kampanye'])) {
@@ -359,7 +381,35 @@ ob_start(); ?>
 .kmp-btn.primer{background:#040136;color:#fff;border-color:#040136}
 .kmp-pratinjau{background:#fafafb;border:1px solid #e3e5ea;border-radius:9px;padding:13px 16px;margin-bottom:14px;font-size:12.5px}
 .kmp-pratinjau ul{margin:8px 0 0;padding-left:18px;color:#2f2d4d;line-height:1.75}
+
+/* ── Editor naskah ── */
+.kmp-naskah{border:1px solid #e3e5ea;border-top:0;border-radius:0 0 10px 10px;margin:-11px 0 10px;background:#fff;overflow:hidden}
+.kmp-naskah>summary{list-style:none;cursor:pointer;padding:10px 16px;font-size:12px;font-weight:600;color:#6b6a83;display:flex;align-items:center;gap:9px;background:#fafafb;border-top:1px dashed #e3e5ea}
+.kmp-naskah>summary::-webkit-details-marker{display:none}
+.kmp-naskah>summary:hover{background:#f3f4f6;color:#040136}
+.kmp-naskah[open]>summary{border-bottom:1px solid #e3e5ea}
+.kmp-tag{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:20px;background:#eef0f3;color:#6b6a83;border:1px solid #dfe1e7}
+.kmp-tag.ubah{background:#fff1dc;color:#b83a01;border-color:#f0c896}
+.kmp-subj-peek{margin-left:auto;font-weight:400;font-size:11.5px;color:#8a89a0;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
+.kmp-form-naskah{padding:16px}
+.nk-baris{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.nk-f{display:flex;flex-direction:column;gap:5px;min-width:180px}
+.nk-f>label{font-size:10px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px}
+.nk-f input[type=text]{border:1px solid #e3e5ea;border-radius:7px;padding:8px 11px;font-size:13px;font-family:inherit;outline:none;width:100%}
+.nk-f input[type=text]:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
+.nk-editor{background:#fff;font-size:14px;line-height:1.75;color:#2f2d4d;min-height:190px}
+.nk-editor.ql-container{border:1px solid #e3e5ea;border-top:0;border-radius:0 0 8px 8px;font-family:inherit}
+.ql-toolbar.ql-snow{border:1px solid #e3e5ea;border-radius:8px 8px 0 0;background:#fafafb}
+.ql-snow .ql-stroke{stroke:#6b6a83}.ql-snow .ql-fill{fill:#6b6a83}
+.ql-snow .ql-editor{padding:14px 16px}
+.ql-snow .ql-editor p{margin-bottom:11px}
+.nk-kaki{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.nk-penanda{font-size:11px;color:#6b6a83}
+.nk-penanda code{background:#eeebfc;color:#030870;border:1px solid #d5cdf7;border-radius:5px;padding:1.5px 6px;font-size:10.5px;margin-left:3px}
 </style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
 
 <?php if ($blastResult): ?>
 <div class="result-box <?= $blastResult['failed']===0?'result-ok':'result-warn' ?>">
@@ -424,7 +474,7 @@ ob_start(); ?>
         $terpilih = array_filter(array_map('trim', explode(',', $k['roles'])));
         $sasaran = kmpHitungSasaran($code);
     ?>
-    <form method="post" class="kmp <?= $aktif ? 'on' : '' ?>">
+    <form method="post" class="kmp <?= $aktif ? 'on' : '' ?>" id="kmp-<?= h($code) ?>">
       <div class="kmp-top">
         <span class="kmp-lampu <?= $aktif ? 'on' : '' ?>"></span>
         <div style="flex:1;min-width:230px">
@@ -485,6 +535,59 @@ ob_start(); ?>
         </div>
       </div>
     </form>
+
+    <details class="kmp-naskah"<?= $k['disunting'] ? '' : '' ?>>
+      <summary>
+        <i class="bi bi-pencil-square"></i>
+        Naskah email
+        <span class="kmp-tag <?= $k['disunting'] ? 'ubah' : '' ?>">
+          <?= $k['disunting'] ? 'sudah disunting' : 'naskah bawaan' ?>
+        </span>
+        <span class="kmp-subj-peek"><?= h($k['subjek']) ?></span>
+      </summary>
+
+      <form method="post" class="kmp-form-naskah" data-code="<?= h($code) ?>">
+        <input type="hidden" name="simpan_naskah" value="<?= h($code) ?>">
+
+        <div class="nk-baris">
+          <div class="nk-f" style="flex:2">
+            <label>Subjek email</label>
+            <input type="text" name="subjek" maxlength="255" value="<?= h($k['subjek']) ?>">
+          </div>
+          <div class="nk-f" style="flex:2">
+            <label>Judul di dalam email</label>
+            <input type="text" name="judul" maxlength="255" value="<?= h($k['judul']) ?>">
+          </div>
+          <div class="nk-f" style="flex:1">
+            <label>Tulisan tombol</label>
+            <input type="text" name="cta" maxlength="80" value="<?= h($k['cta']) ?>">
+          </div>
+        </div>
+
+        <div class="nk-f">
+          <label>Isi email</label>
+          <div class="nk-editor" data-body="<?= h($k['body']) ?>"></div>
+          <textarea name="body" hidden></textarea>
+        </div>
+
+        <div class="nk-kaki">
+          <div class="nk-penanda">
+            Penanda otomatis:
+            <code>{{nama}}</code> <code>{{email}}</code> <code>{{peran}}</code>
+            <?php if (!$k['atur_peran']): ?><code>{{jumlah}}</code><?php endif; ?>
+          </div>
+          <div style="display:flex;gap:7px">
+            <?php if ($k['disunting']): ?>
+            <button class="kmp-btn" name="kembalikan_bawaan" value="1"
+                    onclick="return confirm('Kembalikan naskah ke bawaan? Suntinganmu akan hilang.')">
+              Kembalikan ke Bawaan
+            </button>
+            <?php endif; ?>
+            <button class="kmp-btn primer">Simpan Naskah</button>
+          </div>
+        </div>
+      </form>
+    </details>
     <?php endforeach; ?>
 
     <div style="font-size:11.5px;color:#6b6a83;margin-top:12px;line-height:1.7">
@@ -739,6 +842,42 @@ function syncOther(e) {
   document.getElementById('b_other').value = body;
   return confirm('Kirim ke kategori "' + sel.options[sel.selectedIndex].text + '"?');
 }
+</script>
+
+<script>
+// Editor naskah email. Dimuat malas: Quill baru dipasang saat
+// bagian naskah dibuka, supaya halaman tidak berat oleh lima editor
+// yang mungkin tidak pernah disentuh.
+document.querySelectorAll('.kmp-naskah').forEach(function (det) {
+  var siap = false;
+  det.addEventListener('toggle', function () {
+    if (!det.open || siap) return;
+    siap = true;
+
+    var wadah = det.querySelector('.nk-editor');
+    var kotak = det.querySelector('textarea[name=body]');
+    var isi   = wadah.getAttribute('data-body') || '';
+
+    var q = new Quill(wadah, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ header: [3, 4, false] }],
+          ['bold', 'italic', 'underline'],
+          [{ list: 'bullet' }, { list: 'ordered' }],
+          ['link', 'blockquote'],
+          ['clean']
+        ]
+      }
+    });
+    q.clipboard.dangerouslyPasteHTML(isi);
+
+    det.querySelector('form').addEventListener('submit', function () {
+      var html = q.root.innerHTML;
+      kotak.value = (html === '<p><br></p>') ? '' : html;
+    });
+  });
+});
 </script>
 
 <?php

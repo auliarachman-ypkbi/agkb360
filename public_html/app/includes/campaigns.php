@@ -39,15 +39,21 @@ function kmpPeranSql(string $csv = ''): string {
 /**
  * Definisi seluruh kampanye.
  *
- * Yang ada DI SINI hanya hal yang memang milik kode: kueri sasaran,
- * naskah, tujuan tombol. Saklar, frekuensi, dan peran sasaran ada
- * di tabel email_campaign_state karena itu keputusan operasional
- * yang harus bisa diubah admin tanpa deploy ulang.
+ * Naskah di sini adalah NASKAH BAWAAN. Kalau kolom yang sama pada
+ * tabel email_campaign_state terisi, yang dipakai adalah isi tabel —
+ * sehingga naskah dapat disunting dari halaman Blast Email tanpa
+ * menyentuh kode.
  *
- *   {PERAN}     : diganti daftar peran sesuai pengaturan
- *   atur_peran  : apakah peran sasaran relevan untuk kampanye ini
- *   perlu_token : menyertakan tautan set-password
- *   tujuan      : path tombol, relatif terhadap /app
+ * Penanda yang tersedia di dalam naskah:
+ *   {{nama}}    nama penerima
+ *   {{email}}   alamat email penerima
+ *   {{peran}}   sebutan peran, misalnya Guru
+ *   {{jumlah}}  angka terkait, dipakai kampanye antrean & tiket telat
+ *
+ *   {PERAN}     (pada kueri sasaran) diganti daftar peran terpilih
+ *   atur_peran  apakah peran sasaran relevan untuk kampanye ini
+ *   perlu_token menyertakan tautan aktivasi kata sandi
+ *   tujuan      path tombol, relatif terhadap /app
  */
 function kmpDefinisi(): array {
     $peran = '{PERAN}';
@@ -61,20 +67,16 @@ function kmpDefinisi(): array {
         'atur_peran'  => true,
         'perlu_token' => true,
         'tujuan'      => null,
-        'subjek'      => 'Akun AGKB 360° Anda sudah siap',
+        'subjek'      => 'Aktivasi Akun AGKB 360°',
+        'judul'       => 'Aktivasi Akun Anda',
+        'cta'         => 'Aktifkan Akun',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Akun Anda pada platform AGKB 360° telah dibuat dan saat ini menunggu aktivasi.</p>
+<p>Platform ini digunakan untuk dua keperluan, yaitu pelaksanaan evaluasi 360° pada setiap akhir semester, serta penyampaian masukan, apresiasi, dan keluhan sepanjang tahun ajaran.</p>
+<p>Untuk mengaktifkan akun, silakan menetapkan kata sandi melalui tautan berikut. Tautan berlaku selama 7 hari sejak email ini diterima.</p>',
         'sasaran'     => "SELECT id, name, email, role FROM users
                           WHERE is_active = 1 AND last_login IS NULL
                             AND role IN ($peran)",
-        'isi' => function (array $u): array {
-            return [
-                'judul' => 'Selamat datang di AGKB 360°',
-                'body'  => '<p>Halo <strong>' . h($u['name']) . '</strong>,</p>
-<p>Akun Anda di AGKB 360° sudah dibuat, tetapi belum pernah dibuka. Platform ini dipakai untuk dua hal: penilaian 360° tiap semester, dan penyampaian masukan, apresiasi, atau keluhan kapan saja sepanjang tahun.</p>
-<p>Yang perlu Anda lakukan sekarang hanya satu — membuat kata sandi. Setelah itu akun Anda aktif dan bisa dipakai.</p>
-<p style="color:#6f6e85;font-size:13px">Tautan di bawah berlaku 7 hari. Kalau kedaluwarsa, Anda akan menerima tautan baru.</p>',
-                'cta'   => 'Buat Kata Sandi',
-            ];
-        },
     ],
 
     // ── 2. Sudah login, belum pernah menyampaikan apa pun ───
@@ -84,7 +86,16 @@ function kmpDefinisi(): array {
         'atur_peran'  => true,
         'perlu_token' => false,
         'tujuan'      => '/feedback/',
-        'subjek'      => 'Ada yang ingin Anda sampaikan?',
+        'subjek'      => 'Kanal Masukan dan Apresiasi AGKB 360°',
+        'judul'       => 'Kanal Masukan dan Apresiasi',
+        'cta'         => 'Buka Kanal Masukan',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Akun Anda telah aktif, namun sampai saat ini belum terdapat masukan yang Anda sampaikan melalui platform.</p>
+<p>Kanal ini tersedia untuk tiga jenis penyampaian:</p>
+<p><strong>Apresiasi</strong> — pengakuan atas kerja baik rekan sejawat maupun program yang berjalan.<br>
+<strong>Pertanyaan dan Masukan</strong> — pertanyaan, usulan perbaikan, atau hal yang memerlukan perhatian.<br>
+<strong>Perlindungan Anak</strong> — laporan yang menyangkut keselamatan siswa, ditangani secara terpisah dengan kerahasiaan penuh.</p>
+<p>Setiap penyampaian memperoleh nomor tiket, penanggung jawab, dan batas waktu penyelesaian yang dapat Anda pantau sendiri.</p>',
         'sasaran'     => "SELECT u.id, u.name, u.email, u.role FROM users u
                           WHERE u.is_active = 1 AND u.last_login IS NOT NULL
                             AND u.role IN ($peran)
@@ -92,18 +103,6 @@ function kmpDefinisi(): array {
                               SELECT 1 FROM feedback_tickets t
                               WHERE t.sender_id = u.id AND t.is_test = 0
                             )",
-        'isi' => function (array $u): array {
-            return [
-                'judul' => 'Suara Anda dibutuhkan',
-                'body'  => '<p>Halo <strong>' . h($u['name']) . '</strong>,</p>
-<p>Anda sudah masuk ke AGKB 360°, tetapi belum pernah menyampaikan apa pun lewat kanal masukan. Kanal ini bukan hanya untuk keluhan.</p>
-<p><strong>Apresiasi</strong> — mengakui kerja baik rekan atau program yang berjalan bagus.<br>
-<strong>Pertanyaan &amp; Masukan</strong> — hal yang mengganjal, usulan perbaikan, atau sesuatu yang perlu diperbaiki.<br>
-<strong>Perlindungan Anak</strong> — laporan yang menyangkut keselamatan siswa, ditangani terpisah dengan kerahasiaan penuh.</p>
-<p>Setiap laporan mendapat nomor tiket, penanggung jawab, dan batas waktu. Anda bisa memantau perkembangannya sendiri.</p>',
-                'cta'   => 'Sampaikan Sekarang',
-            ];
-        },
     ],
 
     // ── 3. Pengingat rutin selama masa peluncuran ───────────
@@ -113,19 +112,16 @@ function kmpDefinisi(): array {
         'atur_peran'  => true,
         'perlu_token' => false,
         'tujuan'      => '/feedback/',
-        'subjek'      => 'Kanal masukan AGKB 360° terbuka minggu ini',
+        'subjek'      => 'Pengingat Kanal Masukan AGKB 360°',
+        'judul'       => 'Pengingat Berkala',
+        'cta'         => 'Buka Kanal Masukan',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Kami mengingatkan bahwa kanal masukan AGKB 360° terbuka setiap saat bagi seluruh warga sekolah.</p>
+<p>Apabila terdapat hal yang perlu disampaikan, rekan sejawat yang layak memperoleh apresiasi, atau usulan perbaikan, Anda dapat menyampaikannya melalui platform.</p>
+<p>Setiap masukan akan dicatat dan ditindaklanjuti oleh unit yang berwenang sesuai kategorinya.</p>',
         'sasaran'     => "SELECT id, name, email, role FROM users
                           WHERE is_active = 1 AND last_login IS NOT NULL
                             AND role IN ($peran)",
-        'isi' => function (array $u): array {
-            return [
-                'judul' => 'Satu menit untuk menyampaikan sesuatu',
-                'body'  => '<p>Halo <strong>' . h($u['name']) . '</strong>,</p>
-<p>Pengingat singkat: kalau minggu ini ada yang mengganjal, ada rekan yang pantas diapresiasi, atau ada hal yang menurut Anda bisa diperbaiki — kanalnya terbuka.</p>
-<p>Tidak perlu menunggu masalahnya membesar. Justru masukan kecil yang datang lebih awal yang paling mudah ditindaklanjuti.</p>',
-                'cta'   => 'Buka Kanal Masukan',
-            ];
-        },
     ],
 
     // ── 4. Penangan punya antrean menumpuk ──────────────────
@@ -135,7 +131,12 @@ function kmpDefinisi(): array {
         'atur_peran'  => false,
         'perlu_token' => false,
         'tujuan'      => '/admin/feedback.php?status=antrean',
-        'subjek'      => 'Ada tiket menunggu di unit Anda',
+        'subjek'      => 'Tiket Menunggu Penanganan',
+        'judul'       => '{{jumlah}} Tiket Menunggu Penanganan',
+        'cta'         => 'Buka Antrean Unit',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Terdapat <strong>{{jumlah}} tiket</strong> pada unit penanganan Anda yang belum diambil oleh siapa pun. Batas waktu penyelesaian tetap berjalan selama tiket belum ditangani.</p>
+<p>Mohon membuka antrean unit dan mengambil tiket yang sesuai dengan kewenangan Anda. Tiket yang tidak Anda ambil tetap dapat dilihat dan ditangani oleh rekan satu unit.</p>',
         'sasaran'     => "SELECT DISTINCT u.id, u.name, u.email, u.role,
                                  (SELECT COUNT(*) FROM feedback_tickets t2
                                   JOIN feedback_categories c2 ON c2.id = t2.category_id
@@ -152,16 +153,6 @@ function kmpDefinisi(): array {
                           WHERE u.is_active = 1 AND t.is_test = 0
                             AND t.assignee_id IS NULL
                             AND t.status IN ('baru','ditinjau','ditindaklanjuti')",
-        'isi' => function (array $u): array {
-            $n = (int)($u['jumlah'] ?? 0);
-            return [
-                'judul' => $n . ' tiket menunggu diambil',
-                'body'  => '<p>Halo <strong>' . h($u['name']) . '</strong>,</p>
-<p>Di unit penanganan Anda ada <strong>' . $n . ' tiket</strong> yang belum diambil siapa pun. Tiket yang belum diambil tetap berjalan batas waktunya.</p>
-<p>Membuka antrean lalu mengambil tiket yang bisa Anda tangani sudah cukup — sisanya tetap terlihat oleh rekan satu unit.</p>',
-                'cta'   => 'Buka Antrean Unit',
-            ];
-        },
     ],
 
     // ── 5. Tiket melewati tenggat ───────────────────────────
@@ -171,7 +162,12 @@ function kmpDefinisi(): array {
         'atur_peran'  => false,
         'perlu_token' => false,
         'tujuan'      => '/admin/feedback.php?status=terlambat',
-        'subjek'      => 'Tiket Anda melewati batas waktu',
+        'subjek'      => 'Tiket Melewati Batas Waktu',
+        'judul'       => '{{jumlah}} Tiket Melewati Batas Waktu',
+        'cta'         => 'Lihat Tiket Terlambat',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Terdapat <strong>{{jumlah}} tiket</strong> atas nama Anda yang telah melewati batas waktu penyelesaian. Tiket yang tidak ditangani akan dieskalasi ke tingkat berikutnya secara otomatis.</p>
+<p>Apabila tiket sedang menunggu jawaban dari pelapor, mohon ubah statusnya menjadi <em>Menunggu Pelapor</em> agar penghitungan batas waktu dihentikan sementara.</p>',
         'sasaran'     => "SELECT u.id, u.name, u.email, u.role, COUNT(*) AS jumlah
                           FROM feedback_tickets t
                           JOIN users u ON u.id = t.assignee_id
@@ -179,21 +175,20 @@ function kmpDefinisi(): array {
                             AND t.status IN ('baru','ditinjau','ditindaklanjuti')
                             AND t.due_at < NOW()
                           GROUP BY u.id, u.name, u.email, u.role",
-        'isi' => function (array $u): array {
-            $n = (int)($u['jumlah'] ?? 0);
-            return [
-                'judul' => $n . ' tiket melewati batas waktu',
-                'body'  => '<p>Halo <strong>' . h($u['name']) . '</strong>,</p>
-<p>Ada <strong>' . $n . ' tiket</strong> atas nama Anda yang sudah lewat tenggat. Tiket yang dibiarkan akan naik ke tingkat eskalasi berikutnya secara otomatis.</p>
-<p>Kalau tiketnya memang menunggu jawaban pelapor, ubah statusnya menjadi <em>Menunggu Pelapor</em> — jam SLA akan berhenti sementara.</p>',
-                'cta'   => 'Lihat Tiket Terlambat',
-            ];
-        },
     ],
 
     ];
 }
 
+/** Ganti penanda {{...}} dengan data penerima. */
+function kmpIsiPenanda(string $teks, array $u): string {
+    return strtr($teks, [
+        '{{nama}}'   => h($u['name']  ?? ''),
+        '{{email}}'  => h($u['email'] ?? ''),
+        '{{peran}}'  => h(roleLabel($u['role'] ?? '')),
+        '{{jumlah}}' => (string)(int)($u['jumlah'] ?? 0),
+    ]);
+}
 // ── Pengaturan ──────────────────────────────────────────────
 
 /** Nilai bawaan kalau baris pengaturan belum ada di database. */
@@ -229,6 +224,14 @@ function kmpStatus(): array {
             'roles'      => (string)($s['roles']   ?? $b['roles']),
             'started_at' => $s['started_at'] ?? null,
             'ends_at'    => $s['ends_at']    ?? null,
+            // Naskah: kolom terisi berarti sudah disunting admin;
+            // NULL berarti tetap memakai naskah bawaan dari kode.
+            'subjek'     => ($s['subjek'] ?? null) !== null ? $s['subjek'] : $d['subjek'],
+            'judul'      => ($s['judul']  ?? null) !== null ? $s['judul']  : $d['judul'],
+            'body'       => ($s['body']   ?? null) !== null ? $s['body']   : $d['body'],
+            'cta'        => ($s['cta']    ?? null) !== null ? $s['cta']    : $d['cta'],
+            'disunting'  => ($s['subjek'] ?? null) !== null,
+            'bawaan'     => ['subjek'=>$d['subjek'],'judul'=>$d['judul'],'body'=>$d['body'],'cta'=>$d['cta']],
         ];
     }
     return $out;
@@ -265,6 +268,45 @@ function kmpSimpan(string $code, bool $aktif, int $jedaHari, int $maksKirim, arr
             ends_at    = VALUES(ends_at)",
         [$code, $aktif ? 1 : 0, $jedaHari, $maksKirim, $roles, $aktif ? 1 : 0, $endsAt]
     );
+}
+
+/**
+ * Simpan naskah email dari editor. Semua kosong berarti
+ * dikembalikan ke naskah bawaan (kolom di-NULL-kan).
+ */
+function kmpSimpanNaskah(string $code, ?string $subjek, ?string $judul, ?string $body, ?string $cta): void {
+    $kosong = !trim((string)$subjek) && !trim((string)$judul) && !trim((string)$body);
+    if ($kosong) {
+        Database::query(
+            "UPDATE email_campaign_state
+             SET subjek = NULL, judul = NULL, body = NULL, cta = NULL
+             WHERE code = ?", [$code]
+        );
+        return;
+    }
+    Database::query(
+        "INSERT INTO email_campaign_state (code, subjek, judul, body, cta)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            subjek = VALUES(subjek), judul = VALUES(judul),
+            body   = VALUES(body),   cta   = VALUES(cta)",
+        [$code, mb_substr(trim((string)$subjek), 0, 255),
+                mb_substr(trim((string)$judul), 0, 255),
+                kmpBersihkanHtml((string)$body),
+                mb_substr(trim((string)$cta), 0, 80)]
+    );
+}
+
+/**
+ * Saring HTML dari editor. Email hanya butuh penataan sederhana,
+ * dan tag di luar daftar ini banyak yang tidak didukung klien email
+ * atau justru berbahaya bila naskah disalin dari sumber lain.
+ */
+function kmpBersihkanHtml(string $html): string {
+    $html = preg_replace('#<(script|style|iframe|object|embed)\b.*?</\1>#is', '', $html);
+    $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
+    $html = strip_tags($html, '<p><br><strong><b><em><i><u><ul><ol><li><a><h3><h4><blockquote>');
+    return trim($html);
 }
 
 // ── Kelayakan kirim ─────────────────────────────────────────
@@ -347,8 +389,11 @@ function kmpJalankan(string $code, bool $simulasi = false, int $batasKirim = 400
             continue;
         }
 
-        $isi = ($d['isi'])($u);
-        $url = fbAppUrl() . ($d['tujuan'] ?? '/login.php');
+        $subjek = kmpIsiPenanda((string)$s['subjek'], $u);
+        $judul  = kmpIsiPenanda((string)$s['judul'],  $u);
+        $body   = kmpIsiPenanda((string)$s['body'],   $u);
+        $cta    = kmpIsiPenanda((string)$s['cta'],    $u);
+        $url    = fbAppUrl() . ($d['tujuan'] ?? '/login.php');
         if (!empty($d['perlu_token'])) {
             $url = fbAppUrl() . '/auth/set-password.php?token='
                  . ($simulasi ? 'SIMULASI' : kmpBuatToken((int)$u['id']));
@@ -358,15 +403,15 @@ function kmpJalankan(string $code, bool $simulasi = false, int $batasKirim = 400
 
         if ($simulasi) { $terkirim++; continue; }
 
-        $html = fbMailTemplate($isi['judul'], $isi['body'], $url, $isi['cta']);
+        $html = fbMailTemplate($judul, $body, $url, $cta);
         $ok   = true;
         try {
-            fbSendMail($u['email'], $d['subjek'], $html);
+            $ok = fbSendMail($u['email'], $subjek, $html);
         } catch (Throwable $e) {
             $ok = false;
             @error_log('[AGKB kampanye] gagal kirim ke ' . $u['email'] . ': ' . $e->getMessage());
         }
-        kmpCatat($code, $u, $d['subjek'], $ok);
+        kmpCatat($code, $u, $subjek, $ok);
         $ok ? $terkirim++ : $gagal++;
     }
 
