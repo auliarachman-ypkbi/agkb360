@@ -43,8 +43,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user) {
     }
 }
 
+/**
+ * Tujuan setelah kata sandi tersimpan.
+ *
+ * Nilainya datang dari URL, jadi tidak boleh dipercaya begitu saja:
+ * hanya jalur internal yang diterima. Tanpa penyaring ini, tautan
+ * aktivasi bisa dipakai melempar orang ke situs luar tepat setelah
+ * ia baru saja masuk — cara klasik memancing kredensial.
+ */
+function tujuanAman(?string $next): string {
+    $bawaan = APP_URL . '/dashboard/';
+    if (!$next) return $bawaan;
+
+    $next = urldecode($next);
+    if ($next === '' || $next[0] !== '/') return $bawaan;   // wajib jalur, bukan URL penuh
+    if (str_starts_with($next, '//'))     return $bawaan;   // //situs-luar.com
+    if (str_contains($next, "\r") || str_contains($next, "\n")) return $bawaan;
+    if (!str_starts_with($next, APP_URL . '/'))            return $bawaan;
+
+    return $next;
+}
+
+$next = $_GET['next'] ?? $_POST['next'] ?? null;
+
 if ($success) {
-    header('Location: ' . APP_URL . '/dashboard/');
+    header('Location: ' . tujuanAman($next));
     exit;
 }
 ?>
@@ -121,6 +144,9 @@ body{
       <strong><?= h($user['email']) ?></strong>
     </div>
     <form method="POST">
+      <?php if ($next): ?>
+      <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES, 'UTF-8') ?>">
+      <?php endif; ?>
       <div class="field">
         <label>New Password</label>
         <input type="password" name="password" placeholder="Minimum 8 characters" required minlength="8" autofocus>

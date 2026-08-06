@@ -863,6 +863,84 @@ function fbTembusanTetap(string $track): array {
     return $out;
 }
 
+// ── AKTIVASI PENERIMA YANG BELUM PUNYA KATA SANDI ───────────
+
+/**
+ * Apakah akun ini belum pernah menetapkan kata sandi.
+ *
+ * Akun PIC dibuat lewat migrasi dengan isian acak yang bukan hasil
+ * password_hash(), sehingga password_get_info() tidak mengenali
+ * algoritmanya. Itu penanda yang jauh lebih jujur daripada menebak
+ * dari last_login, yang bisa kosong walau kata sandinya sudah ada.
+ */
+function fbPerluAktivasi(array $u): bool {
+    $info = password_get_info((string)($u['password'] ?? ''));
+    return empty($info['algo']);
+}
+
+/**
+ * Kirim tautan pembuatan kata sandi, khusus untuk satu orang.
+ *
+ * SENGAJA email tersendiri, bukan disisipkan ke notifikasi tiket.
+ * Notifikasi tiket berbadan sama untuk semua penerima dan masih
+ * di-BCC ke alamat arsip — token pribadi di dalamnya berarti siapa
+ * pun bisa menetapkan kata sandi akun orang lain.
+ *
+ * Token yang masih berlaku tidak diterbitkan ulang, supaya orang
+ * yang belum sempat mengaktifkan tidak dibanjiri email tiap kali
+ * ada tiket baru.
+ */
+function fbKirimAktivasi(array $u, ?string $tujuan = null): bool {
+    if (!fbPerluAktivasi($u) || empty($u['email'])) return false;
+
+    $adaToken = Database::fetchOne(
+        "SELECT password_reset_token FROM users
+          WHERE id=? AND password_reset_token IS NOT NULL AND token_expires_at > NOW()",
+        [$u['id']]);
+    if ($adaToken) return false;
+
+    $token = bin2hex(random_bytes(32));
+    Database::query(
+        "UPDATE users SET password_reset_token=?, token_expires_at=? WHERE id=?",
+        [$token, date('Y-m-d H:i:s', strtotime('+7 days')), $u['id']]);
+
+    $url = fbAppUrl() . '/auth/set-password.php?token=' . $token;
+    if ($tujuan) $url .= '&next=' . rawurlencode($tujuan);
+
+    $body = '<p>Halo ' . h($u['name']) . ',</p>'
+          . '<p>Akun AGKB 360° atas nama Anda sudah terdaftar sebagai penanggung jawab, '
+          . 'tetapi kata sandinya belum pernah dibuat. Karena itu Anda belum bisa membuka '
+          . 'tiket yang ditujukan kepada Anda.</p>'
+          . '<p>Buat kata sandi lewat tombol di bawah. Sesudahnya Anda akan langsung '
+          . 'diarahkan ke halaman yang dituju.</p>'
+          . '<p style="font-size:12px;color:#6b6a83">Tautan ini berlaku 7 hari dan hanya '
+          . 'untuk Anda — jangan diteruskan kepada siapa pun.</p>';
+
+    return fbSendMail($u['email'], 'Buat kata sandi akun AGKB 360° Anda',
+        fbMailTemplate('Akun Anda belum aktif', $body, $url, 'Buat Kata Sandi'));
+}
+
+/**
+ * Untuk setiap alamat penerima yang ternyata milik akun belum aktif,
+ * kirimkan tautan aktivasi pribadinya.
+ */
+function fbAktifkanPenerima(array $emails, ?string $tujuan = null): void {
+    $emails = array_values(array_filter(array_unique($emails)));
+    if (!$emails) return;
+
+    $ph   = implode(',', array_fill(0, count($emails), '?'));
+    $baris = Database::fetchAll(
+        "SELECT id, name, email, password FROM users
+          WHERE email IN ($ph) AND is_active = 1", $emails);
+
+    foreach ($baris as $u) {
+        try { fbKirimAktivasi($u, $tujuan); }
+        catch (Throwable $e) {
+            @error_log('[AGKB aktivasi] gagal untuk ' . $u['email'] . ': ' . $e->getMessage());
+        }
+    }
+}
+
 function fbNotifyNew(int $ticketId): void {
     $t = fbLoadFull($ticketId);
     if (!$t || $t['is_test']) return;
@@ -903,6 +981,12 @@ function fbNotifyNew(int $ticketId): void {
     $tujuan += fbTembusanTetap($t['track']);
 
     foreach ($tujuan as $mail => $name) fbSendMail($mail, $subject, $html);
+
+    // Penerima yang akunnya belum pernah diaktifkan tidak akan bisa
+    // membuka tautan di atas. Mereka mendapat email tersendiri berisi
+    // tautan pribadi yang, setelah kata sandi dibuat, mengantar
+    // langsung ke tiket ini.
+    fbAktifkanPenerima(array_keys($tujuan), APP_URL . '/admin/ticket.php?id=' . $t['id']);
 }
 
 function fbNotifyEscalation(int $ticketId, int $newLevel): void {
