@@ -214,7 +214,9 @@ ob_start(); ?>
           <?php endforeach; ?>
         </select>
         <div style="font-size:11px;color:#6b6a83;margin-top:4px;line-height:1.5">
-          Tiket masuk ke antrean unit. Semua anggota melihat, satu orang mengambilnya.
+          Semua anggota unit melihat tiket kategori ini dan ikut menerima notifikasinya.
+          Kalau Penanggung Jawab Default di bawah kosong, tiket masuk sebagai antrean —
+          siapa pun anggota bisa mengambilnya.
         </div>
       </div>
       <div class="mb-2">
@@ -226,6 +228,10 @@ ob_start(); ?>
             <?= h($s['name']) ?> — <?= h(roleLabel($s['role'])) ?></option>
           <?php endforeach; ?>
         </select>
+        <div style="font-size:11px;color:#6b6a83;margin-top:4px;line-height:1.5">
+          Kalau diisi, tiket langsung dipegang orang ini begitu masuk — tidak menunggu
+          diambil dari antrean.
+        </div>
       </div>
       <div class="row g-2 mb-2">
         <div class="col-6">
