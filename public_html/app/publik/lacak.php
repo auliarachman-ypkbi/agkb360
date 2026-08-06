@@ -18,6 +18,25 @@ $token = trim($_GET['t'] ?? $_POST['t'] ?? '');
 $t     = $token !== '' ? pubTiketDariToken($token) : null;
 $error = '';
 
+// Balasan untuk pelapor. HANYA visibility='publik' — catatan
+// internal tidak boleh menyentuh halaman ini dalam keadaan apa pun,
+// jadi penyaringnya ditulis eksplisit di WHERE, bukan di PHP.
+$balasan = [];
+$resolusi = null;
+if ($t) {
+    $balasan = Database::fetchAll(
+        "SELECT m.body, m.created_at, u.name AS penulis
+           FROM feedback_messages m
+           LEFT JOIN users u ON u.id = m.author_id
+          WHERE m.ticket_id = ? AND m.visibility = 'publik'
+          ORDER BY m.created_at",
+        [$t['id']]);
+
+    $resolusi = Database::fetchOne(
+        "SELECT resolution_type, resolution_note FROM feedback_tickets WHERE id=?",
+        [$t['id']]);
+}
+
 if ($token !== '' && !$t) {
     $error = 'Tautan pelacakan tidak dikenali atau sudah kedaluwarsa. '
            . 'Periksa kembali tautan pada email yang Anda terima.';
@@ -63,6 +82,24 @@ ob_start(); ?>
 .tl .w{display:block;font-size:11px;color:#6f6e85;margin-top:1px}
 .err-box{background:#fdeceb;border:1px solid #f3b5b0;border-radius:9px;padding:12px 15px;font-size:13px;color:#8c1610;margin-bottom:16px;line-height:1.6}
 .note{background:#f3f4f6;border-radius:9px;padding:12px 15px;font-size:12.5px;color:#4a4863;line-height:1.65;margin-top:18px}
+/* Balasan — dilipat, dibuka sesuai kebutuhan */
+.bls{border:1px solid #e3e5ea;border-radius:10px;margin-bottom:9px;overflow:hidden;background:#fff}
+.bls>summary{list-style:none;cursor:pointer;padding:12px 15px;display:flex;align-items:flex-start;gap:10px;background:#fafafb}
+.bls>summary::-webkit-details-marker{display:none}
+.bls>summary:hover{background:#f3f4f6}
+.bls[open]>summary{border-bottom:1px solid #e3e5ea}
+.bls-ikon{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#eeebfc;color:#2201b2;display:flex;align-items:center;justify-content:center;font-size:12px}
+.bls-inti{flex:1;min-width:0}
+.bls-siapa{font-size:12.5px;font-weight:600;color:#040136}
+.bls-kapan{font-size:11px;color:#6f6e85;margin-top:1px}
+.bls-cuplik{font-size:12.5px;color:#6b6a83;margin-top:5px;line-height:1.55;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bls[open] .bls-cuplik{display:none}
+.bls-chev{flex-shrink:0;color:#6b6a83;font-size:13px;transition:transform .18s}
+.bls[open] .bls-chev{transform:rotate(180deg)}
+.bls-isi{padding:14px 15px;font-size:13.5px;color:#2f2d4d;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.bls.sel>summary{background:#e7f6ef}
+.bls.sel .bls-ikon{background:#cdeadd;color:#015c36}
+.bls.sel[open]>summary{border-bottom-color:#a6e0c4}
 .field label{display:block;font-size:11px;font-weight:600;color:#6b6a83;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .field input{width:100%;border:1.5px solid #e3e5ea;border-radius:9px;padding:10px 13px;font-size:13.5px;font-family:inherit;outline:none}
 .field input:focus{border-color:#2201b2;box-shadow:0 0 0 3px rgba(34,1,178,.12)}
@@ -108,6 +145,44 @@ ob_start(); ?>
       <?php endif; ?>
     </div>
 
+    <?php if ($balasan || ($resolusi && $resolusi['resolution_note'])): ?>
+    <div style="margin-top:22px">
+      <div style="font-size:11px;font-weight:700;color:#6b6a83;letter-spacing:.7px;text-transform:uppercase;margin-bottom:10px">
+        Balasan Penanganan
+      </div>
+
+      <?php foreach ($balasan as $i => $b): ?>
+      <details class="bls" <?= $i === count($balasan) - 1 && empty($resolusi['resolution_note']) ? 'open' : '' ?>>
+        <summary>
+          <span class="bls-ikon"><i class="bi bi-chat-left-text-fill"></i></span>
+          <span class="bls-inti">
+            <span class="bls-siapa"><?= h($b['penulis'] ?: 'Tim Penanganan') ?></span>
+            <span class="bls-kapan"><?= date('d M Y, H:i', strtotime($b['created_at'])) ?></span>
+            <span class="bls-cuplik"><?= h(mb_substr(trim($b['body']), 0, 140)) ?></span>
+          </span>
+          <i class="bi bi-chevron-down bls-chev"></i>
+        </summary>
+        <div class="bls-isi"><?= h($b['body']) ?></div>
+      </details>
+      <?php endforeach; ?>
+
+      <?php if ($resolusi && $resolusi['resolution_note']): ?>
+      <details class="bls sel" open>
+        <summary>
+          <span class="bls-ikon"><i class="bi bi-check-lg"></i></span>
+          <span class="bls-inti">
+            <span class="bls-siapa">Keterangan Penyelesaian</span>
+            <span class="bls-kapan"><?= h(fbResolutions()[$resolusi['resolution_type']] ?? '—') ?></span>
+            <span class="bls-cuplik"><?= h(mb_substr(trim($resolusi['resolution_note']), 0, 140)) ?></span>
+          </span>
+          <i class="bi bi-chevron-down bls-chev"></i>
+        </summary>
+        <div class="bls-isi"><?= h($resolusi['resolution_note']) ?></div>
+      </details>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <?php if ($riwayat): ?>
     <div style="margin-top:20px">
       <div style="font-size:11px;font-weight:700;color:#6b6a83;letter-spacing:.7px;text-transform:uppercase">Riwayat</div>
@@ -125,9 +200,10 @@ ob_start(); ?>
     <?php endif; ?>
 
     <div class="note">
-      <i class="bi bi-shield-lock me-1"></i>Demi menjaga kerahasiaan, halaman ini hanya
-      menampilkan status. Isi laporan dan catatan penanganan tidak ditampilkan di sini.
-      Penanggung jawab akan menghubungi Anda lewat email
+      <i class="bi bi-shield-lock me-1"></i>Halaman ini menampilkan status dan balasan yang
+      ditujukan untuk Anda. Catatan kerja internal antar penanganan tidak pernah ditampilkan
+      di sini. Karena tautan ini bisa dibuka siapa pun yang memegangnya, sebaiknya jangan
+      diteruskan ke orang lain. Penanggung jawab akan menghubungi Anda lewat email
       <strong><?= h($t['guest_email']) ?></strong> bila memerlukan keterangan tambahan.
     </div>
   </div>

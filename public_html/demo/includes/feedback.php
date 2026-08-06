@@ -931,12 +931,23 @@ function fbNotifyReply(int $ticketId, string $isi): void {
     $to = fbPelaporEmail($t);
     if (!$to) return;
 
+    // Email memuat cuplikan saja. Balasan panjang membuat sebagian
+    // klien memotong isinya sendiri di tengah kalimat tanpa memberi
+    // tanda — lebih jujur kalau kita yang memotong dan mengatakannya.
+    $batas    = 900;
+    $terpotong = mb_strlen($isi) > $batas;
+    $cuplikan = $terpotong ? mb_substr($isi, 0, $batas) . '…' : $isi;
+
     $body = '<p style="margin:0 0 12px">Ada balasan baru untuk laporan Anda.</p>'
           . fbTicketMetaHtml($t)
           . '<div style="font-size:15px;font-weight:600;color:#040136;margin-top:10px">' . h($t['subject']) . '</div>'
           . '<div style="font-size:14px;color:#2f2d4d;line-height:1.8;background:#fafafb;border-radius:8px;'
           . 'padding:14px;border-left:3px solid #2201b2;margin-top:10px">'
-          . nl2br(h(mb_substr($isi, 0, 1200))) . '</div>';
+          . nl2br(h($cuplikan)) . '</div>'
+          . ($terpotong
+             ? '<p style="margin:12px 0 0;font-size:12px;color:#6b6a83">Balasan ini dipotong agar '
+             . 'emailnya tidak terlalu panjang. Teks utuhnya ada di tautan di bawah.</p>'
+             : '');
 
     fbSendMail($to,
         '[AGKB 360°] Balasan — ' . $t['ticket_no'] . ' · ' . $t['subject'],
