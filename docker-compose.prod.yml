@@ -45,7 +45,15 @@ services:
     image: mysql:8.0
     container_name: ktb_mysql
     restart: unless-stopped
+    # PHP memakai Asia/Jakarta (diatur di config.php). Tanpa baris
+    # ini MySQL berjalan pada UTC, sehingga NOW() tertinggal tujuh
+    # jam dari due_at yang ditulis PHP — eskalasi otomatis dan
+    # peringatan tiket terlambat jadi telat tujuh jam.
+    # Dipakai offset, bukan nama zona, agar tidak bergantung pada
+    # tabel zona waktu MySQL yang tidak terpasang secara bawaan.
+    command: --default-time-zone=+07:00
     environment:
+      TZ: Asia/Jakarta
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pass_2024}
       MYSQL_DATABASE: ktb_evaluation
       MYSQL_USER: ktb_user

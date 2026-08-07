@@ -36,7 +36,12 @@ services:
     image: mysql:8.0
     container_name: ktb_mysql
     restart: unless-stopped
+    # Samakan dengan produksi: PHP memakai Asia/Jakarta, jadi MySQL
+    # harus ikut — kalau tidak, NOW() tertinggal tujuh jam dari
+    # due_at dan eskalasi otomatis meleset.
+    command: --default-time-zone=+07:00
     environment:
+      TZ: Asia/Jakarta
       MYSQL_ROOT_PASSWORD: root_pass_2024
       MYSQL_DATABASE: ktb_evaluation
       MYSQL_USER: ktb_user
