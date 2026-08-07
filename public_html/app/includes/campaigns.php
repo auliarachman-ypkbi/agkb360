@@ -79,6 +79,45 @@ function kmpDefinisi(): array {
                             AND role IN ($peran)",
     ],
 
+    // ── 1b. Pengelola yang belum pernah login ───────────────
+    // Sengaja terpisah dari kampanye Aktivasi Akun. Yang itu
+    // menyasar seluruh warga sekolah — ratusan orang sekaligus.
+    // Yang ini hanya menyentuh orang yang benar-benar memegang
+    // tiket, sehingga bisa dijalankan lebih dulu tanpa menyentuh
+    // guru, siswa, maupun orang tua.
+    'aktivasi_pengelola' => [
+        'nama'        => 'Aktivasi Akun Pengelola',
+        'penjelasan'  => 'Khusus PIC, tujuan eskalasi, dan anggota unit penanganan yang belum pernah login. Tidak menyentuh guru, siswa, atau orang tua.',
+        'atur_peran'  => false,
+        'perlu_token' => true,
+        'tujuan'      => null,
+        'subjek'      => 'Aktivasi Akun Pengelola AGKB 360°',
+        'judul'       => 'Akun Anda Menunggu Aktivasi',
+        'cta'         => 'Buat Kata Sandi',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p>Anda terdaftar sebagai penanggung jawab pada kanal masukan AGKB 360°. Laporan yang masuk sesuai kategori Anda akan dikirimkan ke alamat email ini beserta batas waktu penyelesaiannya.</p>
+<p>Akun Anda sudah dibuat, namun kata sandinya belum ditetapkan. Selama belum ditetapkan, Anda menerima pemberitahuan tetapi belum dapat membuka maupun menanggapi tiketnya.</p>
+<p>Silakan menetapkan kata sandi melalui tautan berikut. Tautan berlaku selama 7 hari sejak email ini diterima.</p>',
+        // Penangan = anggota unit penanganan, ATAU PIC kategori,
+        // ATAU tujuan eskalasi. Ketiganya dicakup karena seseorang
+        // bisa memegang peran itu tanpa terdaftar di unit mana pun.
+        'sasaran'     => "SELECT DISTINCT u.id, u.name, u.email, u.role
+                          FROM users u
+                          WHERE u.is_active = 1
+                            AND u.last_login IS NULL
+                            AND u.role <> 'tester'
+                            AND (
+                              EXISTS (SELECT 1 FROM user_groups ug
+                                        JOIN `groups` g ON g.id = ug.group_id
+                                                       AND g.type = 'penanganan'
+                                       WHERE ug.user_id = u.id)
+                              OR EXISTS (SELECT 1 FROM feedback_categories c
+                                          WHERE c.default_pic_id = u.id)
+                              OR EXISTS (SELECT 1 FROM feedback_escalation_levels el
+                                          WHERE el.user_id = u.id AND el.is_active = 1)
+                            )",
+    ],
+
     // ── 2. Sudah login, belum pernah menyampaikan apa pun ───
     'mulai_feedback' => [
         'nama'        => 'Ajakan Mencoba Feedback',
@@ -194,7 +233,11 @@ function kmpIsiPenanda(string $teks, array $u): string {
 /** Nilai bawaan kalau baris pengaturan belum ada di database. */
 function kmpBawaan(): array {
     return [
-        'aktivasi'       => ['jeda_hari' => 5, 'maks_kirim' => 0, 'roles' => ''],
+        'aktivasi'           => ['jeda_hari' => 5, 'maks_kirim' => 0, 'roles' => ''],
+        // Jeda pendek dan dibatasi tiga kiriman: pengelola jumlahnya
+        // sedikit dan memang perlu segera masuk, tapi tidak pantas
+        // diingatkan tanpa henti.
+        'aktivasi_pengelola' => ['jeda_hari' => 3, 'maks_kirim' => 3, 'roles' => ''],
         'mulai_feedback' => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => ''],
         'ajakan_rutin'   => ['jeda_hari' => 7, 'maks_kirim' => 4, 'roles' => ''],
         'antrean_unit'   => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => ''],
