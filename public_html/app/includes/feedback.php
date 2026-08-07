@@ -225,6 +225,7 @@ function fbEventLabel(string $type): string {
         'status_diubah'       => 'Status diubah',
         'prioritas_diubah'    => 'Prioritas diubah',
         'pic_diubah'          => 'Penanggung jawab diubah',
+        'kategori_diubah'     => 'Kategori dipindahkan',
         'dieskalasi_otomatis' => 'Dieskalasi otomatis (SLA terlampaui)',
         'dieskalasi_manual'   => 'Dieskalasi manual',
         'dibalas'             => 'Dibalas',
