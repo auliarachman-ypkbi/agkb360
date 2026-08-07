@@ -233,16 +233,41 @@ function kmpIsiPenanda(string $teks, array $u): string {
 /** Nilai bawaan kalau baris pengaturan belum ada di database. */
 function kmpBawaan(): array {
     return [
-        'aktivasi'           => ['jeda_hari' => 5, 'maks_kirim' => 0, 'roles' => ''],
+        // jam = jam WIB pengiriman. Sengaja berbeda-beda supaya
+        // tidak semua kampanye menumpuk di menit yang sama, dan
+        // supaya yang mendesak datang lebih dulu: peringatan tiket
+        // terlambat sebelum jam kerja, ajakan ke orang tua sore.
+        'aktivasi'           => ['jeda_hari' => 5, 'maks_kirim' => 0, 'roles' => '', 'jam' => 9],
         // Jeda pendek dan dibatasi tiga kiriman: pengelola jumlahnya
         // sedikit dan memang perlu segera masuk, tapi tidak pantas
         // diingatkan tanpa henti.
-        'aktivasi_pengelola' => ['jeda_hari' => 3, 'maks_kirim' => 3, 'roles' => ''],
-        'mulai_feedback' => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => ''],
-        'ajakan_rutin'   => ['jeda_hari' => 7, 'maks_kirim' => 4, 'roles' => ''],
-        'antrean_unit'   => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => ''],
-        'tiket_telat'    => ['jeda_hari' => 1, 'maks_kirim' => 0, 'roles' => ''],
+        'aktivasi_pengelola' => ['jeda_hari' => 3, 'maks_kirim' => 3, 'roles' => '', 'jam' => 8],
+        'mulai_feedback' => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => '', 'jam' => 10],
+        'ajakan_rutin'   => ['jeda_hari' => 7, 'maks_kirim' => 4, 'roles' => '', 'jam' => 16],
+        'antrean_unit'   => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => '', 'jam' => 7],
+        'tiket_telat'    => ['jeda_hari' => 1, 'maks_kirim' => 0, 'roles' => '', 'jam' => 7],
     ];
+}
+
+/**
+ * Jam kirim sebuah kampanye, dalam WIB.
+ * Nilai dari admin mengalahkan bawaan; kalau keduanya tidak ada,
+ * jatuh ke jam 8 pagi.
+ */
+function kmpJam(string $code): int {
+    $s = kmpStatus()[$code] ?? [];
+    return (int)($s['jam_kirim'] ?? 8);
+}
+
+/**
+ * Apakah kampanye ini memang dijadwalkan untuk jam sekarang.
+ *
+ * Jam dibaca lewat date() sehingga memakai Asia/Jakarta dari
+ * config.php — tidak bergantung pada zona waktu sistem operasi
+ * VPS, yang masih UTC.
+ */
+function kmpWaktunya(string $code): bool {
+    return (int)date('G') === kmpJam($code);
 }
 
 /** Pengaturan seluruh kampanye: definisi kode + pengaturan database. */
@@ -264,6 +289,9 @@ function kmpStatus(): array {
             'is_active'  => (int)($s['is_active']  ?? 0),
             'jeda_hari'  => (int)($s['jeda_hari']  ?? $b['jeda_hari']),
             'maks_kirim' => (int)($s['maks_kirim'] ?? $b['maks_kirim']),
+            // Kolom jam_kirim baru ada sejak migrasi 022. Selama
+            // belum dijalankan, ?? menjatuhkannya ke jam bawaan.
+            'jam_kirim'  => (int)($s['jam_kirim'] ?? $b['jam'] ?? 8),
             'roles'      => (string)($s['roles']   ?? $b['roles']),
             'started_at' => $s['started_at'] ?? null,
             'ends_at'    => $s['ends_at']    ?? null,
@@ -293,23 +321,25 @@ function kmpAktif(string $code): bool {
 }
 
 /** Simpan pengaturan dari halaman admin. */
-function kmpSimpan(string $code, bool $aktif, int $jedaHari, int $maksKirim, array $roles, ?string $endsAt = null): void {
+function kmpSimpan(string $code, bool $aktif, int $jedaHari, int $maksKirim, array $roles, ?string $endsAt = null, ?int $jam = null): void {
     $jedaHari  = max(1, min(90, $jedaHari));
     $maksKirim = max(0, min(50, $maksKirim));
     $roles     = implode(',', array_values(array_intersect(kmpSemuaPeran(), $roles)));
     $endsAt    = $endsAt ?: null;
+    $jam       = $jam === null ? null : max(0, min(23, $jam));
 
     Database::query(
-        "INSERT INTO email_campaign_state (code, is_active, jeda_hari, maks_kirim, roles, started_at, ends_at)
-         VALUES (?, ?, ?, ?, ?, IF(?, NOW(), NULL), ?)
+        "INSERT INTO email_campaign_state (code, is_active, jeda_hari, maks_kirim, jam_kirim, roles, started_at, ends_at)
+         VALUES (?, ?, ?, ?, ?, ?, IF(?, NOW(), NULL), ?)
          ON DUPLICATE KEY UPDATE
             is_active  = VALUES(is_active),
             jeda_hari  = VALUES(jeda_hari),
             maks_kirim = VALUES(maks_kirim),
+            jam_kirim  = VALUES(jam_kirim),
             roles      = VALUES(roles),
             started_at = IF(VALUES(is_active) AND started_at IS NULL, NOW(), started_at),
             ends_at    = VALUES(ends_at)",
-        [$code, $aktif ? 1 : 0, $jedaHari, $maksKirim, $roles, $aktif ? 1 : 0, $endsAt]
+        [$code, $aktif ? 1 : 0, $jedaHari, $maksKirim, $jam, $roles, $aktif ? 1 : 0, $endsAt]
     );
 }
 

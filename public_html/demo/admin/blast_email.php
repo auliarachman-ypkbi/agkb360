@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_kampanye'])) {
             (int)($_POST['jeda_hari']  ?? 7),
             (int)($_POST['maks_kirim'] ?? 0),
             (array)($_POST['roles']    ?? []),
-            trim($_POST['ends_at'] ?? '') ?: null
+            trim($_POST['ends_at'] ?? '') ?: null,
+            isset($_POST['jam_kirim']) ? (int)$_POST['jam_kirim'] : null
         );
         flash('Pengaturan kampanye "' . h(kmpDefinisi()[$code]['nama']) . '" disimpan.', 'success');
     }
@@ -369,8 +370,8 @@ ob_start(); ?>
 .kmp-isi{padding:14px 16px;display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
 .kmp-f{display:flex;flex-direction:column;gap:5px}
 .kmp-f label{font-size:10px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px}
-.kmp-f input[type=number],.kmp-f input[type=date]{width:104px;border:1px solid #e3e5ea;border-radius:7px;padding:7px 10px;font-size:13px;outline:none}
-.kmp-f input:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
+.kmp-f input[type=number],.kmp-f input[type=date],.kmp-f select{width:104px;border:1px solid #e3e5ea;border-radius:7px;padding:7px 10px;font-size:13px;outline:none;background:#fff;color:#040136;font-family:inherit}
+.kmp-f input:focus,.kmp-f select:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.1)}
 .kmp-peran{display:flex;gap:6px;flex-wrap:wrap;max-width:430px}
 .kmp-peran label{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#2f2d4d;border:1px solid #e3e5ea;border-radius:20px;padding:4px 11px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500}
 .kmp-peran label:has(input:checked){background:#eeebfc;border-color:#b9aef2;color:#030870;font-weight:600}
@@ -501,6 +502,17 @@ ob_start(); ?>
           <label>Maks kirim</label>
           <input type="number" name="maks_kirim" min="0" max="50" value="<?= (int)$k['maks_kirim'] ?>"
                  title="0 = kirim terus sampai orangnya bertindak">
+        </div>
+
+        <div class="kmp-f">
+          <label>Jam kirim</label>
+          <select name="jam_kirim" title="Waktu Indonesia Barat. Penjadwal berjalan tiap jam.">
+            <?php for ($j = 0; $j < 24; $j++): ?>
+            <option value="<?= $j ?>" <?= (int)$k['jam_kirim'] === $j ? 'selected' : '' ?>>
+              <?= sprintf('%02d:00', $j) ?>
+            </option>
+            <?php endfor; ?>
+          </select>
         </div>
 
         <div class="kmp-f">

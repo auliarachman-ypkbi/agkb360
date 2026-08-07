@@ -3,8 +3,16 @@
  * ============================================================
  * AGKB 360° — Cron: kampanye email terjadwal
  * ------------------------------------------------------------
- * Jalankan sekali sehari, pagi hari kerja:
- *   30 7 * * 1-5 docker exec ktb_php php /var/www/html/app/cron/campaigns.php >> /var/log/agkb-kampanye.log 2>&1
+ * Jalankan SETIAP JAM pada hari kerja:
+ *   5 * * * 1-5 docker exec ktb_php php /var/www/html/app/cron/campaigns.php >> /var/log/agkb-kampanye.log 2>&1
+ *
+ * Jam pengiriman tiap kampanye diatur dari halaman Blast Email,
+ * bukan dari crontab. Skrip ini dipanggil tiap jam, lalu hanya
+ * menjalankan kampanye yang jamnya cocok. Dengan begitu jam kirim
+ * bisa digeser tanpa menyentuh server.
+ *
+ * Jam dibaca lewat date() sehingga memakai Asia/Jakarta dari
+ * config.php — sistem operasi VPS boleh tetap UTC.
  *
  * Penjadwal ada di sini, bukan di Apps Script, karena yang tahu
  * siapa belum login dan siapa belum pernah mengirim adalah
@@ -38,8 +46,9 @@ if (!$isCli) {
     header('Content-Type: text/plain; charset=utf-8');
 }
 
-$opts    = $isCli ? getopt('', ['dry', 'only::', 'batas::']) : [];
+$opts    = $isCli ? getopt('', ['dry', 'only::', 'batas::', 'paksa']) : [];
 $simulasi = isset($opts['dry']);
+$paksa    = isset($opts['paksa']) || isset($_GET['paksa']);
 $hanya    = $opts['only'] ?? ($_GET['only'] ?? '');
 $batas    = (int)($opts['batas'] ?? 400);
 
@@ -64,11 +73,22 @@ foreach ($defs as $code => $d) {
 
     $aktif = isset($status[$code]) && (int)$status[$code]['is_active'] === 1;
     $habis = !empty($status[$code]['ends_at']) && strtotime($status[$code]['ends_at']) < time();
+    $jam   = kmpJam($code);
 
-    printf("\n── %-28s %s\n", $d['nama'], $aktif ? ($habis ? '[SUDAH BERAKHIR]' : '[aktif]') : '[mati]');
+    printf("\n── %-28s %s  (jadwal %02d:00 WIB)\n",
+        $d['nama'], $aktif ? ($habis ? '[SUDAH BERAKHIR]' : '[aktif]') : '[mati]', $jam);
 
     if (!$simulasi && (!$aktif || $habis)) {
         echo "   dilewati — kampanye tidak aktif\n";
+        continue;
+    }
+
+    // Skrip ini dipanggil tiap jam; tiap kampanye hanya bekerja
+    // pada jamnya sendiri. Pemanggilan manual dengan --only atau
+    // --paksa mengabaikan pemeriksaan ini, karena di situ niatnya
+    // memang mengirim sekarang.
+    if (!$simulasi && !$hanya && !$paksa && !kmpWaktunya($code)) {
+        printf("   dilewati — belum waktunya (sekarang %02d:00 WIB)\n", (int)date('G'));
         continue;
     }
 
