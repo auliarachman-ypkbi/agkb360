@@ -654,6 +654,14 @@ function fbSenderDisplay(array $t, array $viewer): array {
     // Identitasnya diisi sendiri oleh pelapor dan TIDAK diverifikasi
     // — penanganan harus tahu itu sebelum menindaklanjuti.
     if (empty($t['sender_id']) && !empty($t['guest_email'])) {
+        // Tamu pun bisa memilih anonim. Aturannya sama seperti
+        // pelapor ber-akun: identitas tetap tersimpan, hanya
+        // disembunyikan dari penanganan, dan hanya superadmin yang
+        // dapat membukanya.
+        if (!empty($t['is_anonymous']) && ($viewer['role'] ?? '') !== 'superadmin') {
+            return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null,
+                    'masked'=>true, 'tamu'=>true];
+        }
         return [
             'name'   => $t['guest_name'] ?: 'Pelapor Publik',
             'email'  => $t['guest_email'],

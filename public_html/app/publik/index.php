@@ -26,6 +26,8 @@ $track   = $_POST['track'] ?? $_GET['track'] ?? 'inquiry';
 $error   = '';
 $sukses  = null;
 $token   = null;
+$lampiranMasuk = 0;
+$lampiranGagal = [];
 
 $allTracks = ['apresiasi','inquiry','safeguarding'];
 if (!in_array($track, $allTracks, true)) $track = 'inquiry';
@@ -84,10 +86,43 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'guest_phone' => $telepon,
             'guest_role'  => $hubung,
             'ip_bin'      => $ipBin,
+            // Anonim hanya ditawarkan pada Kanal Yayasan, dan hanya
+            // bila kategorinya memang mengizinkan.
+            'is_anonymous' => ($track === 'safeguarding'
+                               && !empty($cat['allow_anonymous'])
+                               && !empty($_POST['is_anonymous'])),
         ]);
 
         $sukses = fbLoadFull($hasil['id']);
         $token  = $hasil['token'];
+
+        // Lampiran. Berkas pada Kanal Yayasan disegel: tidak dapat
+        // dihapus dan setiap pengunduhan tercatat.
+        //
+        // Berkas yang ditolak TIDAK menggagalkan laporannya — isi
+        // laporan jauh lebih penting daripada lampirannya. Tapi
+        // penolakannya diberitahukan, supaya pelapor tidak mengira
+        // buktinya sudah masuk padahal tidak.
+        if (!empty($_FILES['attachments']['name'][0])) {
+            $segel = $track === 'safeguarding';
+            $n = min(count($_FILES['attachments']['name']), FB_MAX_FILES);
+            for ($i = 0; $i < $n; $i++) {
+                if (($_FILES['attachments']['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
+                $r = fbStoreUpload($hasil['id'], [
+                    'name'     => $_FILES['attachments']['name'][$i],
+                    'tmp_name' => $_FILES['attachments']['tmp_name'][$i],
+                    'size'     => $_FILES['attachments']['size'][$i],
+                    'error'    => $_FILES['attachments']['error'][$i],
+                ], null, $segel);
+
+                if (!empty($r['ok'])) {
+                    $lampiranMasuk++;
+                } else {
+                    $lampiranGagal[] = $_FILES['attachments']['name'][$i]
+                                     . ' — ' . ($r['error'] ?? 'ditolak');
+                }
+            }
+        }
 
         // Notifikasi ke penanganan memakai jalur yang sudah ada,
         // supaya aturan siapa-boleh-tahu tetap satu sumber.
@@ -181,6 +216,25 @@ ob_start(); ?>
     <?php endif; ?>
   </div>
 
+  <?php if ($token && ($lampiranMasuk || $lampiranGagal)): ?>
+  <div style="text-align:left;background:<?= $lampiranGagal ? '#fdeceb' : '#e7f6ef' ?>;
+              border:1px solid <?= $lampiranGagal ? '#f3b5b0' : '#a6e0c4' ?>;border-radius:10px;
+              padding:12px 15px;margin:0 0 16px;font-size:12.5px;
+              color:<?= $lampiranGagal ? '#8c1610' : '#015c36' ?>;line-height:1.6">
+    <?php if ($lampiranMasuk): ?>
+      <strong><?= (int)$lampiranMasuk ?> lampiran tersimpan.</strong><br>
+    <?php endif; ?>
+    <?php if ($lampiranGagal): ?>
+      Berkas berikut tidak dapat diterima dan <strong>tidak ikut terkirim</strong>:
+      <?php foreach ($lampiranGagal as $g): ?>
+        <br>· <?= h($g) ?>
+      <?php endforeach; ?>
+      <br>Laporan Anda tetap tercatat. Kalau bukti itu penting, sebutkan nomor tiket di atas
+      saat menghubungi sekolah.
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <?php if ($token): ?>
   <div class="spam-box">
     <span class="spam-ikon"><i class="bi bi-exclamation-lg"></i></span>
@@ -272,7 +326,7 @@ ob_start(); ?>
     </div>
     <?php endif; ?>
 
-    <form method="POST" autocomplete="on">
+    <form method="POST" autocomplete="on" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="<?= h(csrfToken()) ?>">
       <input type="hidden" name="track" value="<?= h($track) ?>">
 
@@ -362,11 +416,42 @@ ob_start(); ?>
           oninput="document.getElementById('msg-c').textContent=this.value.length"><?= h($_POST['message'] ?? '') ?></textarea>
         <div class="char-count"><span id="msg-c"><?= mb_strlen($_POST['message']??'') ?></span>/4000 karakter</div>
         <div class="hint">
-          <i class="bi bi-info-circle me-1"></i>Setelah terkirim, isi laporan tidak dapat
-          diubah. Lampiran berkas belum tersedia lewat jalur publik — kalau ada bukti yang
-          perlu disertakan, sebutkan di pesan, dan penanggung jawab akan menghubungi Anda.
+          <i class="bi bi-info-circle me-1"></i>Setelah terkirim, isi laporan tidak dapat diubah.
         </div>
       </div>
+
+      <div class="field">
+        <label>Lampiran <span style="font-weight:400;text-transform:none;letter-spacing:0">(opsional)</span></label>
+        <input type="file" name="attachments[]" multiple
+               accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.xlsx,.mp3,.m4a,.mp4"
+               style="width:100%;border:1.5px dashed #cdd0d8;border-radius:9px;padding:11px 13px;font-size:13px;background:#fafafb">
+        <div class="hint">
+          Maksimal <?= FB_MAX_FILES ?> berkas, 10 MB per berkas. Gambar, PDF, Word, Excel, audio, atau video.
+          <?php if ($track === 'safeguarding'): ?>
+          <br><strong>Lampiran pada kanal ini disegel</strong> — tidak dapat dihapus, dan setiap
+          pengunduhan tercatat.
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <?php if ($track === 'safeguarding'): ?>
+      <div class="field">
+        <label style="text-transform:none;letter-spacing:0;font-size:12px;color:#040136">
+          <input type="checkbox" name="is_anonymous" value="1" style="margin-right:7px"
+                 <?= !empty($_POST['is_anonymous']) ? 'checked' : '' ?>>
+          Kirim tanpa mencantumkan nama saya
+        </label>
+        <div class="hint" style="margin-top:7px">
+          Nama Anda tidak akan terlihat oleh siapa pun yang menangani laporan ini. Data Anda
+          tetap tersimpan dan hanya dapat dibuka oleh pengelola sistem bila ada dugaan
+          penyalahgunaan — setiap pembukaan tercatat. Tautan pelacakan tetap dikirim ke email
+          Anda seperti biasa.
+          <br>Perlu diketahui: tanpa nama, penanggung jawab tidak dapat menanyakan keterangan
+          tambahan kepada Anda. Untuk laporan yang mungkin memerlukan tindak lanjut langsung,
+          mencantumkan nama biasanya lebih menolong.
+        </div>
+      </div>
+      <?php endif; ?>
 
       <div class="btn-row">
         <button type="submit" class="btn-submit <?= $track==='safeguarding'?'sg':'' ?>">

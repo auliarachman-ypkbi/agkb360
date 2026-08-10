@@ -153,12 +153,13 @@ function pubUrlLacak(string $token): string {
  */
 function pubBuatTiketTamu(array $in): array {
     $token = pubBuatToken();
+    $anon  = !empty($in['is_anonymous']);
 
     $id = fbCreateTicket([
         'category_id'  => $in['category_id'],
         'track'        => $in['track'],
         'sender_id'    => null,
-        'is_anonymous' => 0,
+        'is_anonymous' => $anon ? 1 : 0,
         'subject'      => $in['subject'],
         'message'      => $in['message'],
         'impact'       => $in['impact'] ?? null,
@@ -172,9 +173,14 @@ function pubBuatTiketTamu(array $in): array {
         [$in['guest_name'], $in['guest_email'], $in['guest_phone'] ?: null,
          $in['guest_role'] ?: null, $token, $in['ip_bin'], $id]);
 
+    // Catatan riwayat terbaca oleh penanganan. Untuk laporan anonim
+    // ia TIDAK boleh memuat nama atau email — kalau tidak, identitas
+    // yang disembunyikan di kolom pelapor bocor lewat pintu belakang.
     fbLogEvent($id, 'dibuat', null, 'publik',
-        'Dikirim lewat formulir publik oleh ' . $in['guest_name']
-        . ' <' . $in['guest_email'] . '> — identitas TIDAK terverifikasi');
+        $anon
+            ? 'Dikirim lewat formulir publik tanpa mencantumkan nama — identitas tersimpan, hanya dapat dibuka superadmin'
+            : 'Dikirim lewat formulir publik oleh ' . $in['guest_name']
+              . ' <' . $in['guest_email'] . '> — identitas TIDAK terverifikasi');
 
     return ['id' => $id, 'token' => $token];
 }
