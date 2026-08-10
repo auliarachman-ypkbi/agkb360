@@ -15,9 +15,15 @@
  * ============================================================
  */
 
-// Arsip pemantauan. Semua email masuk ke sini diam-diam.
+// Arsip pemantauan. Semua email masuk ke sini diam-diam — termasuk
+// notifikasi Kanal Yayasan yang isinya sensitif. Karena itu daftar
+// ini harus sependek mungkin dan hanya berisi orang yang memang
+// sudah ditunjuk membaca kanal tersebut.
+//
+// edu@kaderbangsa.foundation dilepas: kotak itu tidak termasuk
+// orang yang ditunjuk, dan sebagian isinya kini menyangkut persepsi
+// terhadap pimpinan sekolah.
 var ARSIP = [
-  'edu@kaderbangsa.foundation',
   'aulia.rachman@kaderbangsa.foundation'
 ];
 

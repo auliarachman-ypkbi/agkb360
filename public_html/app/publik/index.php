@@ -238,7 +238,7 @@ ob_start(); ?>
       $trackDesc = [
         'apresiasi'    => 'Akui kontribusi positif atau hal yang berjalan baik',
         'inquiry'      => 'Sampaikan kendala, keluhan, atau saran perbaikan',
-        'safeguarding' => 'Langsung ke Yayasan, tidak dibaca pihak sekolah',
+        'safeguarding' => 'Disampaikan langsung kepada Pengurus Yayasan',
       ];
       foreach ($allTracks as $tk):
         if (empty($catByTrack[$tk])) continue; ?>
@@ -251,18 +251,18 @@ ob_start(); ?>
     </div>
 
     <?php if ($track === 'safeguarding'): ?>
-    <div class="warn-box">
-      <strong><i class="bi bi-exclamation-octagon-fill me-1"></i>Jika ada anak dalam bahaya saat ini, jangan menunggu sistem ini.</strong>
-      Hubungi penanggung jawab perlindungan anak secara langsung, atau layanan darurat.
-      Formulir ini untuk pencatatan dan tindak lanjut, bukan penanganan darurat.
-    </div>
     <div class="info-box">
       <i class="bi bi-shield-lock" style="flex-shrink:0;margin-top:1px"></i>
-      <span>Laporan pada kanal ini <strong>hanya dapat dibaca oleh Pengurus Yayasan yang
-      ditunjuk</strong> — tidak oleh admin, tidak oleh pimpinan sekolah, tidak oleh
-      Customer Care. Gunakan kanal ini untuk hal yang tidak pantas melewati jalur sekolah:
-      perlindungan anak, masukan mengenai pimpinan, kehidupan asrama, dan sejenisnya.
-      Tidak boleh ada tindakan balasan apa pun terhadap pelapor yang beritikad baik.</span>
+      <span>Kanal ini untuk hal yang ingin Anda sampaikan langsung kepada Yayasan —
+      perlindungan anak, akademik, kepemimpinan, kehidupan asrama, dan sejenisnya.
+      Laporan Anda diterima Pengurus Yayasan yang ditunjuk dan ditangani dengan
+      kerahasiaan. Anda boleh mengirimkannya tanpa mencantumkan nama, dan tidak akan ada
+      konsekuensi apa pun bagi pelapor yang beritikad baik.</span>
+    </div>
+    <div class="hint" style="margin:-8px 0 18px">
+      <i class="bi bi-clock-history me-1"></i>Laporan pada kanal ini ditinjau dalam
+      1×24 jam. Untuk keadaan yang memerlukan penanganan segera, hubungi sekolah atau
+      layanan darurat secara langsung.
     </div>
     <?php else: ?>
     <div class="info-box">
