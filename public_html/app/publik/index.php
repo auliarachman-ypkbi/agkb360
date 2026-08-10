@@ -238,7 +238,7 @@ ob_start(); ?>
       $trackDesc = [
         'apresiasi'    => 'Akui kontribusi positif atau hal yang berjalan baik',
         'inquiry'      => 'Sampaikan kendala, keluhan, atau saran perbaikan',
-        'safeguarding' => 'Laporan yang menyangkut keselamatan dan perlindungan anak',
+        'safeguarding' => 'Langsung ke Yayasan, tidak dibaca pihak sekolah',
       ];
       foreach ($allTracks as $tk):
         if (empty($catByTrack[$tk])) continue; ?>
@@ -257,10 +257,12 @@ ob_start(); ?>
       Formulir ini untuk pencatatan dan tindak lanjut, bukan penanganan darurat.
     </div>
     <div class="info-box">
-      <i class="bi bi-shield-check" style="flex-shrink:0;margin-top:1px"></i>
-      <span>Laporan ini <strong>hanya dapat dilihat oleh Yayasan</strong> — tidak oleh admin
-      maupun pimpinan sekolah. Tidak boleh ada tindakan balasan apa pun terhadap pelapor
-      yang beritikad baik.</span>
+      <i class="bi bi-shield-lock" style="flex-shrink:0;margin-top:1px"></i>
+      <span>Laporan pada kanal ini <strong>hanya dapat dibaca oleh Pengurus Yayasan yang
+      ditunjuk</strong> — tidak oleh admin, tidak oleh pimpinan sekolah, tidak oleh
+      Customer Care. Gunakan kanal ini untuk hal yang tidak pantas melewati jalur sekolah:
+      perlindungan anak, masukan mengenai pimpinan, kehidupan asrama, dan sejenisnya.
+      Tidak boleh ada tindakan balasan apa pun terhadap pelapor yang beritikad baik.</span>
     </div>
     <?php else: ?>
     <div class="info-box">

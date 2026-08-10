@@ -14,7 +14,11 @@ function fbTracks(): array {
     return [
         'apresiasi'    => ['label'=>'Apresiasi',    'icon'=>'bi-star-fill',            'color'=>'#0f7a3d'],
         'inquiry'      => ['label'=>'Kendala / Masukan', 'icon'=>'bi-exclamation-circle-fill','color'=>'#030870'],
-        'safeguarding' => ['label'=>'Perlindungan Anak',  'icon'=>'bi-shield-fill-exclamation','color'=>'#b42318'],
+        // Kode 'safeguarding' dipertahankan di database — menggantinya
+        // menyentuh enum, indeks, dan tiket lama tanpa manfaat. Yang
+        // berubah cakupannya: kini kanal tertutup ke Yayasan untuk
+        // segala hal sensitif, bukan perlindungan anak semata.
+        'safeguarding' => ['label'=>'Kanal Yayasan',  'icon'=>'bi-shield-lock-fill','color'=>'#b42318'],
     ];
 }
 
@@ -193,7 +197,9 @@ function fbHoursLeft(array $t): ?float {
 // ── NOMOR TIKET ─────────────────────────────────────────────
 
 function fbGenerateTicketNo(string $track): string {
-    $prefix = $track === 'safeguarding' ? 'SG' : 'AGKB';
+    // KY = Kanal Yayasan. Tiket lama berawalan SG tetap apa adanya —
+    // nomor yang sudah beredar tidak boleh berubah.
+    $prefix = $track === 'safeguarding' ? 'KY' : 'AGKB';
     $year   = date('Y');
     $row = Database::fetchOne(
         "SELECT ticket_no FROM feedback_tickets
@@ -556,9 +562,37 @@ function fbRunAutoEscalation(int $limit = 50): int {
 
 // ── IZIN AKSES ──────────────────────────────────────────────
 
+/**
+ * Siapa yang boleh membaca Kanal Yayasan.
+ *
+ * Dulu berbasis peran: siapa pun ber-role foundation ikut membaca.
+ * Itu terlalu longgar untuk kanal yang isinya termasuk persepsi
+ * terhadap pimpinan sekolah — menambah satu pengurus yayasan berarti
+ * diam-diam menambah pembaca.
+ *
+ * Sekarang berbasis daftar orang: keanggotaan unit 'Kanal Yayasan'.
+ * Menambah atau mencabut akses cukup lewat Admin CMS, tanpa
+ * menyentuh kode. Superadmin tetap bisa demi pemeliharaan sistem.
+ */
 function fbCanSeeSafeguarding(?array $u = null): bool {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
-    return in_array($role, ['superadmin','foundation'], true);
+    if ($role === 'superadmin') return true;
+
+    $uid = (int)($u['id'] ?? ($_SESSION['user_id'] ?? 0));
+    if ($uid <= 0) return false;
+
+    // Dijawab sekali per permintaan: fungsi ini dipanggil untuk
+    // setiap baris pada daftar tiket.
+    static $ingatan = [];
+    if (array_key_exists($uid, $ingatan)) return $ingatan[$uid];
+
+    $ingatan[$uid] = (bool)Database::fetchOne(
+        "SELECT 1 FROM user_groups ug
+           JOIN `groups` g ON g.id = ug.group_id
+          WHERE ug.user_id = ? AND g.type = 'penanganan'
+            AND g.name = 'Kanal Yayasan' LIMIT 1", [$uid]);
+
+    return $ingatan[$uid];
 }
 
 function fbCanManage(?array $u = null): bool {
