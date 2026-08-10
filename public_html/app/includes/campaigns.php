@@ -118,6 +118,38 @@ function kmpDefinisi(): array {
                             )",
     ],
 
+    // ── 1c. Pengumuman ke semua akun ────────────────────────
+    // Satu-satunya kampanye tanpa syarat keadaan: siapa pun yang
+    // punya akun aktif akan menerimanya.
+    //
+    // SENGAJA TIDAK UNTUK DIJADWALKAN. Kampanye lain berhenti
+    // sendiri dengan menghitung berapa kali seseorang sudah
+    // dikirimi. Pengumuman tidak begitu — isinya berganti tiap
+    // kali, sehingga hitungan itu justru menghalangi pengumuman
+    // berikutnya. Pakai tombol Kirim Sekarang, biarkan saklar
+    // Aktif tetap mati.
+    'pengumuman' => [
+        'nama'        => 'Pengumuman Umum',
+        'penjelasan'  => 'Ke semua akun aktif, tanpa syarat. Sunting naskahnya lebih dulu, lalu tekan Kirim Sekarang. Kampanye ini tidak pernah dijalankan penjadwal — hanya manual.',
+        'atur_peran'  => true,
+        // Penjadwal melewatinya, apa pun keadaan saklar Aktif.
+        // Tanpa ini, satu centang tak sengaja berarti pengumuman
+        // yang sama terkirim ke semua orang tiap hari.
+        'manual'      => true,
+        'perlu_token' => false,
+        'tujuan'      => '/dashboard/',
+        'subjek'      => 'Pengumuman dari AGKB 360°',
+        'judul'       => 'Pengumuman',
+        'cta'         => 'Buka AGKB 360°',
+        'body'        => '<p>Yth. {{nama}},</p>
+<p><em>Ganti bagian ini dengan isi pengumuman Anda sebelum mengirim.</em></p>
+<p>Naskah ini tersimpan sampai diubah lagi, sehingga pengumuman berikutnya tidak perlu ditulis dari awal apabila bentuknya serupa.</p>',
+        'sasaran'     => "SELECT id, name, email, role FROM users
+                          WHERE is_active = 1
+                            AND role <> 'tester'
+                            AND role IN ($peran)",
+    ],
+
     // ── 2. Sudah login, belum pernah menyampaikan apa pun ───
     'mulai_feedback' => [
         'nama'        => 'Ajakan Mencoba Feedback',
@@ -242,6 +274,10 @@ function kmpBawaan(): array {
         // sedikit dan memang perlu segera masuk, tapi tidak pantas
         // diingatkan tanpa henti.
         'aktivasi_pengelola' => ['jeda_hari' => 3, 'maks_kirim' => 3, 'roles' => '', 'jam' => 8],
+        // maks_kirim 0 supaya pengumuman kedua tidak terhalang oleh
+        // hitungan pengumuman pertama. Jeda 1 hari sebagai pengaman
+        // dari tombol Kirim Sekarang yang tertekan dua kali.
+        'pengumuman'         => ['jeda_hari' => 1, 'maks_kirim' => 0, 'roles' => '', 'jam' => 10],
         'mulai_feedback' => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => '', 'jam' => 10],
         'ajakan_rutin'   => ['jeda_hari' => 7, 'maks_kirim' => 4, 'roles' => '', 'jam' => 16],
         'antrean_unit'   => ['jeda_hari' => 7, 'maks_kirim' => 0, 'roles' => '', 'jam' => 7],
@@ -286,6 +322,7 @@ function kmpStatus(): array {
             'nama'       => $d['nama'],
             'penjelasan' => $d['penjelasan'],
             'atur_peran' => !empty($d['atur_peran']),
+            'manual'     => !empty($d['manual']),
             'is_active'  => (int)($s['is_active']  ?? 0),
             'jeda_hari'  => (int)($s['jeda_hari']  ?? $b['jeda_hari']),
             'maks_kirim' => (int)($s['maks_kirim'] ?? $b['maks_kirim']),

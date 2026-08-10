@@ -488,10 +488,17 @@ ob_start(); ?>
       </div>
 
       <div class="kmp-isi">
+        <?php if (!empty($k['manual'])): ?>
+        <span class="kmp-saklar" style="color:#a85a01;background:#fff8ef;border:1px solid #f5d9b0;
+              border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">
+          <i class="bi bi-hand-index-thumb me-1"></i>Manual saja
+        </span>
+        <?php else: ?>
         <label class="kmp-saklar">
           <input type="checkbox" name="aktif" value="1" <?= $aktif ? 'checked' : '' ?>>
           Aktif
         </label>
+        <?php endif; ?>
 
         <div class="kmp-f">
           <label>Jeda (hari)</label>

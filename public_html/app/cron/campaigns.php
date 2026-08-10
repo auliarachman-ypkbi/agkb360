@@ -71,6 +71,15 @@ $total  = ['terkirim' => 0, 'gagal' => 0, 'dilewati' => 0];
 foreach ($defs as $code => $d) {
     if ($hanya && $hanya !== $code) continue;
 
+    // Kampanye manual tidak pernah dijalankan penjadwal, walau
+    // saklar Aktifnya tercentang. Pengumuman umum isinya berganti
+    // tiap kali dan menyasar semua orang — mengirimnya otomatis
+    // berarti pengumuman lama terkirim berulang ke seluruh sekolah.
+    if (!empty($d['manual']) && !$hanya && !$paksa) {
+        printf("\n── %-28s [manual — dilewati penjadwal]\n", $d['nama']);
+        continue;
+    }
+
     $aktif = isset($status[$code]) && (int)$status[$code]['is_active'] === 1;
     $habis = !empty($status[$code]['ends_at']) && strtotime($status[$code]['ends_at']) < time();
     $jam   = kmpJam($code);
