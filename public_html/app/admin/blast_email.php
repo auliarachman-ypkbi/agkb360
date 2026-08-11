@@ -986,16 +986,30 @@ document.querySelectorAll('.kmp-naskah').forEach(function (det) {
     });
     q.clipboard.dangerouslyPasteHTML(isi);
 
-    // Mode HTML. Yang tersimpan selalu isi mode yang sedang aktif,
-    // supaya tidak pernah ada dua sumber kebenaran.
-    //
-    // Berpindah dari HTML ke Visual bersifat merusak: Quill hanya
-    // mengenal sebagian tag, sehingga tabel dan gaya sebaris akan
-    // rontok. Karena itu perpindahan itu diminta persetujuan dulu.
+    // HTML asli dari database. Quill meratakan tabel dan gaya
+    // sebaris begitu isinya dimuat, jadi q.root.innerHTML TIDAK
+    // boleh dipakai sebagai sumber selama pengguna belum benar-benar
+    // menyunting di mode visual. Tanpa ini, sekadar membuka lalu
+    // menyimpan sudah cukup untuk merontokkan naskah ber-tabel.
+    mentah.value = isi;
+
+    var visualDisentuh = false;
+    q.on('text-change', function (delta, lama, sumber) {
+      if (sumber === 'user') visualDisentuh = true;
+    });
+
+    // Naskah yang mengandung tabel, gambar, atau gaya sebaris tidak
+    // dapat diwakili editor visual. Untuk itu langsung dibuka di
+    // mode HTML, supaya tidak ada yang menyimpannya dalam keadaan
+    // sudah rata tanpa menyadarinya.
+    var perluHtml = /<(table|img|div)\b|style\s*=/i.test(isi);
+
     var modeHtml = false;
 
     function keHtml() {
-      mentah.value = q.root.innerHTML === '<p><br></p>' ? '' : q.root.innerHTML;
+      if (visualDisentuh) {
+        mentah.value = q.root.innerHTML === '<p><br></p>' ? '' : q.root.innerHTML;
+      }
       wadah.previousElementSibling.hidden = true;   // toolbar Quill
       wadah.hidden = true;
       mentah.hidden = false;
@@ -1016,16 +1030,22 @@ document.querySelectorAll('.kmp-naskah').forEach(function (det) {
       return true;
     }
 
+    function tandaiTombol(mode) {
+      det.querySelectorAll('.nk-mode button').forEach(function (x) {
+        x.classList.toggle('on', x.getAttribute('data-mode') === mode);
+      });
+    }
+
     det.querySelectorAll('.nk-mode button').forEach(function (b) {
       b.addEventListener('click', function () {
         var mau = b.getAttribute('data-mode');
         if (mau === 'html' && !modeHtml) keHtml();
         else if (mau === 'visual' && modeHtml && !keVisual()) return;
-        det.querySelectorAll('.nk-mode button').forEach(function (x) {
-          x.classList.toggle('on', x === b);
-        });
+        tandaiTombol(mau);
       });
     });
+
+    if (perluHtml) { keHtml(); tandaiTombol('html'); }
 
     det.querySelector('form').addEventListener('submit', function () {
       var html = modeHtml ? mentah.value : q.root.innerHTML;
