@@ -5,14 +5,28 @@ require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/functions.php';
 
 startSession();
-if (isLoggedIn()) { header('Location: ' . APP_URL . '/dashboard/'); exit; }
+
+/**
+ * Halaman awal sesuai peran.
+ *
+ * Dashboard adalah beranda evaluasi 360°. Bagi pemantau, seluruh
+ * isinya tidak berkaitan dengan apa yang boleh ia lakukan — jadi
+ * ia langsung diantar ke Inbox Tiket.
+ */
+function berandaPeran(): string {
+    $role = $_SESSION['user_role'] ?? '';
+    if ($role === 'pemantau') return APP_URL . '/admin/feedback.php';
+    return APP_URL . '/dashboard/';
+}
+
+if (isLoggedIn()) { header('Location: ' . berandaPeran()); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     if (login($email, $password)) {
-        header('Location: ' . APP_URL . '/dashboard/');
+        header('Location: ' . berandaPeran());
         exit;
     }
     $error = 'Email atau kata sandi tidak valid.';

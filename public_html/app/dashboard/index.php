@@ -6,6 +6,15 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
+
+// Dashboard adalah beranda evaluasi 360°. Pemantau tidak punya
+// urusan di sini — seluruh isinya menyangkut penilaian kinerja,
+// bukan tiket. Diantar ke tempat yang memang untuknya.
+if (($_SESSION['user_role'] ?? '') === 'pemantau') {
+    header('Location: ' . APP_URL . '/admin/feedback.php');
+    exit;
+}
+
 $user   = currentUser();
 $period = getPeriod();
 

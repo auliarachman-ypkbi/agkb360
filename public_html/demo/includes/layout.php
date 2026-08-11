@@ -64,6 +64,12 @@ function renderNav(): void {
         <li><hr class='dropdown-divider'></li>
         <li><a class='dropdown-item text-warning fw-semibold' href='{$base}/admin/hard_reset.php'><i class='bi bi-radiation me-2'></i>Hard Reset</a></li>" : '';
 
+    // Logo mengantar ke beranda yang sesuai peran. Bagi pemantau,
+    // dashboard evaluasi 360° adalah halaman yang tidak bisa ia pakai.
+    $beranda = $role === 'pemantau'
+             ? APP_URL . '/admin/feedback.php'
+             : APP_URL . '/dashboard/';
+
     // Lencana jumlah pengajuan akun yang menunggu. Dibungkus try
     // supaya navigasi tidak ikut mati kalau migrasi 017 belum jalan.
     $lencanaDaftar = '';
@@ -119,7 +125,7 @@ function renderNav(): void {
     echo $viewAsBanner . $testerBanner . "
 <nav class='navbar navbar-expand-lg navbar-dark ktb-navbar'>
   <div class='container-fluid'>
-    <a class='navbar-brand d-flex align-items-center agkb-brand' href='{$base}/dashboard/'>
+    <a class='navbar-brand d-flex align-items-center agkb-brand' href='{$beranda}'>
       <img src='{$base}/assets/img/brand/agkb-mark.svg' alt='' width='34' height='34'
            style='height:34px;width:auto;display:block'
            onerror='this.style.display=\"none\";this.nextElementSibling.style.display=\"flex\"'>
@@ -134,7 +140,9 @@ function renderNav(): void {
     </button>
     <div class='collapse navbar-collapse' id='navMain'>
       <ul class='navbar-nav me-auto'>
+        " . ($role === 'pemantau' ? '' : "
         <li class='nav-item'><a class='nav-link' href='{$base}/dashboard/'><i class='bi bi-house me-1'></i>Dashboard</a></li>
+        ") . "
         " . (in_array($role, ['superadmin','admin','foundation','leader']) ? "
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/reports.php'><i class='bi bi-bar-chart me-1'></i>Laporan</a></li>
         <li class='nav-item'><a class='nav-link' href='{$base}/admin/progress.php'><i class='bi bi-activity me-1'></i>Progress</a></li>
