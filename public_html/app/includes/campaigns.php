@@ -412,10 +412,31 @@ function kmpSimpanNaskah(string $code, ?string $subjek, ?string $judul, ?string 
  * dan tag di luar daftar ini banyak yang tidak didukung klien email
  * atau justru berbahaya bila naskah disalin dari sumber lain.
  */
+/**
+ * Saring naskah email sebelum disimpan.
+ *
+ * Daftar tag diperlebar untuk mendukung mode HTML pada editor:
+ * email yang tertata rapi disusun dengan tabel dan gaya sebaris,
+ * bukan tata letak CSS modern yang diabaikan Outlook.
+ *
+ * Yang tetap dibuang tanpa kecuali: script, style, iframe, object,
+ * embed, dan seluruh atribut peristiwa (onclick dan sejenisnya).
+ * Blok <style> memang tidak berguna di email — yang bekerja adalah
+ * gaya sebaris — jadi membuangnya tidak menghilangkan apa pun.
+ */
 function kmpBersihkanHtml(string $html): string {
     $html = preg_replace('#<(script|style|iframe|object|embed)\b.*?</\1>#is', '', $html);
+    $html = preg_replace('#<(script|style|iframe|object|embed)\b[^>]*/?>#i', '', $html);
     $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
-    $html = strip_tags($html, '<p><br><strong><b><em><i><u><ul><ol><li><a><h3><h4><blockquote>');
+
+    // javascript: pada href atau src — satu-satunya jalan masuk yang
+    // tersisa setelah atribut peristiwa dibuang.
+    $html = preg_replace('#\s(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'>\s]*\2#i', '', $html);
+
+    $html = strip_tags($html,
+        '<p><br><hr><strong><b><em><i><u><s><ul><ol><li><a><h1><h2><h3><h4><h5><h6>'
+      . '<blockquote><div><span><table><thead><tbody><tfoot><tr><td><th><img><center><font>');
+
     return trim($html);
 }
 

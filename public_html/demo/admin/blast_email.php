@@ -393,6 +393,16 @@ ob_start(); ?>
 .kmp-tag.ubah{background:#fff1dc;color:#b83a01;border-color:#f0c896}
 .kmp-subj-peek{margin-left:auto;font-weight:400;font-size:11.5px;color:#8a89a0;font-family:ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
 .kmp-form-naskah{padding:16px}
+/* Sakelar Visual / HTML pada editor naskah */
+.nk-mode-baris{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.nk-mode{display:inline-flex;border:1px solid #e3e5ea;border-radius:8px;overflow:hidden;background:#fff}
+.nk-mode button{border:0;background:transparent;padding:5px 13px;font-size:11.5px;font-weight:600;color:#6b6a83;cursor:pointer;font-family:inherit}
+.nk-mode button:hover{background:#f3f4f6;color:#040136}
+.nk-mode button.on{background:#040136;color:#fff}
+.nk-html{width:100%;min-height:260px;border:1px solid #e3e5ea;border-radius:0 0 8px 8px;padding:13px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.65;color:#2f2d4d;outline:none;resize:vertical;background:#fafafb}
+.nk-html:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.08)}
+.nk-html-nota{font-size:11.5px;color:#6b6a83;line-height:1.6;margin-top:7px}
+.nk-html-nota code{background:#f3f4f6;border-radius:4px;padding:1px 5px;font-size:11px}
 .nk-baris{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .nk-f{display:flex;flex-direction:column;gap:5px;min-width:180px}
 .nk-f>label{font-size:10px;font-weight:600;color:#6b6a83;text-transform:uppercase;letter-spacing:.5px}
@@ -584,8 +594,20 @@ ob_start(); ?>
         </div>
 
         <div class="nk-f">
-          <label>Isi email</label>
+          <div class="nk-mode-baris">
+            <label style="margin:0">Isi email</label>
+            <div class="nk-mode">
+              <button type="button" class="on" data-mode="visual">Visual</button>
+              <button type="button" data-mode="html">HTML</button>
+            </div>
+          </div>
           <div class="nk-editor" data-body="<?= h($k['body']) ?>"></div>
+          <textarea class="nk-html" spellcheck="false" hidden></textarea>
+          <div class="nk-html-nota" hidden>
+            Ditempel apa adanya ke badan email. Untuk email, gunakan tabel dan gaya sebaris
+            (<code>style="…"</code>) — sebagian besar klien email mengabaikan CSS modern.
+            Tag <code>script</code>, <code>iframe</code>, dan atribut peristiwa selalu dibuang.
+          </div>
           <textarea name="body" hidden></textarea>
         </div>
 
@@ -881,6 +903,8 @@ document.querySelectorAll('.kmp-naskah').forEach(function (det) {
 
     var wadah = det.querySelector('.nk-editor');
     var kotak = det.querySelector('textarea[name=body]');
+    var mentah = det.querySelector('.nk-html');
+    var nota   = det.querySelector('.nk-html-nota');
     var isi   = wadah.getAttribute('data-body') || '';
 
     var q = new Quill(wadah, {
@@ -897,8 +921,49 @@ document.querySelectorAll('.kmp-naskah').forEach(function (det) {
     });
     q.clipboard.dangerouslyPasteHTML(isi);
 
+    // Mode HTML. Yang tersimpan selalu isi mode yang sedang aktif,
+    // supaya tidak pernah ada dua sumber kebenaran.
+    //
+    // Berpindah dari HTML ke Visual bersifat merusak: Quill hanya
+    // mengenal sebagian tag, sehingga tabel dan gaya sebaris akan
+    // rontok. Karena itu perpindahan itu diminta persetujuan dulu.
+    var modeHtml = false;
+
+    function keHtml() {
+      mentah.value = q.root.innerHTML === '<p><br></p>' ? '' : q.root.innerHTML;
+      wadah.previousElementSibling.hidden = true;   // toolbar Quill
+      wadah.hidden = true;
+      mentah.hidden = false;
+      nota.hidden = false;
+      modeHtml = true;
+    }
+
+    function keVisual() {
+      if (!confirm('Kembali ke mode Visual?\n\nTabel, gambar, dan gaya sebaris akan hilang karena editor visual tidak mengenalinya. Salin dulu HTML Anda bila masih diperlukan.')) {
+        return false;
+      }
+      q.clipboard.dangerouslyPasteHTML(mentah.value || '');
+      wadah.previousElementSibling.hidden = false;
+      wadah.hidden = false;
+      mentah.hidden = true;
+      nota.hidden = true;
+      modeHtml = false;
+      return true;
+    }
+
+    det.querySelectorAll('.nk-mode button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var mau = b.getAttribute('data-mode');
+        if (mau === 'html' && !modeHtml) keHtml();
+        else if (mau === 'visual' && modeHtml && !keVisual()) return;
+        det.querySelectorAll('.nk-mode button').forEach(function (x) {
+          x.classList.toggle('on', x === b);
+        });
+      });
+    });
+
     det.querySelector('form').addEventListener('submit', function () {
-      var html = q.root.innerHTML;
+      var html = modeHtml ? mentah.value : q.root.innerHTML;
       kotak.value = (html === '<p><br></p>') ? '' : html;
     });
   });
