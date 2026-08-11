@@ -9,8 +9,17 @@
 //   canAccessAdmin(), csrfToken(), verifyCsrf() ada di auth.php
 
 // ── BASIC HELPERS ─────────────────────────────────────────────
-function h(string $s = ''): string {
-    return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+/**
+ * Lolos-kan teks untuk ditampilkan di HTML.
+ *
+ * Menerima null dengan sengaja. Nilai yang datang dari database
+ * sering kali NULL secara sah — pengirim penjadwal, nama pengguna
+ * yang sudah dihapus, kolom opsional. Sebelumnya tipe ketat string
+ * membuat satu nilai NULL menjatuhkan seluruh halaman dengan galat
+ * fatal, padahal yang pantas terjadi hanyalah kolom itu kosong.
+ */
+function h(?string $s = ''): string {
+    return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 function formatScore(float $score): string {

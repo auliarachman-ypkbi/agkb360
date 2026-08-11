@@ -813,10 +813,16 @@ ob_start(); ?>
         <tr>
           <td style="white-space:nowrap"><?= date('d M Y H:i', strtotime($l['sent_at'])) ?></td>
           <td><span class="badge-type-generic"><?= h(blastTypeLabel($l['blast_type'])) ?></span></td>
-          <td><?= h($l['recipient_name']) ?></td>
+          <td><?= h($l['recipient_name'] ?? '—') ?></td>
           <td style="color:#6b6a83"><?= h($l['recipient_email']) ?></td>
           <td><span class="<?= $l['status']==='sent'?'badge-sent':'badge-failed' ?>"><?= $l['status']==='sent'?'Terkirim':'Gagal' ?></span></td>
-          <td style="color:#6b6a83"><?= h($l['sender_name']) ?></td>
+          <td style="color:#6b6a83">
+            <?php if ($l['sender_name']): ?>
+              <?= h($l['sender_name']) ?>
+            <?php else: ?>
+              <span style="font-style:italic">Penjadwal</span>
+            <?php endif; ?>
+          </td>
         </tr>
         <?php endforeach; ?>
       </tbody>
