@@ -45,6 +45,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_naskah'])) {
                 $_POST['body']   ?? '',
                 $_POST['cta']    ?? ''
             );
+
+            // Uji kirim: naskah disimpan lebih dulu, lalu satu email
+            // dikirim ke alamat admin yang sedang membuka halaman ini.
+            // Tidak menyentuh sasaran kampanye sama sekali, dan tidak
+            // dicatat di log blast — ini uji coba, bukan pengiriman.
+            if (!empty($_POST['kirim_uji'])) {
+                $s  = kmpPengaturan($code);
+                $d  = kmpDefinisi()[$code];
+                $me = currentUser();
+
+                // {{jumlah}} hanya ada pada kampanye berbasis hitungan;
+                // diisi angka contoh supaya penandanya tidak tertinggal
+                // mentah di email uji.
+                $aku = $me + ['jumlah' => 3];
+
+                $url = fbAppUrl() . ($d['tujuan'] ?? '/login.php');
+                if (!empty($d['perlu_token'])) {
+                    $url = fbAppUrl() . '/auth/set-password.php?token=CONTOH-TOKEN-UJI';
+                }
+
+                $ok = fbSendMail(
+                    $me['email'],
+                    '[UJI] ' . kmpIsiPenanda((string)$s['subjek'], $aku),
+                    fbMailTemplate(
+                        kmpIsiPenanda((string)$s['judul'], $aku),
+                        kmpIsiPenanda((string)$s['body'],  $aku),
+                        $url,
+                        kmpIsiPenanda((string)$s['cta'],   $aku)
+                    )
+                );
+
+                flash($ok
+                    ? 'Naskah disimpan. Email uji dikirim ke ' . h($me['email'])
+                      . ' — periksa juga folder spam.'
+                    : 'Naskah disimpan, tetapi email uji gagal dikirim. Periksa pengaturan APPS_SCRIPT_URL.',
+                    $ok ? 'success' : 'danger');
+
+                header('Location: ' . APP_URL . '/admin/blast_email.php#kampanye');
+                exit;
+            }
             flash('Naskah email disimpan.', 'success');
         }
     }
@@ -624,6 +664,10 @@ ob_start(); ?>
               Kembalikan ke Bawaan
             </button>
             <?php endif; ?>
+            <button class="kmp-btn" name="kirim_uji" value="1"
+                    title="Menyimpan naskah lalu mengirim satu email ke alamat Anda sendiri">
+              <i class="bi bi-send-check"></i> Uji Kirim ke Saya
+            </button>
             <button class="kmp-btn primer">Simpan Naskah</button>
           </div>
         </div>
