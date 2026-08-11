@@ -17,6 +17,12 @@
  * Pakai:
  *   php tools/kirim-ulang-notifikasi.php --tiket=KY-2026-0002 --ke=a@b.c,d@e.f
  *   php tools/kirim-ulang-notifikasi.php --tiket=KY-2026-0002 --ke=... --dry
+ *   php tools/kirim-ulang-notifikasi.php --tiket=... --ke=... --gerbang=https://...
+ *
+ * --gerbang melewati APPS_SCRIPT_URL dan memakai gerbang lain,
+ * untuk keadaan kuota gerbang utama habis. Pengirimannya tetap
+ * dicatat, dengan penanda kirim_ulang_cadangan agar terlihat
+ * bahwa email itu keluar lewat jalur yang berbeda.
  * ============================================================
  */
 
@@ -32,9 +38,46 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/feedback.php';
 
-$opts   = getopt('', ['tiket:', 'ke:', 'dry']);
+$opts   = getopt('', ['tiket:', 'ke:', 'dry', 'gerbang:']);
 $noTiket = trim($opts['tiket'] ?? '');
 $simulasi = isset($opts['dry']);
+$gerbang  = trim($opts['gerbang'] ?? '');
+
+if ($gerbang !== '' && !filter_var($gerbang, FILTER_VALIDATE_URL)) {
+    fwrite(STDERR, "Alamat gerbang tidak sah: $gerbang\n");
+    exit(1);
+}
+
+/**
+ * Kirim lewat gerbang selain APPS_SCRIPT_URL.
+ *
+ * Menyalin perilaku fbSendMail() secukupnya — termasuk padanan
+ * teks biasa dan Reply-To — supaya email yang keluar lewat jalur
+ * cadangan tidak berbeda bentuknya dari yang biasa.
+ */
+function kirimLewatGerbang(string $url, string $to, string $subject, string $html): bool {
+    $payload = json_encode([
+        'to'       => $to,
+        'subject'  => $subject,
+        'htmlBody' => $html,
+        'body'     => fbTeksBiasa($html),
+        'replyTo'  => fbReplyTo(),
+    ]);
+    $res = @file_get_contents($url, false, stream_context_create([
+        'http' => ['method' => 'POST', 'header' => 'Content-Type: application/json',
+                   'content' => $payload, 'timeout' => 20],
+    ]));
+    if ($res === false) {
+        @error_log('[AGKB] gerbang cadangan tidak dapat dihubungi untuk ' . $to);
+        return false;
+    }
+    $j = json_decode((string)$res, true);
+    if (is_array($j) && array_key_exists('ok', $j) && !$j['ok']) {
+        @error_log('[AGKB] gerbang cadangan menolak email ke ' . $to . ': ' . (string)$res);
+        return false;
+    }
+    return true;
+}
 
 if ($noTiket === '' || empty($opts['ke'])) {
     fwrite(STDERR, "Wajib: --tiket=NOMOR --ke=alamat1,alamat2\n");
@@ -62,6 +105,7 @@ echo 'Subjek  : ' . $t['subject'] . "\n";
 echo 'Status  : ' . $t['status'] . "\n";
 echo 'Masuk   : ' . $t['created_at'] . "\n";
 echo 'Mode    : ' . ($simulasi ? 'SIMULASI' : 'KIRIM') . "\n";
+echo 'Gerbang : ' . ($gerbang !== '' ? 'CADANGAN — ' . parse_url($gerbang, PHP_URL_HOST) : 'utama') . "\n";
 echo str_repeat('=', 66) . "\n";
 
 // Susunan badan email sengaja disamakan dengan fbNotifyNew(),
@@ -92,7 +136,14 @@ $html = fbMailTemplate('Tiket ' . $t['ticket_no'], $body, $link, 'Buka Tiket',
 $berhasil = 0; $gagal = 0;
 foreach ($tujuan as $m) {
     if ($simulasi) { echo "  akan dikirim ke $m\n"; continue; }
-    $ok = fbSendMail($m, $subjek, $html, 'kirim_ulang');
+
+    if ($gerbang !== '') {
+        $ok = kirimLewatGerbang($gerbang, $m, $subjek, $html);
+        fbCatatKirim($m, $subjek, $ok, 'kirim_ulang_cadangan');
+    } else {
+        $ok = fbSendMail($m, $subjek, $html, 'kirim_ulang');
+    }
+
     printf("  %-42s %s\n", $m, $ok ? 'terkirim' : 'GAGAL');
     $ok ? $berhasil++ : $gagal++;
 }
