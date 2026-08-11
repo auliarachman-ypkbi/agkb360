@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/feedback.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['superadmin','admin','foundation','leader','teacher','staff','mentor']);
+requireRole(['superadmin','admin','foundation','leader','teacher','staff','mentor','pemantau']);
 $user = currentUser();
 
 $id = (int)($_GET['id'] ?? $_POST['ticket_id'] ?? 0);

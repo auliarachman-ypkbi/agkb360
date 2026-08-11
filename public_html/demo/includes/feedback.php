@@ -576,7 +576,7 @@ function fbRunAutoEscalation(int $limit = 50): int {
  */
 function fbCanSeeSafeguarding(?array $u = null): bool {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
-    if ($role === 'superadmin') return true;
+    if ($role === 'superadmin' || $role === 'pemantau') return true;
 
     $uid = (int)($u['id'] ?? ($_SESSION['user_id'] ?? 0));
     if ($uid <= 0) return false;
@@ -613,7 +613,9 @@ function fbIsHandler(?array $u = null): bool {
 /** Track apa saja yang boleh dilihat di inbox oleh pengguna ini. */
 function fbAllowedTracks(?array $u = null): array {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
-    if (in_array($role, ['superadmin','foundation'], true)) return ['apresiasi','inquiry','safeguarding'];
+    // Pemantau melihat seluruh jalur tanpa kecuali — itu memang
+    // seluruh gunanya peran ini.
+    if (in_array($role, ['superadmin','foundation','pemantau'], true)) return ['apresiasi','inquiry','safeguarding'];
     if (in_array($role, ['admin','leader'], true))           return ['apresiasi','inquiry'];
     // Anggota unit penanganan boleh membuka inbox untuk mengerjakan
     // antrean unitnya. Track safeguarding tetap tertutup rapat —
@@ -623,6 +625,11 @@ function fbAllowedTracks(?array $u = null): array {
 }
 
 function fbCanView(array $t, array $u): bool {
+    // Pemantau: melihat segalanya, mengubah tidak satu pun.
+    // Kemampuan bertindak dijaga terpisah lewat fbCanManage() dan
+    // pemeriksaan $canAct di halaman tiket.
+    if (($u['role'] ?? '') === 'pemantau') return true;
+
     if ((int)$t['sender_id'] === (int)$u['id'])   return true;
     if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) {
         if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;

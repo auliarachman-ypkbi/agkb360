@@ -81,6 +81,11 @@ function appRoleGroups(): array {
             'student'    => 'Siswa',
             'parent'     => 'Orang Tua / Wali',
         ],
+        'Pengawasan' => [
+            // Melihat seluruh tiket di semua jalur, tanpa dapat
+            // membalas, menyelesaikan, maupun membuka Admin CMS.
+            'pemantau'   => 'Pemantau (hanya melihat)',
+        ],
         'Uji Coba' => [
             'tester'     => 'Tester',
         ],

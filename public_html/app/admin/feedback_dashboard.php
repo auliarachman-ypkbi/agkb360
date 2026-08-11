@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/feedback.php';
 require_once __DIR__ . '/../includes/layout.php';
 
 requireLogin();
-requireRole(['superadmin','admin','foundation','leader']);
+requireRole(['superadmin','admin','foundation','leader','pemantau']);
 $user = currentUser();
 
 $tracks = fbAllowedTracks($user);

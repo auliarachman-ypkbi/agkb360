@@ -11,7 +11,7 @@ requireLogin();
 // Peran pengelola selalu boleh. Peran lain boleh masuk HANYA kalau
 // dia anggota unit penanganan — penyaringnya fbAllowedTracks() di
 // bawah, yang mengembalikan daftar kosong untuk yang bukan penangan.
-requireRole(['superadmin','admin','foundation','leader','staff','teacher','mentor']);
+requireRole(['superadmin','admin','foundation','leader','staff','teacher','mentor','pemantau']);
 $user = currentUser();
 
 // Eskalasi otomatis dijalankan saat inbox dibuka (pengganti cron)
@@ -67,7 +67,10 @@ if ($user['role'] === 'leader') { $w[] = "(t.level >= 2 OR t.assignee_id = ?)"; 
 
 // Penangan yang bukan pengelola hanya melihat tiket unitnya sendiri
 // atau yang ditugaskan langsung kepadanya — bukan seluruh tiket sekolah.
-if (!fbCanManage($user) && $user['role'] !== 'leader') {
+// Pemantau dikecualikan: ia memang ditujukan melihat semuanya, dan
+// tanpa pengecualian ini ia justru tidak melihat apa pun karena tidak
+// terdaftar di unit mana pun.
+if (!fbCanManage($user) && !in_array($user['role'], ['leader','pemantau'], true)) {
     $myUnits = array_column(fbUserUnits((int)$user['id']), 'id');
     if ($myUnits) {
         $uph = implode(',', array_fill(0, count($myUnits), '?'));
