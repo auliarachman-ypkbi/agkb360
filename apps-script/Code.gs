@@ -15,17 +15,21 @@
  * ============================================================
  */
 
-// Arsip pemantauan. Semua email masuk ke sini diam-diam — termasuk
-// notifikasi Kanal Yayasan yang isinya sensitif. Karena itu daftar
-// ini harus sependek mungkin dan hanya berisi orang yang memang
-// sudah ditunjuk membaca kanal tersebut.
+// Arsip pemantauan — dikosongkan dengan sengaja.
 //
-// edu@kaderbangsa.foundation dilepas: kotak itu tidak termasuk
-// orang yang ditunjuk, dan sebagian isinya kini menyangkut persepsi
-// terhadap pimpinan sekolah.
-var ARSIP = [
-  'aulia.rachman@kaderbangsa.foundation'
-];
+// Dulu setiap email di-BCC ke sini sebagai catatan. Sejak setiap
+// pengiriman tercatat di email_blast_log lengkap dengan alamat,
+// subjek, dan statusnya, arsip ini tidak lagi memberi informasi
+// baru. Yang tersisa hanya kerugiannya:
+//
+//   · Setiap email memakan TIGA penerima dari kuota harian, bukan
+//     satu. Blast ke 386 orang berarti 1.158 dari jatah 1.500.
+//   · Isi Kanal Yayasan yang sensitif tersalin ke kotak surat di
+//     luar orang yang ditunjuk membacanya.
+//
+// Kalau suatu saat perlu dihidupkan lagi, isi kembali daftar ini
+// dan perhitungkan pengali kuotanya.
+var ARSIP = [];
 
 var NAMA_PENGIRIM = 'AGKB 360°';
 
@@ -35,6 +39,19 @@ function doPost(e) {
 
     if (!d.to || !d.subject) {
       return balas({ ok: false, error: 'to dan subject wajib diisi' });
+    }
+
+    // Periksa kuota lebih dulu. Tanpa ini, MailApp melempar
+    // pengecualian berbunyi "Layanan terlalu sering diminta di hari
+    // yang sama" — benar tetapi tidak memberi tahu berapa sisanya
+    // maupun berapa yang dibutuhkan.
+    var sisa = MailApp.getRemainingDailyQuota();
+    if (sisa < 1) {
+      return balas({
+        ok: false,
+        error: 'Kuota email harian habis. Pulih dalam 24 jam.',
+        sisaKuota: sisa
+      });
     }
 
     // Jangan arsipkan email yang tujuannya memang alamat arsip itu
