@@ -164,6 +164,9 @@ function renderNav(): void {
             <li><a class='dropdown-item' href='{$base}/feedback/my.php'><i class='bi bi-list-ul me-2'></i>Laporan Saya</a></li>
           </ul>
         </li>
+        " . ($role === 'pemantau' ? "
+        <li class='nav-item'><a class='nav-link' href='{$base}/admin/feedback_dashboard.php'><i class='bi bi-graph-up me-1'></i>Dashboard Feedback</a></li>
+        " : '') . "
         " . (in_array($role, ['superadmin','admin','foundation','leader','pemantau'])
              ? "<li class='nav-item'><a class='nav-link' href='{$base}/admin/feedback.php'><i class='bi bi-inbox me-1'></i>Inbox Tiket</a></li>"
              : (function_exists('fbIsHandler') && fbIsHandler()
