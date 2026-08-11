@@ -502,7 +502,12 @@ function kmpJalankan(string $code, bool $simulasi = false, int $batasKirim = 400
     $d = $defs[$code];
     $s = kmpPengaturan($code);
 
-    if (!$simulasi && !kmpAktif($code)) {
+    // Saklar Aktif mengatur apakah PENJADWAL boleh menjalankannya.
+    // Kampanye manual tidak punya saklar itu sama sekali — bagi
+    // mereka, menekan Kirim Sekarang sudah merupakan izinnya.
+    // Tanpa pengecualian ini, kampanye manual tidak akan pernah bisa
+    // mengirim apa pun.
+    if (!$simulasi && empty($d['manual']) && !kmpAktif($code)) {
         return ['code' => $code, 'nama' => $d['nama'], 'mati' => true,
                 'sasaran' => 0, 'terkirim' => 0, 'gagal' => 0, 'dilewati' => 0, 'daftar' => []];
     }
