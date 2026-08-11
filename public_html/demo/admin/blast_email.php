@@ -55,6 +55,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_naskah'])) {
                 $d  = kmpDefinisi()[$code];
                 $me = currentUser();
 
+                // Alamat tujuan diisi sendiri — sering kali yang perlu
+                // memeriksa tampilan email bukan orang yang membuka
+                // halaman ini. Kosong berarti kirim ke diri sendiri.
+                $tujuanUji = trim($_POST['uji_email'] ?? '');
+                if (!filter_var($tujuanUji, FILTER_VALIDATE_EMAIL)) {
+                    $tujuanUji = $me['email'] ?? '';
+                }
+                $_SESSION['uji_email_terakhir'] = $tujuanUji;
+
+                if (!$tujuanUji) {
+                    flash('Naskah disimpan, tetapi alamat uji tidak valid dan akun Anda tidak punya email.', 'danger');
+                    header('Location: ' . APP_URL . '/admin/blast_email.php#kampanye');
+                    exit;
+                }
+
                 // {{jumlah}} hanya ada pada kampanye berbasis hitungan;
                 // diisi angka contoh supaya penandanya tidak tertinggal
                 // mentah di email uji.
@@ -66,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_naskah'])) {
                 }
 
                 $ok = fbSendMail(
-                    $me['email'],
+                    $tujuanUji,
                     '[UJI] ' . kmpIsiPenanda((string)$s['subjek'], $aku),
                     fbMailTemplate(
                         kmpIsiPenanda((string)$s['judul'], $aku),
@@ -77,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan_naskah'])) {
                 );
 
                 flash($ok
-                    ? 'Naskah disimpan. Email uji dikirim ke ' . h($me['email'])
+                    ? 'Naskah disimpan. Email uji dikirim ke ' . h($tujuanUji)
                       . ' — periksa juga folder spam.'
                     : 'Naskah disimpan, tetapi email uji gagal dikirim. Periksa pengaturan APPS_SCRIPT_URL.',
                     $ok ? 'success' : 'danger');
@@ -457,6 +472,9 @@ ob_start(); ?>
 .nk-kaki{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
 .nk-penanda{font-size:11px;color:#6b6a83}
 .nk-penanda code{background:#eeebfc;color:#030870;border:1px solid #d5cdf7;border-radius:5px;padding:1.5px 6px;font-size:10.5px;margin-left:3px}
+.nk-uji-email{width:230px;border:1px solid #e3e5ea;border-radius:7px;padding:7px 11px;font-size:12.5px;font-family:inherit;color:#040136;outline:none;background:#fff}
+.nk-uji-email:focus{border-color:#040136;box-shadow:0 0 0 3px rgba(4,1,54,.08)}
+.nk-uji-email::placeholder{color:#9b9ab0}
 </style>
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" rel="stylesheet">
@@ -664,9 +682,12 @@ ob_start(); ?>
               Kembalikan ke Bawaan
             </button>
             <?php endif; ?>
+            <input type="email" name="uji_email" class="nk-uji-email"
+                   placeholder="alamat untuk uji kirim"
+                   value="<?= h($_SESSION['uji_email_terakhir'] ?? $me['email'] ?? '') ?>">
             <button class="kmp-btn" name="kirim_uji" value="1"
-                    title="Menyimpan naskah lalu mengirim satu email ke alamat Anda sendiri">
-              <i class="bi bi-send-check"></i> Uji Kirim ke Saya
+                    title="Menyimpan naskah lalu mengirim satu email ke alamat di sebelah kiri">
+              <i class="bi bi-send-check"></i> Uji Kirim
             </button>
             <button class="kmp-btn primer">Simpan Naskah</button>
           </div>
