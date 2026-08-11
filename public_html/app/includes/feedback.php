@@ -797,7 +797,40 @@ function fbTeksBiasa(string $html): string {
     return trim($s);
 }
 
-function fbSendMail(string $to, string $subject, string $htmlBody): bool {
+/**
+ * Catat setiap percobaan kirim ke email_blast_log.
+ *
+ * Sebelumnya hanya kampanye yang tercatat, sementara notifikasi
+ * tiket dikirim lalu dilupakan — termasuk saat gagal. Akibatnya
+ * pertanyaan "apakah email ini benar terkirim" tidak bisa dijawab
+ * sama sekali. Kolom campaign_code dipakai menandai jenisnya.
+ *
+ * Kegagalan mencatat tidak boleh menggagalkan pengiriman, jadi
+ * seluruhnya dibungkus try.
+ */
+function fbCatatKirim(string $to, string $subject, bool $ok, string $jenis): void {
+    try {
+        $u = Database::fetchOne("SELECT id, role FROM users WHERE email = ? LIMIT 1", [$to]);
+        Database::insert('email_blast_log', [
+            'campaign_code'   => $jenis,
+            'blast_type'      => $u['role'] ?? 'luar',
+            'recipient_id'    => $u['id'] ?? null,
+            'recipient_email' => mb_substr($to, 0, 100),
+            'subject'         => mb_substr($subject, 0, 255),
+            'status'          => $ok ? 'sent' : 'failed',
+            'sent_by'         => $_SESSION['user_id'] ?? null,
+        ]);
+    } catch (Throwable $e) {
+        @error_log('[AGKB] gagal mencatat kiriman ke ' . $to . ': ' . $e->getMessage());
+    }
+}
+
+/**
+ * @param ?string $catat Jenis kiriman untuk dicatat. null berarti
+ *                       jangan catat — dipakai kampanye, yang sudah
+ *                       punya pencatatannya sendiri lewat kmpCatat().
+ */
+function fbSendMail(string $to, string $subject, string $htmlBody, ?string $catat = 'notifikasi'): bool {
     if (!$to) return false;
 
     // Mode demo: email tidak pernah benar-benar dikirim.
@@ -810,6 +843,7 @@ function fbSendMail(string $to, string $subject, string $htmlBody): bool {
     $url = defined('APPS_SCRIPT_URL') ? APPS_SCRIPT_URL : '';
     if (!$url) {
         @error_log('[AGKB] APPS_SCRIPT_URL belum diatur — email ke ' . $to . ' tidak terkirim.');
+        if ($catat) fbCatatKirim($to, $subject, false, $catat);
         return false;
     }
 
@@ -822,9 +856,25 @@ function fbSendMail(string $to, string $subject, string $htmlBody): bool {
     ]);
     $res = @file_get_contents($url, false, stream_context_create([
         'http' => ['method' => 'POST', 'header' => 'Content-Type: application/json',
-                   'content' => $payload, 'timeout' => 10]
+                   'content' => $payload, 'timeout' => 15]
     ]));
-    return $res !== false;
+
+    // Gerbang membalas JSON {ok:true|false}. Balasan yang bukan ok
+    // berarti MailApp menolaknya — misalnya kuota harian habis —
+    // dan itu berbeda dari kegagalan menghubungi gerbangnya.
+    $ok = $res !== false;
+    if ($ok) {
+        $j = json_decode((string)$res, true);
+        if (is_array($j) && array_key_exists('ok', $j) && !$j['ok']) {
+            $ok = false;
+            @error_log('[AGKB] gerbang menolak email ke ' . $to . ': ' . (string)$res);
+        }
+    } else {
+        @error_log('[AGKB] gagal menghubungi gerbang email untuk ' . $to);
+    }
+
+    if ($catat) fbCatatKirim($to, $subject, $ok, $catat);
+    return $ok;
 }
 
 /** Apakah lingkungan ini menahan email (peragaan / tanpa gerbang). */

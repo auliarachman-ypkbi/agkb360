@@ -542,7 +542,9 @@ function kmpJalankan(string $code, bool $simulasi = false, int $batasKirim = 400
         $html = fbMailTemplate($judul, $body, $url, $cta);
         $ok   = true;
         try {
-            $ok = fbSendMail($u['email'], $subjek, $html);
+            // null: kampanye punya pencatatannya sendiri lewat
+            // kmpCatat() di bawah, jadi jangan dicatat dua kali.
+            $ok = fbSendMail($u['email'], $subjek, $html, null);
         } catch (Throwable $e) {
             $ok = false;
             @error_log('[AGKB kampanye] gagal kirim ke ' . $u['email'] . ': ' . $e->getMessage());
