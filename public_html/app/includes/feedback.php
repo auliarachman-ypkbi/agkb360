@@ -342,6 +342,15 @@ function fbClaimTicket(int $ticketId, int $userId): bool {
     fbAddMessage($ticketId, null,
         ($u['name'] ?? 'Seseorang') . ' mengambil tiket ini dari antrean '
         . ($unit['name'] ?? 'unit') . '.', 'internal', true);
+
+    // Status ikut bergerak. Sebelumnya tiket tetap tertulis "Baru"
+    // di mata pelapor meski sudah ada yang memegangnya — pelapor
+    // tidak punya cara mengetahui laporannya mulai dikerjakan.
+    if ($t['status'] === 'baru') {
+        fbSetStatus($ticketId, 'ditinjau', 'Tiket diambil dari antrean');
+        fbNotifyStatus($ticketId, 'ditinjau',
+            'Laporan Anda sudah diterima penanggung jawabnya dan mulai ditinjau.');
+    }
     return true;
 }
 

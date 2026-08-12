@@ -93,8 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
                 }
             }
             // Balasan publik dikirim ke pelapor lewat email. Catatan
-            // internal sengaja tidak — isinya tidak untuk pelapor.
-            if ($vis === 'publik') fbNotifyReply($t['id'], $body);
+            // internal sengaja tidak, isinya bukan untuk pelapor.
+            if ($vis === 'publik') {
+                // Membalas berarti tiketnya sedang dikerjakan. Status
+                // dinaikkan tanpa email tersendiri — email balasan di
+                // bawah sudah mengabari pelapor, dan dua email untuk
+                // satu tindakan hanya membuat kotak masuknya penuh.
+                if (in_array($t['status'], ['baru', 'ditinjau'], true)) {
+                    fbSetStatus($t['id'], 'ditindaklanjuti', 'Penanganan dimulai');
+                }
+                fbNotifyReply($t['id'], $body);
+            }
 
             flash($vis === 'internal' ? 'Catatan internal disimpan.' : 'Balasan terkirim ke pelapor.', 'success');
         }
