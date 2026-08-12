@@ -114,6 +114,7 @@ function renderNav(): void {
 
             <li><hr class='dropdown-divider'></li>
             <li><h6 class='dropdown-header'>Lainnya</h6></li>
+            <li><a class='dropdown-item' href='{$base}/admin/export_evaluasi.php'><i class='bi bi-file-earmark-spreadsheet me-2'></i>Ekspor Hasil Evaluasi</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/blast_email.php'><i class='bi bi-send-fill me-2'></i>Blast Email</a></li>
             <li><a class='dropdown-item' href='{$base}/admin/settings.php'><i class='bi bi-sliders me-2'></i>Pengaturan</a></li>
             <li><a class='dropdown-item text-warning' href='{$base}/admin/view_as.php?action=activate'><i class='bi bi-eye me-2'></i>Preview sebagai Guru</a></li>
