@@ -520,7 +520,14 @@ function kmpJalankan(string $code, bool $simulasi = false, int $batasKirim = 400
     foreach ($orang as $u) {
         if ($terkirim + $gagal >= $batasKirim) break;
 
-        if (!kmpBolehKirim($code, (int)$u['id'], (int)$s['jeda_hari'], (int)$s['maks_kirim'])) {
+        // Kampanye manual mengabaikan jeda dan batas kiriman.
+        // Keduanya bekerja dengan menghitung berapa kali seseorang
+        // sudah dikirimi kampanye ini — masuk akal untuk pengingat
+        // yang isinya selalu sama, tetapi menghalangi pengumuman
+        // yang isinya berganti tiap kali. Yang menekan tombolnya
+        // manusia, dan itu sudah cukup jadi izinnya.
+        if (empty($d['manual'])
+            && !kmpBolehKirim($code, (int)$u['id'], (int)$s['jeda_hari'], (int)$s['maks_kirim'])) {
             $dilewati++;
             continue;
         }

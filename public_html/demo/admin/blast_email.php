@@ -557,9 +557,11 @@ ob_start(); ?>
 
       <div class="kmp-isi">
         <?php if (!empty($k['manual'])): ?>
-        <span class="kmp-saklar" style="color:#a85a01;background:#fff8ef;border:1px solid #f5d9b0;
-              border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600">
-          <i class="bi bi-hand-index-thumb me-1"></i>Manual saja
+        <span style="display:inline-flex;align-items:center;gap:7px;cursor:default;
+              color:#a85a01;background:#fff8ef;border:1px dashed #f5d9b0;
+              border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600"
+              title="Penanda, bukan tombol. Kampanye ini tidak pernah dijalankan penjadwal.">
+          <i class="bi bi-info-circle"></i>Manual saja
         </span>
         <?php else: ?>
         <label class="kmp-saklar">
@@ -614,8 +616,9 @@ ob_start(); ?>
           <button class="kmp-btn primer" name="simpan_kampanye" value="<?= h($code) ?>">Simpan</button>
           <button class="kmp-btn" name="jalankan_kampanye" value="<?= h($code) ?>"
                   formnovalidate onclick="this.form.simulasi.value='1'">Simulasi</button>
-          <button class="kmp-btn" name="jalankan_kampanye" value="<?= h($code) ?>"
-                  onclick="return confirm('Kirim sekarang ke <?= $sasaran ?> sasaran? Email akan benar-benar keluar.')">
+          <button class="kmp-btn<?= !empty($k['manual']) ? ' primer' : '' ?>"
+                  name="jalankan_kampanye" value="<?= h($code) ?>"
+                  onclick="return confirm('Kirim sekarang ke <?= $sasaran ?> sasaran? Email akan benar-benar keluar.<?= !empty($k['manual']) ? '\n\nKampanye ini mengabaikan jeda, jadi orang yang sama bisa menerima lagi.' : '' ?>')">
             Kirim Sekarang
           </button>
           <input type="hidden" name="simulasi" value="">
