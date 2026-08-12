@@ -113,6 +113,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['jalankan_kampanye']))
     $code     = (string)$_POST['jalankan_kampanye'];
     $simulasi = !empty($_POST['simulasi']);
     if (isset(kmpDefinisi()[$code])) {
+
+        // Simpan dulu pengaturan yang tampil di layar. Tombol
+        // Simulasi dan Kirim Sekarang berada di dalam formulir yang
+        // sama dengan centang peran, tetapi kmpJalankan() membaca
+        // peran dari database. Tanpa penyimpanan ini, centang yang
+        // baru diubah tidak berpengaruh — dan orang bisa mengira
+        // sudah membatasi sasaran padahal emailnya tetap ke semua.
+        kmpSimpan(
+            $code,
+            !empty($_POST['aktif']),
+            (int)($_POST['jeda_hari']  ?? 7),
+            (int)($_POST['maks_kirim'] ?? 0),
+            (array)($_POST['roles']    ?? []),
+            trim($_POST['ends_at'] ?? '') ?: null,
+            isset($_POST['jam_kirim']) ? (int)$_POST['jam_kirim'] : null
+        );
+
         $kmpHasil = kmpJalankan($code, $simulasi);
         $kmpHasil['simulasi'] = $simulasi;
     }
@@ -599,7 +616,7 @@ ob_start(); ?>
 
         <?php if ($k['atur_peran']): ?>
         <div class="kmp-f" style="flex:1;min-width:300px">
-          <label>Peran sasaran — tidak ada yang dicentang berarti semua</label>
+          <label>Peran sasaran — centang yang ingin dikirimi. Kosong berarti semua peran.</label>
           <div class="kmp-peran">
             <?php foreach (kmpSemuaPeran() as $r): ?>
             <label>
