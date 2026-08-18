@@ -1,0 +1,310 @@
+{
+ "unik": 27,
+ "total": 34,
+ "tema": {
+  "Konektivitas internet": 12,
+  "Layanan pendukung asrama": 10,
+  "Waktu dan jadwal": 5,
+  "Kebijakan akademik": 4,
+  "Beban kerja dan komunikasi": 2
+ },
+ "daftar": [
+  {
+   "no": "A0001",
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "HARGAI HARI LIBUR GURU, KERJAKAN HAL LAIN SEBELUM LIBURAN BUKAN SAAT LIBURAN",
+   "ringkas": "Kami paham, yayasan sedang banyak to-do-list untuk TA 2026-2027. Namun sungguh tidak elok jika beberapa hal dilakukan ketika sudah mepet dg tenggat waktu, shg p",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-06-19"
+  },
+  {
+   "no": "A0002",
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Manajemen",
+   "ringkas": "Saya sangat memahami bahwa yayasan ini baru dan banyak hal yang masih dipelajari. Namun, ada baiknya untuk hal-hal yang berkaitan dengan guru dan sekolah di tah",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-06-25"
+  },
+  {
+   "no": "A0003",
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Pelatihan OSN",
+   "ringkas": "Selama 6 bulan terakhir, sekolah menyediakan pembinaan OSN untuk seluruh pelajaran. Namun, jam yang disediakan sangat kurang untuk memantapkan pemahaman dan kep",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-06-28"
+  },
+  {
+   "no": "A0004",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "Mr. Rahmat Darani",
+   "ringkas": "Saya sengaja mengisi keseluruhan kuesioner mengenai Mr. Rahmat Darani dengan nilai tingkat ke-tiga di keseluruhan aspek, dikarenakan saya belum pernah berada di",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-07-02"
+  },
+  {
+   "no": "A0005",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "AKGB 360",
+   "ringkas": "This platform has been long overdue and its implementation has been really good, it will allow us to improve the institution as a whole",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-07-13"
+  },
+  {
+   "no": "A0006",
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Siapa yang bertanggung jawab atas Air Minum dan MBG di sini?",
+   "ringkas": "Yth. Pimpinan YPKBI, Saya ingin menyampaikan keresahan saya bbrp hari ini dlm menjalani teachers orientation. Saya sangat paham YPKBI & KTB bekerja keras memper",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-07-17"
+  },
+  {
+   "no": "A0007",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "Facilities",
+   "ringkas": "First of all, I really want to give my highest gratitude to Yayasan Kader Bangsa team who already prepare and provide us with this school. This school really ex",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-07-23"
+  },
+  {
+   "no": "A0008",
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Laundry",
+   "ringkas": "Since the first day when we arrived at the academic campus in Gunung Snider, facilities that support our dormitory life, specifically Laundry are not ready yet.",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-07-23"
+  },
+  {
+   "no": "KY0002",
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Kondisi Internet di sekolah yang kurang memadai",
+   "ringkas": "Fakta yang tidak hanya saya dengar tapi saya sendiri juga rasakan bersama rekan-rekan kami bahkan guru guru disekolah adalah wifi yang tidak stabil. Pada dormit",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-11"
+  },
+  {
+   "no": "KY0003, KY0004, KY0005",
+   "jalur": "Kanal Yayasan",
+   "kategori": "Kebhayangkaraan",
+   "subjek": "Waktu olahraga pagi yang tidak sesuai",
+   "ringkas": "Kami mulai olahraga pagi pukul 5.05 di soccer field. Sejak dulu, kami sudah dihimbau bahwa MAKSIMAL waktu pelaksanaan olahraga pagi adalah 30 menit, yang berart",
+   "kali": 3,
+   "asal": "anonim",
+   "status": "Baru",
+   "masuk": "2026-08-11"
+  },
+  {
+   "no": "A0009",
+   "jalur": "Kendala",
+   "kategori": "CCA & Competition",
+   "subjek": "Laporan perihal persiapan dan pelaksanaan OSN",
+   "ringkas": "Persiapan: Pada saat persiapan di gunung sindur(18-25 Juli), kami diberikan waktu belajar malam sampai jam 11 malam, yang menurut saya cukup ideal. Namun, pada",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0010",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi Internet di Dormitory 4 Tidak Baik",
+   "ringkas": "The internet connection in Dormitory 4 is currently not reliable and is not sufficient for work related activities. As a teacher with 22 teaching periods, along",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0011",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Masalah Wifi Dorm(Kamar)",
+   "ringkas": "Konektivitas wifi di dorm saya sangat buruk, kamar saya B203 tidak mendapatkan sinyal sama sekali dari hari pertama, keluhan ini juga di sampaikan oleh '02 maup",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0012",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Dormitory Wi-Fi Complaint",
+   "ringkas": "I would like to raise a complaint regarding the Wi-Fi service in the dormitory, as the current connection is frequently unreliable and blocks our access to the",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0013",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi WiFi atau internet yang tidak memadahi sarana pembelajaran",
+   "ringkas": "Jaringan internet yang disediakan sekolah menjadi kendala utama kami dalam proses pembelajaran siswa serta pelaksanaan tugas administratif guru. Cakupan Wi-Fi d",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0014",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "WIFI dalam dorm tidak bisa digunakan",
+   "ringkas": "Saya benar-benar tidak bissa mengakses wifi di kamar saya, sehingga terpaksa saya harus ke library untuk belajar dan terkadang tidak terlalu efektif karena seda",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0015",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Wi-fi yang lemot.",
+   "ringkas": "Dormitory laki-laki, jaringan sangat susah untuk didapat. Kami harus keluar dari kamar terlbih dahulu atau ke kamar teman untuk mencari jaringan yang kuat.",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0016",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Sinyal Wifi yang lamban",
+   "ringkas": "Sebelumnya terimakasih saya ucapkan telah menyediakan sinyal secara gratis kepada warga sekolah, namun ada hal yang cukup mengganggu kegiatan belajar dan mengaj",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0017, A0018",
+   "jalur": "Kendala",
+   "kategori": "Akademik",
+   "subjek": "Penyampaian atensi terkadang tidak bisa terdengar sehingga terjadi misinformasi (kesalahpahaman antar pihak)",
+   "ringkas": "Setiap ada penyampaian materi di dining hall, atensi yang diberikan oleh mentor dan atasan biasanya tidak bisa didengar jelas, kalah oleh kebisingan yang lain.",
+   "kali": 2,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0019",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi internet dalam dormitory masih bermasalah",
+   "ringkas": "Sampai sekarang, koneksi internet di dalam kamar sangat tidak stabil, dan area dapur biasanya selalu penuh, dan akhirnya tidak ada tempat yang cocok untuk belaj",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Ditindaklanjuti",
+   "masuk": "2026-08-12"
+  },
+  {
+   "no": "A0020",
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Ketidaklancaran Wifi Dormitory",
+   "ringkas": "kami seluruh siswa sering merasa kesulitan untuk mencari wifi di area dormitory, laki-laki maupun perempuan (berdasarkan cerita dari banyak rekan2 yg lainnya),",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "KY0006, KY0007",
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Sinyal dan wi-fi dalam dorm KTB tidak dapat bekerja dan mengganggu efektifitas belajar mandiri",
+   "ringkas": "Di dorm laki-laki, perempuan, dan guru (dorm b, c, dan d) KTB, wi-fi dan sinyal telah menjadi masalah sejak awal masuk. Terdapat 2 Router di lantai 1 dorm perem",
+   "kali": 2,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "A0021, A0022, A0023",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Guru / Staf",
+   "subjek": "Semua Guru & Staf KTB",
+   "ringkas": "Saya sangat berterimakasih, atas kerja keras kalian semua. Sungguh tak terbayangkan di tengah hiruk-pikuk cuaca dan debu di lingkungan ini kalian masih bekerja",
+   "kali": 3,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "A0024, A0026",
+   "jalur": "Kendala",
+   "kategori": "Akademik",
+   "subjek": "Permohonan review ulang kebijakan siswa dianggap absen saat mengikuti kompetisi atas inisiatif sendiri",
+   "ringkas": "Mencermati sosialisasi sekolah mengenai kompetisi dan kegiatan belajar di luar sekolah Tercantum siswa akan dianggap absen bila mengikuti kompetisi atau kegiata",
+   "kali": 2,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "A0025",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "lorong yang damai",
+   "ringkas": "saya senang saat menuju kamar mandi tidak harus takut ada yang meneriakkan untuk masuk kelas. saya juga senang untuk pergi ke kamar mandi tidak perlu kartu khus",
+   "kali": 1,
+   "asal": "pengguna",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "KY0008",
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Keluhan Pelayanan Klinik dan Kualitas Konsumsi",
+   "ringkas": "Pengalaman saya memanfaatkan layanan klinik sekolah sejauh ini hanya meninggalkan rasa tidak nyaman yang mendalam. Saat saya datang berkonsultasi dengan perawat",
+   "kali": 1,
+   "asal": "anonim",
+   "status": "Baru",
+   "masuk": "2026-08-13"
+  },
+  {
+   "no": "A0027",
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Guru / Staf",
+   "subjek": "kebersihan sekolah sangat dijaga",
+   "ringkas": "Menurut saya kebersihan sekolah sangat dijaga oleh staf SMA KTB, hal ini bisa dilihat setiap paginya, kondisi ruangan kelas setiap pagi sangat bersih dan akan s",
+   "kali": 1,
+   "asal": "publik",
+   "status": "Baru",
+   "masuk": "2026-08-14"
+  }
+ ]
+}

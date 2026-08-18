@@ -4,7 +4,15 @@ require_once __DIR__ . '/db.php';
 function startSession(): void {
     if (session_status() === PHP_SESSION_NONE) {
         session_name(SESSION_NAME);
-        session_set_cookie_params(['lifetime' => SESSION_LIFETIME, 'httponly' => true, 'samesite' => 'Strict']);
+        session_set_cookie_params([
+            'lifetime' => SESSION_LIFETIME,
+            'httponly' => true,
+            // Lax, bukan Strict. Dengan Strict, cookie sesi tidak ikut
+            // terkirim ketika pengguna mengklik tautan dari luar situs
+            // (mis. tombol "Buka Tiket" di email), sehingga ia selalu
+            // terlihat belum login meski sesinya masih hidup.
+            'samesite' => 'Lax',
+        ]);
         session_start();
     }
 }
@@ -41,6 +49,22 @@ function requireLogin(): void {
         header('Location: ' . APP_URL . '/login.php?ref=' . urlencode($_SERVER['REQUEST_URI']));
         exit;
     }
+}
+
+/**
+ * Menyaring parameter ?ref= agar hanya menerima alamat internal.
+ *
+ * Tanpa penyaringan ini, ?ref=https://situs-lain.com akan membuat
+ * halaman login kita bisa dipakai sebagai batu loncatan (open redirect).
+ */
+function tujuanAman(?string $ref): ?string {
+    $ref = trim((string) $ref);
+    if ($ref === '') return null;
+    if ($ref[0] !== '/') return null;          // harus jalur relatif
+    if (str_starts_with($ref, '//')) return null;  // bukan //situs-lain.com
+    if (str_contains($ref, "\n") || str_contains($ref, "\r")) return null;
+    if (!str_starts_with($ref, APP_URL . '/')) return null;  // tetap di dalam aplikasi
+    return $ref;
 }
 
 function requireRole(array|string $roles): void {

@@ -1,0 +1,139 @@
+{
+ "total": 34,
+ "dari": "2026-06-19",
+ "sampai": "2026-08-14",
+ "jalur": {
+  "Kendala / Masukan": 19,
+  "Apresiasi": 8,
+  "Kanal Yayasan": 7
+ },
+ "status": {
+  "Baru": 26,
+  "Ditindaklanjuti": 8
+ },
+ "asal": {
+  "pengguna": 15,
+  "publik": 15,
+  "anonim": 4
+ },
+ "pokok": {
+  "Lain-lain": 5,
+  "Apresiasi": 8,
+  "Sarana & Fasilitas": 13,
+  "Kebhayangkaraan": 3,
+  "CCA & Competition": 1,
+  "Akademik": 4
+ },
+ "belum_ditugaskan": 15,
+ "selesai": 0,
+ "anonim": 4,
+ "ada_balasan": 9,
+ "p1": 11,
+ "bulan": {
+  "2026-06": 3,
+  "2026-07": 5,
+  "2026-08": 26
+ },
+ "kata": [
+  [
+   "sinyal",
+   76
+  ],
+  [
+   "dorm",
+   41
+  ],
+  [
+   "waktu",
+   29
+  ],
+  [
+   "belajar",
+   22
+  ],
+  [
+   "kamar",
+   21
+  ],
+  [
+   "pagi",
+   17
+  ],
+  [
+   "pukul",
+   17
+  ],
+  [
+   "kegiatan",
+   16
+  ],
+  [
+   "hari",
+   15
+  ],
+  [
+   "olahraga",
+   12
+  ],
+  [
+   "mandi",
+   11
+  ],
+  [
+   "bekerja",
+   10
+  ],
+  [
+   "absen",
+   10
+  ],
+  [
+   "laundry",
+   8
+  ],
+  [
+   "menit",
+   8
+  ],
+  [
+   "baik",
+   8
+  ],
+  [
+   "laki",
+   8
+  ],
+  [
+   "kompetisi",
+   8
+  ],
+  [
+   "yayasan",
+   7
+  ],
+  [
+   "mengganggu",
+   7
+  ],
+  [
+   "sejak",
+   6
+  ],
+  [
+   "materi",
+   6
+  ],
+  [
+   "meskipun",
+   6
+  ],
+  [
+   "siapa",
+   6
+  ],
+  [
+   "membuat",
+   6
+  ]
+ ]
+}

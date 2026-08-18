@@ -1,0 +1,426 @@
+{
+ "stat": {
+  "total": 48,
+  "dari": "2026-06-19",
+  "sampai": "2026-08-18",
+  "jalur": {
+   "Kendala / Masukan": 29,
+   "Apresiasi": 9,
+   "Kanal Yayasan": 10
+  },
+  "asal": {
+   "pengguna": 17,
+   "publik": 24,
+   "anonim": 7
+  },
+  "belum_ditugaskan": 19,
+  "selesai": 1,
+  "ditutup": 1,
+  "ada_respons": 13,
+  "anonim": 7,
+  "tema": {
+   "Konektivitas internet": 14,
+   "Waktu belajar dan jadwal": 13,
+   "Layanan dan kondisi asrama": 21,
+   "Pembinaan dan kedisiplinan": 23,
+   "Kebijakan akademik": 7,
+   "Beban kerja dan komunikasi": 3
+  },
+  "bulan": {
+   "2026-06": 3,
+   "2026-07": 5,
+   "2026-08": 40
+  },
+  "kata": [
+   [
+    "waktu",
+    89
+   ],
+   [
+    "sinyal",
+    84
+   ],
+   [
+    "belajar",
+    58
+   ],
+   [
+    "dorm",
+    44
+   ],
+   [
+    "pukul",
+    35
+   ],
+   [
+    "malam",
+    27
+   ],
+   [
+    "hari",
+    26
+   ],
+   [
+    "kamar",
+    25
+   ],
+   [
+    "pagi",
+    20
+   ],
+   [
+    "house",
+    20
+   ],
+   [
+    "akademik",
+    18
+   ],
+   [
+    "menurut",
+    18
+   ],
+   [
+    "apel",
+    17
+   ],
+   [
+    "beberapa",
+    16
+   ],
+   [
+    "kelas",
+    16
+   ],
+   [
+    "tugas",
+    16
+   ],
+   [
+    "memiliki",
+    15
+   ],
+   [
+    "menit",
+    15
+   ],
+   [
+    "olahraga",
+    14
+   ],
+   [
+    "mandi",
+    14
+   ],
+   [
+    "materi",
+    13
+   ],
+   [
+    "seluruh",
+    12
+   ],
+   [
+    "tiap",
+    12
+   ],
+   [
+    "ruang",
+    12
+   ],
+   [
+    "asrama",
+    12
+   ],
+   [
+    "mentor",
+    12
+   ],
+   [
+    "kompetisi",
+    12
+   ],
+   [
+    "melakukan",
+    11
+   ],
+   [
+    "selesai",
+    11
+   ],
+   [
+    "cukup",
+    11
+   ]
+  ],
+  "unik": 38
+ },
+ "daftar": [
+  {
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "HARGAI HARI LIBUR GURU, KERJAKAN HAL LAIN SEBELUM LIBURAN BUKAN SAAT LIBURAN",
+   "kali": 1,
+   "masuk": "2026-06-19"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Manajemen",
+   "kali": 1,
+   "masuk": "2026-06-25"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Pelatihan OSN",
+   "kali": 1,
+   "masuk": "2026-06-28"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "Mr. Rahmat Darani",
+   "kali": 1,
+   "masuk": "2026-07-02"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "AKGB 360",
+   "kali": 1,
+   "masuk": "2026-07-13"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Siapa yang bertanggung jawab atas Air Minum dan MBG di sini?",
+   "kali": 1,
+   "masuk": "2026-07-17"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "Facilities",
+   "kali": 1,
+   "masuk": "2026-07-23"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Lain-lain",
+   "subjek": "Laundry",
+   "kali": 1,
+   "masuk": "2026-07-23"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Kondisi Internet di sekolah yang kurang memadai",
+   "kali": 1,
+   "masuk": "2026-08-11"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Kebhayangkaraan",
+   "subjek": "Waktu olahraga pagi yang tidak sesuai",
+   "kali": 3,
+   "masuk": "2026-08-11"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "CCA & Competition",
+   "subjek": "Laporan perihal persiapan dan pelaksanaan OSN",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi Internet di Dormitory 4 Tidak Baik",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Masalah Wifi Dorm(Kamar)",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Dormitory Wi-Fi Complaint",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi WiFi atau internet yang tidak memadahi sarana pembelajaran",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "WIFI dalam dorm tidak bisa digunakan",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Wi-fi yang lemot.",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Sinyal Wifi yang lamban",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Akademik",
+   "subjek": "Penyampaian atensi terkadang tidak bisa terdengar sehingga terjadi misinformasi (kesalahpahaman antar pihak)",
+   "kali": 2,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi internet dalam dormitory masih bermasalah",
+   "kali": 1,
+   "masuk": "2026-08-12"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Ketidaklancaran Wifi Dormitory",
+   "kali": 1,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Sinyal dan wi-fi dalam dorm KTB tidak dapat bekerja dan mengganggu efektifitas belajar mandiri",
+   "kali": 2,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Guru / Staf",
+   "subjek": "Semua Guru & Staf KTB",
+   "kali": 3,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Akademik",
+   "subjek": "Permohonan review ulang kebijakan siswa dianggap absen saat mengikuti kompetisi atas inisiatif sendiri",
+   "kali": 2,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "lorong yang damai",
+   "kali": 1,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Keluhan Pelayanan Klinik dan Kualitas Konsumsi",
+   "kali": 1,
+   "masuk": "2026-08-13"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Guru / Staf",
+   "subjek": "kebersihan sekolah sangat dijaga",
+   "kali": 1,
+   "masuk": "2026-08-14"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Aliran air dalam kamar mandi perempuan depan ruang 219 KTB sangat kecil",
+   "kali": 1,
+   "masuk": "2026-08-14"
+  },
+  {
+   "jalur": "Apresiasi",
+   "kategori": "Apresiasi Umum",
+   "subjek": "Sistem untuk Mengakses Slip Gaji yang Bagus!",
+   "kali": 1,
+   "masuk": "2026-08-14"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Akademik",
+   "subjek": "Misconduct / SP 1 Karena hal yang sepele.",
+   "kali": 1,
+   "masuk": "2026-08-15"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Kehidupan Asrama",
+   "subjek": "Waktu Belajar",
+   "kali": 1,
+   "masuk": "2026-08-15"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Kesiswaan & Kedisiplinan",
+   "subjek": "Kekurangan Waktu Belajar Malam bagi Siswa Kelas 11 IBDP",
+   "kali": 1,
+   "masuk": "2026-08-15"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Lain-lain",
+   "subjek": "Many problems resulting even more problems, please, help...",
+   "kali": 1,
+   "masuk": "2026-08-15"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Kesiswaan & Kedisiplinan",
+   "subjek": "Etika dan Kesopanan dalam Kompetisi Antar House",
+   "kali": 1,
+   "masuk": "2026-08-16"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Usulan Hiburan Pribadi di Asrama Melalui Video Game",
+   "kali": 1,
+   "masuk": "2026-08-16"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Sarana & Fasilitas",
+   "subjek": "Koneksi dan wifi",
+   "kali": 1,
+   "masuk": "2026-08-17"
+  },
+  {
+   "jalur": "Kendala",
+   "kategori": "Kesiswaan & Kedisiplinan",
+   "subjek": "Apel Malam",
+   "kali": 4,
+   "masuk": "2026-08-17"
+  },
+  {
+   "jalur": "Kanal Yayasan",
+   "kategori": "Kehidupan Asrama",
+   "subjek": "Pengaduan Mengenai Sikap dan Pelaksanaan Pembinaan oleh Mentor pada 15 Agustus 2026",
+   "kali": 1,
+   "masuk": "2026-08-17"
+  }
+ ]
+}

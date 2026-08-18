@@ -19,14 +19,21 @@ function berandaPeran(): string {
     return APP_URL . '/dashboard/';
 }
 
-if (isLoggedIn()) { header('Location: ' . berandaPeran()); exit; }
+// Halaman yang ingin dituju sebelum diminta masuk — mis. tautan tiket
+// dari email. Dibawa lewat ?ref= saat GET, lalu lewat input tersembunyi
+// saat formulir dikirim, supaya tidak hilang setelah POST.
+$ref  = tujuanAman($_REQUEST['ref'] ?? null);
+$next = $ref ?: berandaPeran();
+
+if (isLoggedIn()) { header('Location: ' . $next); exit; }
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     if (login($email, $password)) {
-        header('Location: ' . berandaPeran());
+        // berandaPeran() dihitung ulang: peran baru diketahui setelah login.
+        header('Location: ' . ($ref ?: berandaPeran()));
         exit;
     }
     $error = 'Email atau kata sandi tidak valid.';
@@ -386,6 +393,7 @@ html,body{height:100%;font-family:'Host Grotesk','Segoe UI',system-ui,sans-serif
       <?php endif; ?>
 
       <form method="POST" autocomplete="off">
+        <?php if ($ref): ?><input type="hidden" name="ref" value="<?= h($ref) ?>"><?php endif; ?>
         <div class="field">
           <label for="email">Email</label>
           <div class="input-wrap">
