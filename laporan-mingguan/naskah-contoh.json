@@ -1,0 +1,91 @@
+{
+ "_catatan": "Templat naskah. Angka diisi otomatis dari data.json; berkas ini hanya berisi bagian yang butuh pembacaan manusia. Salin ke naskah.json di folder kerja, lalu ganti isinya sesuai laporan pekan berjalan. 'nada' boleh netral, kuning, atau merah.",
+ "rentang": "10 – 18 Agustus 2026",
+ "subjudul": "Apa yang disampaikan warga sekolah pada 10–18 Agustus 2026",
+
+ "peta": {
+  "poin": [
+   ["Satu laporan bisa masuk beberapa tema",
+    "Karena itu jumlahnya melebihi jumlah tiket. Angka ini menunjukkan seberapa sering suatu hal disinggung, bukan berapa tiketnya."],
+   ["Empat tema besar saling terkait",
+    "Pembinaan, kondisi asrama, internet, dan waktu belajar sering muncul dalam satu laporan yang sama — semuanya bermuara pada hari yang terasa terlalu padat."]
+  ],
+  "sorot": "Tema terbesar bukan fasilitas, melainkan cara siswa dibina dan didisiplinkan."
+ },
+
+ "tema": [
+  {
+   "kunci": "Pembinaan dan kedisiplinan",
+   "judul": "Pembinaan dan kedisiplinan",
+   "sub": "Bukan menolak aturan, melainkan mempersoalkan cara dan ukurannya",
+   "kutipan": [
+    ["Kami tetap dikategorikan sebagai terlambat dan diberikan hukuman berupa push-up sebanyak 20 kali … mentor juga menyampaikan kalimat yang menurut saya tidak pantas.",
+     "KY-2026-0011 · Kanal Yayasan · anonim · 17 Agustus"],
+    ["Kami diberitahu bahwa kami telah terjerat misconduct … Sedangkan, ada murid yang diberi kesempatan untuk memperbaiki pekerjaannya. Menurut kami ini sangat tidak adil.",
+     "AGKB-2026-0030 · Akademik · 15 Agustus"],
+    ["Beberapa siswa dari House yang menang melakukan ejekan terhadap House yang kalah.",
+     "AGKB-2026-0032 · Kesiswaan & Kedisiplinan · 16 Agustus"]
+   ],
+   "simpul": "Benang merahnya: sanksi dianggap tidak seragam antar kelompok mentor dan tidak didahului peringatan. Yang diminta bukan penghapusan aturan, melainkan kejelasan dan kesetaraan penerapannya.",
+   "nada": "netral"
+  },
+  {
+   "kunci": "Waktu belajar dan jadwal",
+   "judul": "Waktu belajar yang terus terpotong",
+   "sub": "Tema yang baru muncul pada pekan ini",
+   "kutipan": [
+    ["Residential mengadakan apel malam tiap hari … waktu tidur jam 10 malam, sedangkan apel dilaksanakan jam 9.30. Secara instan, itu akan memotong waktu belajar murid-murid.",
+     "Dilaporkan 4 kali · Kesiswaan & Kedisiplinan · 17–18 Agustus"],
+    ["Olahraga pagi 05.00–05.50, pukul 06.10 sudah harus di sekolah, sekolah sampai 15.10, lalu marching band 15.45–17.45. Praktis tidak ada waktu mengerjakan tugas.",
+     "KY-2026-0009 · Kehidupan Asrama · anonim · 15 Agustus"],
+    ["Beban kurikulum seperti Internal Assessment, Extended Essay, dan CAS menuntut waktu pendalaman yang tidak bisa dipenuhi hanya dari jam pelajaran siang.",
+     "AGKB-2026-0031 · siswa kelas 11 IBDP · 15 Agustus"]
+   ],
+   "simpul": "Tiga kebijakan yang masing-masing wajar — olahraga pagi, apel malam, kegiatan sore — bertemu pada satu hari yang sama dan menyisakan sedikit sekali waktu belajar mandiri.",
+   "nada": "kuning"
+  },
+  {
+   "kunci": "Layanan dan kondisi asrama",
+   "judul": "Layanan dan kondisi asrama",
+   "sub": "Dari klinik dan konsumsi sampai kebutuhan dasar sehari-hari",
+   "kutipan": [
+    ["Saya malah disambut dengan pertanyaan tajam dan nada menyalahkan … bagaimana mungkin siswa mau terbuka mengenai kesehatannya jika tenaga medisnya sendiri bersikap antipati?",
+     "KY-2026-0008 · Kanal Yayasan · anonim · 13 Agustus"],
+    ["Aliran air di wastafel maupun toilet sangat kecil … bukan kejadian sekali dua kali, melainkan hampir selalu terjadi.",
+     "AGKB-2026-0028 · Sarana & Fasilitas · 14 Agustus"],
+    ["Waktu kosong saat di asrama menjadi monoton … fasilitas yang masih dalam proses pembangunan sehingga mereka jenuh.",
+     "AGKB-2026-0033 · Sarana & Fasilitas · 16 Agustus"]
+   ],
+   "simpul": "Sebagian besar bukan keluhan tentang barang yang belum ada, melainkan tentang tidak jelasnya siapa yang bertanggung jawab ketika sesuatu tidak berjalan.",
+   "nada": "netral"
+  },
+  {
+   "kunci": "Konektivitas internet",
+   "judul": "Konektivitas internet",
+   "sub": "Keluhan paling banyak jumlahnya, dan mulai berubah nada",
+   "kutipan": [
+    ["Sudah sebulan di KTB wifi di dorm masih buruk di banyak tempat, katanya akan diperbaiki tapi seperti tidak ada perubahan.",
+     "AGKB-2026-0034 · 17 Agustus — laporan terbaru dari rangkaian ini"],
+    ["Kamar saya B203 tidak mendapatkan sinyal sama sekali dari hari pertama … sinyal wifi hanya bekerja di Pantry dan Library yang terbuka, di mana itu mengganggu privasi kami.",
+     "AGKB-2026-0011 · Sarana & Fasilitas · 12 Agustus"],
+    ["Para guru pun merasakannya; saat mau menghubungkan laptop dengan smartboard yang membutuhkan sinyal, akhirnya tidak digunakan karena sinyal tidak ada.",
+     "AGKB-2026-0016 · dampak pada kegiatan mengajar · 12 Agustus"]
+   ],
+   "simpul": "Perhatikan perubahan nadanya. Laporan 12 Agustus masih menjelaskan masalah; laporan 17 Agustus sudah mempersoalkan janji perbaikan yang belum terlihat hasilnya.",
+   "nada": "merah"
+  }
+ ],
+
+ "apresiasi": {
+  "kutipan": [
+   ["Setengah tahun lalu saya memberi masukan agar tim finance dapat memberikan slip gaji karyawan tiap bulan. Hal ini akhirnya sudah diwujudnyatakan … Terima kasih sudah mendengarkan saran kecil ini.",
+    "AGKB-2026-0029 · Apresiasi Umum · 14 Agustus"],
+   ["Di tengah hiruk-pikuk cuaca dan debu di lingkungan ini kalian masih bekerja dengan sepenuh hati dan memiliki kinerja yang sangat baik.",
+    "AGKB-2026-0021 · Apresiasi Guru / Staf · 13 Agustus"],
+   ["Saya senang saat menuju kamar mandi tidak harus takut ada yang meneriakkan untuk masuk kelas.",
+    "AGKB-2026-0025 · Apresiasi Umum · 13 Agustus"]
+  ],
+  "kotak_judul": "Laporan pertama adalah bukti paling berharga dalam periode ini.",
+  "kotak_isi": "Masukan disampaikan, dikerjakan, lalu pelapornya kembali untuk mengatakannya. Lingkaran umpan balik yang tertutup seperti inilah yang membuat orang mau melapor lagi."
+ }
+}

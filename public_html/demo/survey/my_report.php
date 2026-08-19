@@ -43,21 +43,31 @@ $curPeriod   = Database::fetchOne("SELECT * FROM eval_periods WHERE id=?", [$sel
 $scores = calculateScores($uid, $selectedPid);
 
 // Breakdown per tipe responden
+// Tipe responden dihitung lebih dulu di subkueri, baru dikelompokkan.
+// MySQL 8 dengan only_full_group_by menolak bila CASE-nya ditulis
+// langsung di SELECT list: kolom p.is_self_reflection di dalam
+// subkueri n_total tidak dianggap bergantung pada alias rtype.
 $byRespondent = Database::fetchAll("
     SELECT
-        CASE WHEN p.is_self_reflection=1 THEN 'self' ELSE p.respondent_type END AS rtype,
-        COUNT(DISTINCT a.evaluator_id) AS n_done,
+        x.rtype,
+        COUNT(DISTINCT x.evaluator_id) AS n_done,
         (SELECT COUNT(*) FROM assignments a2 JOIN packages p2 ON p2.id=a2.package_id
          WHERE a2.evaluatee_id=? AND a2.period_id=?
-         AND (CASE WHEN p2.is_self_reflection=1 THEN 'self' ELSE p2.respondent_type END) =
-             (CASE WHEN p.is_self_reflection=1 THEN 'self' ELSE p.respondent_type END)
+         AND (CASE WHEN p2.is_self_reflection=1 THEN 'self' ELSE p2.respondent_type END)
+             = x.rtype
         ) AS n_total,
-        ROUND(AVG(r.grade),2) AS avg_grade
-    FROM responses r
-    JOIN assignments a ON r.assignment_id = a.id
-    JOIN packages p    ON a.package_id    = p.id
-    WHERE a.evaluatee_id=? AND a.period_id=?
-    GROUP BY rtype
+        ROUND(AVG(x.grade),2) AS avg_grade
+    FROM (
+        SELECT
+            CASE WHEN p.is_self_reflection=1 THEN 'self' ELSE p.respondent_type END AS rtype,
+            a.evaluator_id,
+            r.grade
+        FROM responses r
+        JOIN assignments a ON r.assignment_id = a.id
+        JOIN packages p    ON a.package_id    = p.id
+        WHERE a.evaluatee_id=? AND a.period_id=?
+    ) x
+    GROUP BY x.rtype
     ORDER BY avg_grade DESC
 ", [$uid, $selectedPid, $uid, $selectedPid]);
 
