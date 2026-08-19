@@ -43,33 +43,36 @@ $curPeriod   = Database::fetchOne("SELECT * FROM eval_periods WHERE id=?", [$sel
 $scores = calculateScores($uid, $selectedPid);
 
 // Breakdown per tipe responden
-// Tipe responden dihitung lebih dulu di subkueri, baru dikelompokkan.
-// MySQL 8 dengan only_full_group_by menolak bila CASE-nya ditulis
-// langsung di SELECT list: kolom p.is_self_reflection di dalam
-// subkueri n_total tidak dianggap bergantung pada alias rtype.
+//
+// Berangkat dari assignments, bukan dari responses. Kalau berangkat
+// dari responses, kelompok yang belum ada jawabannya sama sekali
+// akan hilang dari hasil — pemilik laporan tidak akan tahu ada
+// responden yang belum mengisi. Dengan LEFT JOIN, kelompok itu
+// tetap muncul sebagai "0 dari sekian".
+//
+// Tipe responden juga dihitung lebih dulu di subkueri: MySQL 8
+// dengan only_full_group_by menolak bila CASE-nya ditulis langsung
+// di SELECT list bersama subkueri yang menyebut kolom aslinya.
 $byRespondent = Database::fetchAll("
     SELECT
         x.rtype,
-        COUNT(DISTINCT x.evaluator_id) AS n_done,
-        (SELECT COUNT(*) FROM assignments a2 JOIN packages p2 ON p2.id=a2.package_id
-         WHERE a2.evaluatee_id=? AND a2.period_id=?
-         AND (CASE WHEN p2.is_self_reflection=1 THEN 'self' ELSE p2.respondent_type END)
-             = x.rtype
-        ) AS n_total,
-        ROUND(AVG(x.grade),2) AS avg_grade
+        COUNT(DISTINCT CASE WHEN x.sudah THEN x.evaluator_id END) AS n_done,
+        COUNT(DISTINCT x.evaluator_id)                            AS n_total,
+        ROUND(AVG(x.grade),2)                                     AS avg_grade
     FROM (
         SELECT
             CASE WHEN p.is_self_reflection=1 THEN 'self' ELSE p.respondent_type END AS rtype,
             a.evaluator_id,
-            r.grade
-        FROM responses r
-        JOIN assignments a ON r.assignment_id = a.id
-        JOIN packages p    ON a.package_id    = p.id
+            r.grade,
+            r.id IS NOT NULL AS sudah
+        FROM assignments a
+        JOIN packages p       ON a.package_id    = p.id
+        LEFT JOIN responses r ON r.assignment_id = a.id
         WHERE a.evaluatee_id=? AND a.period_id=?
     ) x
     GROUP BY x.rtype
     ORDER BY avg_grade DESC
-", [$uid, $selectedPid, $uid, $selectedPid]);
+", [$uid, $selectedPid]);
 
 $isPreliminary = $curPeriod && $curPeriod['status'] !== 'closed';
 $overall = (float)($scores['overall'] ?? 0);
@@ -198,9 +201,11 @@ ob_start();
         <div class="resp-chip">
             <div>
                 <div class="resp-lbl"><?= h(respondentLabel($r['rtype'])) ?></div>
-                <div class="resp-meta"><?= $r['n_done'] ?> responden</div>
+                <div class="resp-meta"><?= $r['n_done'] ?> dari <?= $r['n_total'] ?> responden</div>
             </div>
-            <div class="resp-score"><?= number_format($r['avg_grade'],2) ?></div>
+            <?php /* Skor kosong ditulis "—", bukan 0.00 — belum mengisi
+                     tidak sama dengan menilai nol. */ ?>
+            <div class="resp-score"><?= $r['avg_grade'] === null ? '—' : number_format($r['avg_grade'],2) ?></div>
         </div>
         <?php endforeach; ?>
         <?php endif; ?>
