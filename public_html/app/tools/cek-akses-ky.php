@@ -180,11 +180,18 @@ $pengintai = Database::fetchAll(
        JOIN users u ON u.id = w.user_id
       WHERE w.ticket_id IN ($ph) ORDER BY u.name", $idKy);
 
+// Tabel ini memuat dua macam baris, dan membedakannya penting.
+// Baris tanpa user_id maupun email bukan baris rusak: itu penamaan
+// level, dibuat migrasi 009, dan tampil di Admin CMS sebagai judul
+// rute. fbLevelRecipients() melewatinya karena alamatnya kosong,
+// dan fbResolveAssignee() melewatinya karena user_id-nya kosong.
+// Menghapusnya menghilangkan nama level itu dari daftar rute.
 $rute = Database::fetchAll(
-    "SELECT DISTINCT COALESCE(u.name, el.email) AS nama, u.role
+    "SELECT el.id, el.label, el.level, COALESCE(u.name, el.email) AS nama, u.role
        FROM feedback_escalation_levels el
        LEFT JOIN users u ON u.id = el.user_id
-      WHERE el.is_active = 1 AND el.track = 'safeguarding'");
+      WHERE el.is_active = 1 AND el.track = 'safeguarding'
+      ORDER BY el.level, el.order_num");
 
 echo "\n$garis\nJALUR SAMPING — tidak melewati fbCanView()\n$garis\n";
 
@@ -209,7 +216,13 @@ foreach ($pengintai as $w) {
 
 echo "  Penerima notifikasi jalur safeguarding (feedback_escalation_levels):\n";
 if (!$rute) echo "      (tidak ada)\n";
-foreach ($rute as $r) printf("      · %-30s %s\n", $r['nama'], $r['role'] ?? '(alamat lepas)');
+foreach ($rute as $r) {
+    printf("      %s id=%-3d L%d  %-28s %s\n",
+        $r['nama'] ? '·' : ' ',
+        $r['id'], $r['level'],
+        $r['nama'] ?: '(penamaan level, bukan penerima)',
+        $r['nama'] ? ($r['role'] ?? '(alamat lepas, tanpa akun)') : $r['label']);
+}
 
 echo "\n  Catatan: fbTembusanTetap() menambahkan pengembang sebagai\n"
    . "  tembusan tetap pada setiap tiket, termasuk KY. Itu hardcode\n"
