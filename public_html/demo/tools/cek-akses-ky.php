@@ -165,6 +165,22 @@ foreach ($anggota as $a) {
     if ($u && !in_array('safeguarding', fbAllowedTracks($u), true)) $buta[] = $a['name'];
 }
 
+// Arah ketiga: tiket yang ditugaskan kepada orang yang tidak bisa
+// membukanya. fbResolveAssignee() sekarang mencegahnya terjadi, tetapi
+// penugasan lama dan penugasan manual tidak tersaring fungsi itu —
+// dan kegagalan macam ini tidak berbunyi apa-apa. Tiket tampak
+// tertangani, yang ditunjuk hanya mendapat 403.
+$salahTugas = [];
+foreach ($ky as $t) {
+    if (empty($t['assignee_id'])) continue;
+    $a = Database::fetchOne("SELECT id, name, role FROM users WHERE id=?", [$t['assignee_id']]);
+    if (!$a) {
+        $salahTugas[] = $t['ticket_no'] . ' → akun id=' . $t['assignee_id'] . ' tidak ditemukan';
+    } elseif (!fbCanView($t, $a)) {
+        $salahTugas[] = $t['ticket_no'] . ' → ' . $a['name'] . ' (' . $a['role'] . ')';
+    }
+}
+
 echo "\n$garis\nVONIS\n$garis\n";
 
 if ($tembus) {
@@ -180,6 +196,14 @@ if ($buta) {
     foreach ($buta as $n) echo "      · $n\n";
 } else {
     echo "  ✓ Seluruh anggota unit melihat tiket KY di inbox mereka.\n";
+}
+
+if ($salahTugas) {
+    echo "  ✗ SALAH TUGAS — penanggung jawab yang tidak bisa membuka tiketnya:\n";
+    foreach ($salahTugas as $n) echo "      · $n\n";
+} else {
+    echo "  ✓ Setiap tiket KY yang berpenanggung jawab dipegang orang\n"
+       . "    yang bisa membukanya.\n";
 }
 
 // ── Jalur samping ───────────────────────────────────────────

@@ -356,24 +356,62 @@ function fbClaimTicket(int $ticketId, int $userId): bool {
 
 // ── RUTE / PIC ──────────────────────────────────────────────
 
-/** Cari PIC untuk level tertentu. Kategori spesifik menang atas rute umum. */
+/**
+ * Cari PIC untuk level tertentu. Kategori spesifik menang atas rute umum.
+ *
+ * Untuk jalur safeguarding ada satu syarat tambahan: calon penanggung
+ * jawab harus orang yang boleh membaca tiketnya. Sejak akses Kanal
+ * Yayasan ditentukan keanggotaan unit dan bukan role, tabel rute bisa
+ * menunjuk pengurus yayasan yang tidak dapat membuka tiketnya sendiri.
+ * Penugasan semacam itu lebih buruk daripada tidak ditugaskan: tiket
+ * tampak tertangani, sementara yang ditunjuk hanya mendapat 403 dan
+ * tidak ada yang tahu sampai ada yang memeriksa.
+ *
+ * Karena itu lebih baik pulang dengan tangan kosong. Tiket tanpa
+ * penanggung jawab tetap masuk antrean unit, masih terlihat, dan
+ * terhitung dalam metrik tiket yang belum diambil.
+ */
 function fbResolveAssignee(int $level, string $track, ?int $categoryId): ?array {
+    // Penyaring tunggal untuk semua jalur pencarian di bawah, supaya
+    // tidak ada rute yang lupa diperiksa saat kode ini ditambah nanti.
+    $layak = function (?array $row) use ($track): ?array {
+        if (!$row || empty($row['user_id']))  return null;
+        if ($track !== 'safeguarding')        return $row;
+
+        $u = Database::fetchOne(
+            "SELECT id, role FROM users WHERE id=? AND is_active=1", [$row['user_id']]);
+        return ($u && fbCanSeeSafeguarding($u)) ? $row : null;
+    };
+
     if ($categoryId) {
         $row = Database::fetchOne(
             "SELECT * FROM feedback_escalation_levels
              WHERE level=? AND category_id=? AND is_active=1 AND user_id IS NOT NULL
              ORDER BY order_num LIMIT 1", [$level, $categoryId]);
-        if ($row) return $row;
+        if ($r = $layak($row)) return $r;
     }
     $row = Database::fetchOne(
         "SELECT * FROM feedback_escalation_levels
          WHERE level=? AND (track=? OR track IS NULL) AND category_id IS NULL
            AND is_active=1 AND user_id IS NOT NULL
          ORDER BY order_num LIMIT 1", [$level, $track]);
-    if ($row) return $row;
+    if ($r = $layak($row)) return $r;
 
-    // Cadangan: level 3 selalu jatuh ke Yayasan
+    // Cadangan: level 3 selalu jatuh ke Yayasan.
     if ($level >= 3) {
+        // Untuk Kanal Yayasan, "Yayasan" berarti anggota unitnya —
+        // bukan pengguna ber-role foundation dengan id terkecil, yang
+        // dipilih tanpa memeriksa apakah ia boleh membacanya.
+        if ($track === 'safeguarding') {
+            return Database::fetchOne(
+                "SELECT u.id AS user_id
+                   FROM users u
+                   JOIN user_groups ug ON ug.user_id = u.id
+                   JOIN `groups` g     ON g.id = ug.group_id
+                  WHERE u.is_active = 1
+                    AND g.type = 'penanganan' AND g.name = 'Kanal Yayasan'
+                  ORDER BY u.id LIMIT 1") ?: null;
+        }
         $f = Database::fetchOne("SELECT id AS user_id FROM users WHERE role='foundation' AND is_active=1 ORDER BY id LIMIT 1");
         if ($f) return $f;
     }
