@@ -116,8 +116,17 @@ foreach ($kandidat as $u) {
     ];
 }
 
+/**
+ * printf() memberi lebar dalam byte, bukan aksara, sehingga satu tanda
+ * pisah panjang atau nama beraksen menggeser seluruh kolom di kanannya.
+ * Dipadankan sendiri berdasarkan mb_strlen supaya tabelnya tetap lurus.
+ */
+$kolom = fn(string $s, int $w): string
+    => $s . str_repeat(' ', max(1, $w - mb_strlen($s)));
+
 echo "\n$garis\nSIAPA YANG SESUNGGUHNYA BISA MEMBACA " . count($ky) . " TIKET KY\n$garis\n";
-printf("  %-28s %-11s %-6s %-7s %s\n", 'NAMA', 'ROLE', 'INBOX', 'BACA', 'DASAR');
+echo '  ' . $kolom('NAMA', 28) . $kolom('ROLE', 12) . $kolom('INBOX', 8)
+   . $kolom('BACA', 7) . "DASAR\n";
 
 foreach ($bisa as $b) {
     $dasar = $b['anggota'] ? 'anggota unit'
@@ -126,12 +135,18 @@ foreach ($bisa as $b) {
               ? 'diberi per tiket: ' . implode(', ', $b['diberi'])
               : 'TANPA DASAR'));
 
-    printf("  %-28s %-11s %-6s %-7s %s\n",
-        mb_substr($b['u']['name'], 0, 28),
-        $b['u']['role'],
-        $b['inbox'] ? 'ya' : '—',
-        count($b['tautan']) . '/' . count($ky),
-        $dasar);
+    // Cermin dari admin/feedback.php: jalur safeguarding dibuka di
+    // inbox bila fbAllowedTracks() memuatnya ATAU ada pemberian per
+    // tiket. Tanpa cabang kedua, kolom ini melaporkan '—' untuk orang
+    // yang sesungguhnya melihat tiketnya di inbox.
+    $inbox = $b['inbox'] ? 'semua'
+           : ($b['diberi'] ? count($b['diberi']) . ' tiket' : '-');
+
+    echo '  ' . $kolom(mb_substr($b['u']['name'], 0, 28), 28)
+       . $kolom($b['u']['role'], 12)
+       . $kolom($inbox, 8)
+       . $kolom(count($b['tautan']) . '/' . count($ky), 7)
+       . $dasar . "\n";
 }
 
 // ── Vonis ───────────────────────────────────────────────────
