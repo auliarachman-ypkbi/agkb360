@@ -19,6 +19,18 @@ $escalated = fbRunAutoEscalation();
 if ($escalated) flash("$escalated tiket dieskalasi otomatis karena melewati batas waktu.", 'warning');
 
 $tracks = fbAllowedTracks($user);
+
+// Tiket Kanal Yayasan yang diberikan satu per satu kepada orang yang
+// bukan anggota unit. Jalur safeguarding dibuka untuknya di inbox,
+// tetapi dibatasi baris demi baris di bawah — tanpa pembatas itu
+// membuka track sama saja membuka kesepuluh tiketnya.
+//
+// Sengaja tidak dimasukkan ke fbAllowedTracks(): fungsi itu juga
+// dipakai dasbor untuk menghitung angka agregat, dan angka yang
+// mencakup tiket KY yang bukan haknya adalah kebocoran tersendiri.
+$kyKhusus = fbCanSeeSafeguarding($user) ? [] : fbTiketKyDiberikan((int)$user['id']);
+if ($kyKhusus && $tracks) $tracks[] = 'safeguarding';
+
 if (!$tracks) { http_response_code(403); include BASE_PATH . '/includes/403.php'; exit; }
 
 // ── Filter ──────────────────────────────────────────────────
@@ -32,6 +44,14 @@ $showTest= !empty($_GET['test']);
 
 $w = ["t.track IN (" . implode(',', array_fill(0, count($tracks), '?')) . ")"];
 $p = $tracks;
+
+// Baris ini yang menahan agar pembukaan track di atas tidak meluas:
+// tiket safeguarding hanya lolos kalau memang diberikan kepadanya.
+if ($kyKhusus) {
+    $iph = implode(',', array_fill(0, count($kyKhusus), '?'));
+    $w[] = "(t.track <> 'safeguarding' OR t.id IN ($iph))";
+    $p   = array_merge($p, $kyKhusus);
+}
 
 // Saat mencari, filter status dan penyembunyian tiket tester diabaikan.
 // Kalau tidak, mencari nomor tiket yang persis pun bisa tidak ketemu.

@@ -56,6 +56,9 @@ $ky = Database::fetchAll(
 
 if (!$ky) exit("Tidak ada tiket berjalur safeguarding.\n");
 
+// id → nomor tiket, supaya laporan menyebut KY-2026-0010 dan bukan id=40
+$nomor = array_column($ky, 'ticket_no', 'id');
+
 // ── Anggota unit: inilah daftar yang seharusnya ─────────────
 $anggota = Database::fetchAll(
     "SELECT u.id, u.name, u.role
@@ -92,37 +95,54 @@ foreach ($kandidat as $u) {
 
     if (!$lewatInbox && !$lewatTautan) continue;
 
-    // Superadmin memang lolos tanpa keanggotaan, demi pemeliharaan
-    // sistem. Ditandai tersendiri supaya tidak terhitung kebocoran,
-    // tetapi tetap tercetak — daftar pembaca laporan perlindungan
-    // anak tidak boleh menyembunyikan siapa pun.
+    // Tiga dasar yang sah, dan masing-masing ditandai tersendiri:
+    // keanggotaan unit, superadmin (demi pemeliharaan sistem), dan
+    // pemberian per tiket. Semuanya tetap tercetak — daftar pembaca
+    // laporan perlindungan anak tidak boleh menyembunyikan siapa pun,
+    // termasuk yang haknya memang jelas.
+    $diberi = array_map(
+        fn($id) => $nomor[$id] ?? ('id=' . $id),
+        fbTiketKyDiberikan((int)$u['id']));
+
     $bisa[] = [
         'u'       => $u,
         'inbox'   => $lewatInbox,
         'tautan'  => $lewatTautan,
         'anggota' => in_array((int)$u['id'], array_map('intval', $idAnggota), true),
         'sah'     => $u['role'] === 'superadmin',
+        'diberi'  => $diberi,
+        // Yang terbaca tanpa dasar apa pun. Inilah kebocorannya.
+        'liar'    => array_values(array_diff($lewatTautan, $diberi)),
     ];
 }
 
 echo "\n$garis\nSIAPA YANG SESUNGGUHNYA BISA MEMBACA " . count($ky) . " TIKET KY\n$garis\n";
-printf("  %-30s %-11s %-7s %-8s %s\n", 'NAMA', 'ROLE', 'INBOX', 'TAUTAN', 'ANGGOTA UNIT');
+printf("  %-28s %-11s %-6s %-7s %s\n", 'NAMA', 'ROLE', 'INBOX', 'BACA', 'DASAR');
 
 foreach ($bisa as $b) {
-    printf("  %-30s %-11s %-7s %-8s %s\n",
-        mb_substr($b['u']['name'], 0, 30),
+    $dasar = $b['anggota'] ? 'anggota unit'
+           : ($b['sah']    ? 'superadmin'
+           : ($b['diberi'] && !$b['liar']
+              ? 'diberi per tiket: ' . implode(', ', $b['diberi'])
+              : 'TANPA DASAR'));
+
+    printf("  %-28s %-11s %-6s %-7s %s\n",
+        mb_substr($b['u']['name'], 0, 28),
         $b['u']['role'],
         $b['inbox'] ? 'ya' : '—',
         count($b['tautan']) . '/' . count($ky),
-        $b['anggota'] ? 'ya' : ($b['sah'] ? '— (superadmin, sah)' : 'BUKAN ANGGOTA'));
+        $dasar);
 }
 
 // ── Vonis ───────────────────────────────────────────────────
-// Dua arah, dan keduanya penting. Yang bisa membaca tanpa jadi
-// anggota adalah kebocoran; yang jadi anggota namun tidak bisa
-// membaca berarti tiket KY menganggur tanpa ada yang melihatnya.
-$bocor  = array_values(array_filter($bisa, fn($b) => !$b['anggota'] && !$b['sah']));
-$tembus = array_column(array_column($bocor, 'u'), 'name');
+// Dua arah, dan keduanya penting. Yang bisa membaca tanpa dasar
+// adalah kebocoran; yang jadi anggota namun tidak bisa membaca
+// berarti tiket KY menganggur tanpa ada yang melihatnya.
+$bocor  = array_values(array_filter($bisa,
+    fn($b) => !$b['anggota'] && !$b['sah'] && $b['liar']));
+$tembus = array_map(
+    fn($b) => $b['u']['name'] . ' — ' . implode(', ', $b['liar']),
+    $bocor);
 
 $buta = [];
 foreach ($anggota as $a) {
@@ -133,11 +153,11 @@ foreach ($anggota as $a) {
 echo "\n$garis\nVONIS\n$garis\n";
 
 if ($tembus) {
-    echo "  ✗ BOCOR — bisa membaca tanpa menjadi anggota unit:\n";
+    echo "  ✗ BOCOR — bisa membaca tanpa dasar apa pun:\n";
     foreach ($tembus as $n) echo "      · $n\n";
 } else {
-    echo "  ✓ Tidak ada akun di luar anggota unit — selain superadmin —\n"
-       . "    yang bisa membaca tiket KY.\n";
+    echo "  ✓ Setiap pembaca tiket KY punya dasar: keanggotaan unit,\n"
+       . "    superadmin, atau pemberian per tiket.\n";
 }
 
 if ($buta) {
@@ -168,12 +188,23 @@ $rute = Database::fetchAll(
 
 echo "\n$garis\nJALUR SAMPING — tidak melewati fbCanView()\n$garis\n";
 
-echo "  Pengintai (feedback_watchers) pada tiket KY:\n";
+// Pengintai TIDAK dikirimi surel — penerima notifikasi dibangun
+// hanya dari fbLevelRecipients() dan fbTembusanTetap(). Tabel ini
+// dicetak karena inilah yang memberi akses per tiket, jadi patut
+// ditengok berkala supaya pemberian tidak menumpuk tanpa ditinjau.
+echo "  Pengintai (feedback_watchers) pada tiket KY — tidak dikirimi surel:\n";
 if (!$pengintai) echo "      (tidak ada)\n";
 foreach ($pengintai as $w) {
     $ok = in_array((int)$w['id'], array_map('intval', $idAnggota), true)
        || $w['role'] === 'superadmin';
-    printf("      %s %-30s %-11s\n", $ok ? '·' : '✗', $w['name'], $w['role']);
+    $diberi = fbTiketKyDiberikan((int)$w['id']);
+    printf("      %s %-28s %-11s %s\n",
+        $ok || $diberi ? '·' : '✗',
+        mb_substr($w['name'], 0, 28),
+        $w['role'],
+        $ok ? '' : ($diberi
+            ? 'diberi: ' . implode(', ', array_map(fn($i) => $nomor[$i] ?? $i, $diberi))
+            : 'memantau tetapi TIDAK bisa membaca'));
 }
 
 echo "  Penerima notifikasi jalur safeguarding (feedback_escalation_levels):\n";

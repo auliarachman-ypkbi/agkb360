@@ -616,6 +616,50 @@ function fbCanSeeSafeguarding(?array $u = null): bool {
     return $ingatan[$uid];
 }
 
+/**
+ * Tiket Kanal Yayasan yang diberikan kepada seseorang satu per satu.
+ *
+ * Keanggotaan unit memberi kesepuluh tiket sekaligus, dan itu terlalu
+ * kasar untuk keputusan seperti "Dewi Amri boleh membuka KY-2026-0010"
+ * yang diambil di rapat internal. Jalur ini menyediakan takaran yang
+ * lebih halus: satu tiket, satu orang.
+ *
+ * Dua penjaga supaya tidak berubah jadi pintu belakang:
+ *
+ *   1. Hanya baris pengintai yang ada `added_by`-nya yang dihitung.
+ *      Anggota unit yang ditambahkan otomatis saat tiket dibuat
+ *      ber-`added_by` NULL, jadi tidak ikut memberi akses kepada
+ *      siapa pun di luar aturan unit.
+ *   2. Pemberinya harus orang yang sendiri boleh membaca KY —
+ *      superadmin atau anggota unit. Orang tidak bisa membagikan
+ *      apa yang ia sendiri tidak boleh lihat.
+ *
+ * Pemberian semacam ini muncul tersendiri di tools/cek-akses-ky.php,
+ * lengkap dengan siapa yang memberi, supaya tidak menumpuk tanpa ada
+ * yang menengok.
+ */
+function fbTiketKyDiberikan(int $userId): array {
+    if ($userId <= 0) return [];
+
+    static $ingatan = [];
+    if (array_key_exists($userId, $ingatan)) return $ingatan[$userId];
+
+    $rows = Database::fetchAll(
+        "SELECT DISTINCT w.ticket_id
+           FROM feedback_watchers w
+           JOIN feedback_tickets t ON t.id = w.ticket_id
+           JOIN users p            ON p.id = w.added_by
+           LEFT JOIN user_groups ug ON ug.user_id = p.id
+           LEFT JOIN `groups` g     ON g.id = ug.group_id
+                                   AND g.type = 'penanganan'
+                                   AND g.name = 'Kanal Yayasan'
+          WHERE w.user_id = ?
+            AND t.track   = 'safeguarding'
+            AND (p.role = 'superadmin' OR g.id IS NOT NULL)", [$userId]);
+
+    return $ingatan[$userId] = array_map('intval', array_column($rows, 'ticket_id'));
+}
+
 function fbCanManage(?array $u = null): bool {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
     return in_array($role, ['superadmin','admin','foundation'], true);
@@ -680,6 +724,12 @@ function fbCanView(array $t, array $u): bool {
         if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
         return true;
     }
+    // Diberi tiket KY ini satu per satu — lihat fbTiketKyDiberikan().
+    // Harus diperiksa sebelum penjaga track di bawah, sebab justru
+    // penjaga itulah yang dikecualikan untuk tiket yang bersangkutan.
+    if ($t['track'] === 'safeguarding'
+        && in_array((int)$t['id'], fbTiketKyDiberikan((int)$u['id']), true)) return true;
+
     if (!in_array($t['track'], fbAllowedTracks($u), true)) return false;
     if (in_array($u['role'], ['superadmin','foundation'], true)) return true;
     if ($u['role'] === 'admin') return true;
