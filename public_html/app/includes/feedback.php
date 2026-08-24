@@ -580,12 +580,24 @@ function fbRunAutoEscalation(int $limit = 50): int {
  * diam-diam menambah pembaca.
  *
  * Sekarang berbasis daftar orang: keanggotaan unit 'Kanal Yayasan'.
+ * Selain itu hanya superadmin yang lolos, demi pemeliharaan sistem —
+ * ia toh memegang basis datanya, jadi menutup pintu ini tidak menutup
+ * apa pun yang sungguh-sungguh tertutup baginya.
+ *
+ * Role pemantau sengaja dicabut (24 Agustus 2026). Peran itu dipegang
+ * pihak ketiga di luar yayasan, sehingga aksesnya ke laporan
+ * perlindungan anak tidak pernah diputuskan siapa pun — hanya
+ * terwarisi dari definisi peran yang dibuat untuk keperluan lain.
+ * Role foundation juga tidak lagi lolos: menambah satu pengurus
+ * yayasan berarti diam-diam menambah pembaca.
+ *
  * Menambah atau mencabut akses cukup lewat Admin CMS, tanpa
- * menyentuh kode. Superadmin tetap bisa demi pemeliharaan sistem.
+ * menyentuh kode. Kalau suatu saat tidak ada satu pun anggota unit,
+ * tiket KY hanya terlihat superadmin — itu konsekuensi yang
+ * dikehendaki, bukan kekeliruan.
  */
 function fbCanSeeSafeguarding(?array $u = null): bool {
-    $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
-    if ($role === 'superadmin' || $role === 'pemantau') return true;
+    if (($u['role'] ?? ($_SESSION['user_role'] ?? '')) === 'superadmin') return true;
 
     $uid = (int)($u['id'] ?? ($_SESSION['user_id'] ?? 0));
     if ($uid <= 0) return false;
@@ -619,25 +631,43 @@ function fbIsHandler(?array $u = null): bool {
     return $uid > 0 && fbUserUnits($uid) !== [];
 }
 
-/** Track apa saja yang boleh dilihat di inbox oleh pengguna ini. */
+/**
+ * Track apa saja yang boleh dilihat di inbox oleh pengguna ini.
+ *
+ * Dua lapis, dan sengaja dipisah:
+ *   1. Boleh membuka inbox sama sekali — ditentukan peran atau
+ *      keanggotaan unit penanganan mana pun.
+ *   2. Boleh melihat jalur safeguarding — ditentukan HANYA oleh
+ *      fbCanSeeSafeguarding(), yaitu keanggotaan unit Kanal Yayasan.
+ *
+ * Sebelumnya lapis kedua ikut ditentukan peran, sehingga role
+ * foundation membaca laporan perlindungan anak tanpa pernah
+ * dimasukkan ke unitnya. Satu sumber kebenaran menutup celah itu.
+ */
 function fbAllowedTracks(?array $u = null): array {
     $role = $u['role'] ?? ($_SESSION['user_role'] ?? '');
-    // Pemantau melihat seluruh jalur tanpa kecuali — itu memang
-    // seluruh gunanya peran ini.
-    if (in_array($role, ['superadmin','foundation','pemantau'], true)) return ['apresiasi','inquiry','safeguarding'];
-    if (in_array($role, ['admin','leader'], true))           return ['apresiasi','inquiry'];
-    // Anggota unit penanganan boleh membuka inbox untuk mengerjakan
-    // antrean unitnya. Track safeguarding tetap tertutup rapat —
-    // hanya Pengelola Sistem dan Yayasan, apa pun keanggotaan unitnya.
-    if (fbIsHandler($u)) return ['apresiasi','inquiry'];
-    return [];
+
+    $boleh = in_array($role, ['superadmin','foundation','pemantau','admin','leader'], true)
+          || fbIsHandler($u);
+    if (!$boleh) return [];
+
+    $tracks = ['apresiasi','inquiry'];
+    if (fbCanSeeSafeguarding($u)) $tracks[] = 'safeguarding';
+    return $tracks;
 }
 
 function fbCanView(array $t, array $u): bool {
-    // Pemantau: melihat segalanya, mengubah tidak satu pun.
-    // Kemampuan bertindak dijaga terpisah lewat fbCanManage() dan
-    // pemeriksaan $canAct di halaman tiket.
-    if (($u['role'] ?? '') === 'pemantau') return true;
+    // Pemantau: melihat segalanya KECUALI Kanal Yayasan, dan mengubah
+    // tidak satu pun. Kemampuan bertindak dijaga terpisah lewat
+    // fbCanManage() dan pemeriksaan $canAct di halaman tiket.
+    //
+    // Pengecualian safeguarding harus ada di sini, bukan hanya di
+    // fbAllowedTracks(): baris ini keluar lebih dulu dari seluruh
+    // pemeriksaan track di bawah, jadi tanpa penjaga ini tiket KY
+    // masih terbuka lewat tautan langsung meski hilang dari inbox.
+    if (($u['role'] ?? '') === 'pemantau') {
+        return $t['track'] !== 'safeguarding' || fbCanSeeSafeguarding($u);
+    }
 
     if ((int)$t['sender_id'] === (int)$u['id'])   return true;
     if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) {
