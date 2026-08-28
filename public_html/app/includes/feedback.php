@@ -752,6 +752,18 @@ function fbCanView(array $t, array $u): bool {
     }
 
     if ((int)$t['sender_id'] === (int)$u['id'])   return true;
+
+    // Diberi tiket KY ini satu per satu — lihat fbTiketKyDiberikan().
+    // Harus diperiksa sebelum cabang assignee/unit di bawah, bukan
+    // sesudahnya: cabang-cabang itu melakukan return false lebih dulu
+    // untuk siapa pun yang gagal fbCanSeeSafeguarding(), sehingga kalau
+    // pemeriksaan ini diletakkan setelahnya ia tak pernah tercapai —
+    // PIC manual (hasil rapat mingguan) yang sekaligus diberi tiket ini
+    // per-tiket akan tetap ditolak oleh cabang assignee di bawah,
+    // walau pemberian per-tiketnya sendiri sudah benar.
+    if ($t['track'] === 'safeguarding'
+        && in_array((int)$t['id'], fbTiketKyDiberikan((int)$u['id']), true)) return true;
+
     if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) {
         if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
         return true;
@@ -762,11 +774,6 @@ function fbCanView(array $t, array $u): bool {
         if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
         return true;
     }
-    // Diberi tiket KY ini satu per satu — lihat fbTiketKyDiberikan().
-    // Harus diperiksa sebelum penjaga track di bawah, sebab justru
-    // penjaga itulah yang dikecualikan untuk tiket yang bersangkutan.
-    if ($t['track'] === 'safeguarding'
-        && in_array((int)$t['id'], fbTiketKyDiberikan((int)$u['id']), true)) return true;
 
     if (!in_array($t['track'], fbAllowedTracks($u), true)) return false;
     if (in_array($u['role'], ['superadmin','foundation'], true)) return true;
