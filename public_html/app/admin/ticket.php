@@ -53,8 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
         $newPic = (int)($_POST['assignee_id'] ?? 0) ?: null;
         $old = $t['assignee_name'] ?? '—';
         Database::update('feedback_tickets', ['assignee_id'=>$newPic], 'id = ?', [$t['id']]);
-        $newName = $newPic ? (Database::fetchOne("SELECT name FROM users WHERE id=?", [$newPic])['name'] ?? '—') : 'Tidak ada';
+        $newUser = $newPic ? Database::fetchOne("SELECT id, name, role FROM users WHERE id=?", [$newPic]) : null;
+        $newName = $newUser['name'] ?? 'Tidak ada';
         fbLogEvent($t['id'], 'pic_diubah', $old, $newName);
+
+        // PIC baru pada tiket safeguarding belum tentu anggota unit Kanal
+        // Yayasan — penugasan manual (mis. hasil rapat mingguan) tidak
+        // lewat fbResolveAssignee(), jadi tidak tersaring seperti jalur
+        // otomatis. Tanpa ini, PIC-nya sendiri bisa kena 403 saat membuka
+        // tiketnya sendiri (lihat tools/cek-akses-ky.php, bagian
+        // "SALAH TUGAS"). Menjadikannya Pemantau di sini meniru pola yang
+        // sudah dipakai fbEscalate() untuk PIC lama saat eskalasi.
+        if ($newUser && $t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($newUser)) {
+            Database::query(
+                "INSERT IGNORE INTO feedback_watchers (ticket_id,user_id,added_by) VALUES (?,?,?)",
+                [$t['id'], $newUser['id'], $user['id']]);
+        }
+
         flash('Penanggung jawab diperbarui.', 'success');
 
     } elseif ($act === 'priority' && fbCanManage($user)) {
