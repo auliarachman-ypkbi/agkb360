@@ -95,14 +95,20 @@ foreach ($kandidat as $u) {
 
     if (!$lewatInbox && !$lewatTautan) continue;
 
-    // Tiga dasar yang sah, dan masing-masing ditandai tersendiri:
-    // keanggotaan unit, superadmin (demi pemeliharaan sistem), dan
-    // pemberian per tiket. Semuanya tetap tercetak — daftar pembaca
-    // laporan perlindungan anak tidak boleh menyembunyikan siapa pun,
-    // termasuk yang haknya memang jelas.
+    // Empat dasar yang sah, dan masing-masing ditandai tersendiri:
+    // keanggotaan unit, superadmin (demi pemeliharaan sistem),
+    // pemberian per tiket, dan pelapor tiket itu sendiri (siapa pun
+    // berhak membaca laporan yang dia kirim sendiri — fbCanView()
+    // mengizinkannya lewat baris sender_id paling atas). Semuanya
+    // tetap tercetak — daftar pembaca laporan perlindungan anak tidak
+    // boleh menyembunyikan siapa pun, termasuk yang haknya memang jelas.
     $diberi = array_map(
         fn($id) => $nomor[$id] ?? ('id=' . $id),
         fbTiketKyDiberikan((int)$u['id']));
+
+    $lapor = array_values(array_map(
+        fn($t) => $t['ticket_no'],
+        array_filter($ky, fn($t) => (int)$t['sender_id'] === (int)$u['id'])));
 
     $bisa[] = [
         'u'       => $u,
@@ -111,8 +117,9 @@ foreach ($kandidat as $u) {
         'anggota' => in_array((int)$u['id'], array_map('intval', $idAnggota), true),
         'sah'     => $u['role'] === 'superadmin',
         'diberi'  => $diberi,
+        'lapor'   => $lapor,
         // Yang terbaca tanpa dasar apa pun. Inilah kebocorannya.
-        'liar'    => array_values(array_diff($lewatTautan, $diberi)),
+        'liar'    => array_values(array_diff($lewatTautan, array_merge($diberi, $lapor))),
     ];
 }
 
@@ -129,10 +136,14 @@ echo '  ' . $kolom('NAMA', 28) . $kolom('ROLE', 12) . $kolom('INBOX', 8)
    . $kolom('BACA', 7) . "DASAR\n";
 
 foreach ($bisa as $b) {
+    $bagian = [];
+    if ($b['diberi']) $bagian[] = 'diberi per tiket: ' . implode(', ', $b['diberi']);
+    if ($b['lapor'])  $bagian[] = 'pelapor: ' . implode(', ', $b['lapor']);
+
     $dasar = $b['anggota'] ? 'anggota unit'
            : ($b['sah']    ? 'superadmin'
-           : ($b['diberi'] && !$b['liar']
-              ? 'diberi per tiket: ' . implode(', ', $b['diberi'])
+           : ($bagian && !$b['liar']
+              ? implode(' · ', $bagian)
               : 'TANPA DASAR'));
 
     // Cermin dari admin/feedback.php: jalur safeguarding dibuka di
