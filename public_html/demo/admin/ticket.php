@@ -53,8 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
         $newPic = (int)($_POST['assignee_id'] ?? 0) ?: null;
         $old = $t['assignee_name'] ?? '—';
         Database::update('feedback_tickets', ['assignee_id'=>$newPic], 'id = ?', [$t['id']]);
-        $newName = $newPic ? (Database::fetchOne("SELECT name FROM users WHERE id=?", [$newPic])['name'] ?? '—') : 'Tidak ada';
+        $newUser = $newPic ? Database::fetchOne("SELECT id, name, role FROM users WHERE id=?", [$newPic]) : null;
+        $newName = $newUser['name'] ?? 'Tidak ada';
         fbLogEvent($t['id'], 'pic_diubah', $old, $newName);
+
+        // PIC baru pada tiket safeguarding belum tentu anggota unit Kanal
+        // Yayasan — penugasan manual (mis. hasil rapat mingguan) tidak
+        // lewat fbResolveAssignee(), jadi tidak tersaring seperti jalur
+        // otomatis. Tanpa ini, PIC-nya sendiri bisa kena 403 saat membuka
+        // tiketnya sendiri (lihat tools/cek-akses-ky.php, bagian
+        // "SALAH TUGAS"). Menjadikannya Pemantau di sini meniru pola yang
+        // sudah dipakai fbEscalate() untuk PIC lama saat eskalasi.
+        if ($newUser && $t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($newUser)) {
+            Database::query(
+                "INSERT IGNORE INTO feedback_watchers (ticket_id,user_id,added_by) VALUES (?,?,?)",
+                [$t['id'], $newUser['id'], $user['id']]);
+        }
+
         flash('Penanggung jawab diperbarui.', 'success');
 
     } elseif ($act === 'priority' && fbCanManage($user)) {
@@ -141,9 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
         }
 
     } elseif ($act === 'unmask' && $user['role'] === 'superadmin') {
-        fbLogEvent($t['id'], 'identitas_dibuka', null, $t['sender_name'], trim($_POST['reason'] ?? ''));
-        $_SESSION['fb_unmask_' . $t['id']] = true;
-        flash('Identitas dibuka. Tindakan ini tercatat permanen.', 'warning');
+        // Nama yang dicatat diambil lewat fbSenderDisplay() dengan
+        // penampil superadmin, bukan langsung dari sender_name —
+        // tiket dari formulir publik tidak punya baris users, dan
+        // catatannya dulu kosong untuk kasus itu.
+        // is_anonymous=0 pada salinan → penyamaran dilewati, sehingga
+        // yang kembali adalah nama sesungguhnya, baik dari tabel users
+        // maupun dari isian pelapor publik.
+        $asli = fbSenderDisplay(['is_anonymous'=>0] + $t, $user);
+        fbLogEvent($t['id'], 'identitas_dibuka', null, $asli['name'], trim($_POST['reason'] ?? ''));
+        flash('Identitas dibuka. Penanggung jawab kini dapat melihatnya, dan tindakan ini tercatat permanen.', 'warning');
     }
 
     header('Location: ' . APP_URL . '/admin/ticket.php?id=' . $t['id']);
@@ -153,10 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
 fbLogEvent($t['id'], 'dilihat');
 $t = fbLoadFull($t['id']);
 
-$unmasked = !empty($_SESSION['fb_unmask_' . $t['id']]);
-$sd = $unmasked && $user['role'] === 'superadmin'
-    ? ['name'=>$t['sender_name'],'email'=>$t['sender_email'],'role'=>$t['sender_role'],'masked'=>false]
-    : fbSenderDisplay($t, $user);
+// Satu sumber saja: fbSenderDisplay(). Dulu hasilnya ditimpa di sini
+// dengan sender_name dari tabel users ketika identitas sudah dibuka —
+// dan untuk tiket dari formulir publik sender_id-nya NULL, sehingga
+// kolom Pelapor tampil kosong padahal namanya muncul di daftar.
+$unmasked = fbIdentitasDibuka((int)$t['id']);
+$sd = fbSenderDisplay($t, $user);
 
 $messages = Database::fetchAll(
     "SELECT m.*, u.name AS author_name FROM feedback_messages m

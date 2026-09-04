@@ -790,35 +790,87 @@ function fbHasConflict(array $t, array $u): bool {
 }
 
 /** Sembunyikan identitas pelapor sesuai aturan anonimitas. */
+/**
+ * Apakah identitas pelapor tiket ini sudah dibuka secara resmi.
+ *
+ * Jawabannya dibaca dari feedback_events, bukan dari kolom tersendiri
+ * maupun dari sesi. Alasannya: peristiwa 'identitas_dibuka' sudah
+ * memuat siapa yang membuka, kapan, alasannya, dan dari alamat IP
+ * mana — dan tidak dapat dihapus lewat antarmuka. Menjadikannya
+ * satu-satunya penentu berarti tidak mungkin ada identitas terbuka
+ * yang tidak ada catatannya.
+ *
+ * Sebelumnya penandanya disimpan di $_SESSION, sehingga terbatas pada
+ * satu peramban dan hilang saat keluar. Padahal keputusan membuka
+ * identitas adalah keputusan atas tiketnya, bukan atas sesi seseorang.
+ */
+function fbIdentitasDibuka(int $ticketId): bool {
+    if ($ticketId <= 0) return false;
+
+    static $ingatan = [];
+    if (array_key_exists($ticketId, $ingatan)) return $ingatan[$ticketId];
+
+    return $ingatan[$ticketId] = (bool)Database::fetchOne(
+        "SELECT 1 FROM feedback_events
+          WHERE ticket_id = ? AND event_type = 'identitas_dibuka' LIMIT 1", [$ticketId]);
+}
+
+/**
+ * Sembunyikan identitas pelapor sesuai aturan anonimitas.
+ *
+ * Urutan pertanyaannya:
+ *   1. Pelapor melihat tiketnya sendiri — selalu boleh.
+ *   2. Identitas belum dibuka — tersamar bagi semua orang, termasuk
+ *      superadmin. Ini yang menepati kalimat pada formulir publik:
+ *      "hanya dapat dibuka oleh pengelola sistem ... setiap pembukaan
+ *      tercatat". Sebelumnya superadmin melihat nama begitu saja
+ *      tanpa menekan tombolnya, sehingga catatannya tidak pernah ada.
+ *   3. Identitas sudah dibuka — terlihat oleh superadmin dan
+ *      penanggung jawab tiket, tidak oleh yang lain.
+ *
+ * Penanggung jawab ikut melihat karena dialah yang menindaklanjuti;
+ * membuka identitas tanpa memberitahunya membuat pembukaan itu tidak
+ * ada gunanya. Konsekuensinya, mengganti penanggung jawab sesudah
+ * pembukaan berarti memindahkan akses itu juga — itu memang wajar,
+ * tetapi perlu disadari saat menugaskan ulang.
+ */
 function fbSenderDisplay(array $t, array $viewer): array {
+    $tamu    = empty($t['sender_id']);
+    $vid     = (int)($viewer['id'] ?? 0);
+    $sendiri = $vid > 0 && (int)($t['sender_id'] ?? 0) === $vid;
+
+    if (!empty($t['is_anonymous']) && !$sendiri) {
+        $boleh = fbIdentitasDibuka((int)($t['id'] ?? 0))
+              && (($viewer['role'] ?? '') === 'superadmin'
+                  || ($vid > 0 && (int)($t['assignee_id'] ?? 0) === $vid));
+
+        if (!$boleh) {
+            return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null,
+                    'masked'=>true, 'tamu'=>$tamu];
+        }
+    }
+
     // Tiket dari formulir publik: tidak ada baris users di baliknya.
     // Identitasnya diisi sendiri oleh pelapor dan TIDAK diverifikasi
     // — penanganan harus tahu itu sebelum menindaklanjuti.
-    if (empty($t['sender_id']) && !empty($t['guest_email'])) {
-        // Tamu pun bisa memilih anonim. Aturannya sama seperti
-        // pelapor ber-akun: identitas tetap tersimpan, hanya
-        // disembunyikan dari penanganan, dan hanya superadmin yang
-        // dapat membukanya.
-        if (!empty($t['is_anonymous']) && ($viewer['role'] ?? '') !== 'superadmin') {
-            return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null,
-                    'masked'=>true, 'tamu'=>true];
-        }
+    //
+    // Ditandai dari sender_id yang kosong saja, bukan dari ada
+    // tidaknya guest_email. Pelapor publik yang tidak meninggalkan
+    // alamat surel tetap punya nama yang perlu ditampilkan; syarat
+    // guest_email dulu membuat namanya jatuh ke cabang pengguna
+    // ber-akun dan tampil sebagai tanda pisah.
+    if ($tamu) {
         return [
-            'name'   => $t['guest_name'] ?: 'Pelapor Publik',
-            'email'  => $t['guest_email'],
-            'role'   => $t['guest_role'] ?: 'Publik',
+            'name'   => ($t['guest_name'] ?? '') ?: 'Pelapor Publik',
+            'email'  => ($t['guest_email'] ?? '') ?: null,
+            'role'   => ($t['guest_role'] ?? '') ?: 'Publik',
             'masked' => false,
             'tamu'   => true,
         ];
     }
 
-    $anon = !empty($t['is_anonymous']);
-    $mayUnmask = ($viewer['role'] ?? '') === 'superadmin';
-    if ($anon && !$mayUnmask && (int)$t['sender_id'] !== (int)$viewer['id']) {
-        return ['name'=>'Pelapor Anonim', 'email'=>null, 'role'=>null, 'masked'=>true, 'tamu'=>false];
-    }
     return [
-        'name'   => $t['sender_name'] ?? '—',
+        'name'   => ($t['sender_name'] ?? '') ?: '—',
         'email'  => $t['sender_email'] ?? null,
         'role'   => $t['sender_role'] ?? null,
         'masked' => false,

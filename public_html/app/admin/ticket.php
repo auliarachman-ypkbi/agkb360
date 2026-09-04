@@ -156,9 +156,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
         }
 
     } elseif ($act === 'unmask' && $user['role'] === 'superadmin') {
-        fbLogEvent($t['id'], 'identitas_dibuka', null, $t['sender_name'], trim($_POST['reason'] ?? ''));
-        $_SESSION['fb_unmask_' . $t['id']] = true;
-        flash('Identitas dibuka. Tindakan ini tercatat permanen.', 'warning');
+        // Nama yang dicatat diambil lewat fbSenderDisplay() dengan
+        // penampil superadmin, bukan langsung dari sender_name —
+        // tiket dari formulir publik tidak punya baris users, dan
+        // catatannya dulu kosong untuk kasus itu.
+        // is_anonymous=0 pada salinan → penyamaran dilewati, sehingga
+        // yang kembali adalah nama sesungguhnya, baik dari tabel users
+        // maupun dari isian pelapor publik.
+        $asli = fbSenderDisplay(['is_anonymous'=>0] + $t, $user);
+        fbLogEvent($t['id'], 'identitas_dibuka', null, $asli['name'], trim($_POST['reason'] ?? ''));
+        flash('Identitas dibuka. Penanggung jawab kini dapat melihatnya, dan tindakan ini tercatat permanen.', 'warning');
     }
 
     header('Location: ' . APP_URL . '/admin/ticket.php?id=' . $t['id']);
@@ -168,10 +175,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
 fbLogEvent($t['id'], 'dilihat');
 $t = fbLoadFull($t['id']);
 
-$unmasked = !empty($_SESSION['fb_unmask_' . $t['id']]);
-$sd = $unmasked && $user['role'] === 'superadmin'
-    ? ['name'=>$t['sender_name'],'email'=>$t['sender_email'],'role'=>$t['sender_role'],'masked'=>false]
-    : fbSenderDisplay($t, $user);
+// Satu sumber saja: fbSenderDisplay(). Dulu hasilnya ditimpa di sini
+// dengan sender_name dari tabel users ketika identitas sudah dibuka —
+// dan untuk tiket dari formulir publik sender_id-nya NULL, sehingga
+// kolom Pelapor tampil kosong padahal namanya muncul di daftar.
+$unmasked = fbIdentitasDibuka((int)$t['id']);
+$sd = fbSenderDisplay($t, $user);
 
 $messages = Database::fetchAll(
     "SELECT m.*, u.name AS author_name FROM feedback_messages m
