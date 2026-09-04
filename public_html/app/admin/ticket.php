@@ -76,6 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
                 [$t['id'], $newUser['id'], $user['id']]);
         }
 
+        // Dikabari setelah keanggotaan pemantau di atas terpasang,
+        // supaya tautan di emailnya sudah bisa dibuka begitu diklik.
+        if ($newUser) fbNotifyPenunjukan($t['id'], (int)$newUser['id'], 'Penanggung Jawab');
+
         flash('Penanggung jawab diperbarui.', 'success');
 
     } elseif ($act === 'priority' && fbCanManage($user)) {
@@ -156,8 +160,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canAct) {
     } elseif ($act === 'watcher') {
         $wid = (int)($_POST['user_id'] ?? 0);
         if ($wid) {
+            // Diperiksa lebih dulu, bukan diserahkan ke INSERT IGNORE:
+            // menambahkan orang yang sudah terdaftar tidak boleh
+            // mengirim email kedua kepadanya.
+            $sudah = Database::fetchOne(
+                "SELECT 1 FROM feedback_watchers WHERE ticket_id=? AND user_id=?",
+                [$t['id'], $wid]);
+
             Database::query("INSERT IGNORE INTO feedback_watchers (ticket_id,user_id,added_by) VALUES (?,?,?)",
                 [$t['id'], $wid, $user['id']]);
+
+            if (!$sudah) fbNotifyPenunjukan($t['id'], $wid, 'Pemantau');
             flash('Pemantau ditambahkan.', 'success');
         }
 

@@ -1434,6 +1434,58 @@ function fbNotifyResolved(int $ticketId): void {
         fbMailTemplate('Laporan Anda Telah Diselesaikan', $body, fbPelaporUrl($t), 'Lihat Detail', '#027a48'));
 }
 
+/**
+ * Beri tahu orang yang baru ditunjuk menangani sebuah tiket, entah
+ * sebagai penanggung jawab entah sebagai pemantau.
+ *
+ * Sebelum ini penunjukan berlangsung diam-diam: kolomnya berubah,
+ * peristiwanya tercatat, dan orangnya baru tahu kalau kebetulan
+ * membuka inbox. Untuk tiket P1 berbatas waktu 24 jam, itu selisih
+ * yang menentukan.
+ *
+ * Isinya sengaja pendek — nomor, kategori, prioritas, batas waktu,
+ * lalu tombol. TIDAK memuat isi laporan, dan tidak juga subjeknya.
+ * Alasannya paling terasa pada Kanal Yayasan: orang ini baru saja
+ * diberi akses supaya membacanya di dalam aplikasi, di mana
+ * pembukaannya tercatat. Menyalin isinya ke kotak surat meniadakan
+ * gunanya. Untuk jalur lain pun tidak ada ruginya singkat.
+ */
+function fbNotifyPenunjukan(int $ticketId, int $userId, string $sebagai): void {
+    $t = fbLoadFull($ticketId);
+    if (!$t || $t['is_test']) return;
+
+    $u = Database::fetchOne(
+        "SELECT name, email FROM users WHERE id=? AND is_active=1", [$userId]);
+    if (!$u || empty($u['email'])) return;
+
+    // Menunjuk diri sendiri tidak perlu dikabari — orangnya baru saja
+    // menekan tombolnya.
+    if ((int)$userId === (int)($_SESSION['user_id'] ?? 0)) return;
+
+    $warna = $t['track'] === 'safeguarding' ? '#b42318' : '#ff9101';
+
+    // fbTicketMetaHtml() tidak memuat batas waktu, padahal justru itu
+    // yang paling perlu diketahui orang yang baru ditunjuk.
+    $batas = $t['due_at']
+        ? '<p style="margin:0 0 4px;font-size:13px;color:#2f2d4d">Batas waktu penanganan: <strong>'
+          . date('j M Y, H:i', strtotime($t['due_at'])) . '</strong></p>'
+        : '';
+
+    $body = '<p style="margin:0 0 6px">Anda sekarang tercatat sebagai <strong>'
+          . h($sebagai) . '</strong> untuk tiket <strong>' . h($t['ticket_no'])
+          . '</strong>.</p>'
+          . fbTicketMetaHtml($t)
+          . $batas
+          . '<p style="margin:16px 0 0;font-size:12px;color:#6b6a83">'
+          . 'Isi laporan hanya dapat dibaca di dalam aplikasi.</p>';
+
+    fbSendMail(
+        $u['email'],
+        '[AGKB 360°] ' . $t['ticket_no'] . ' — Anda ditunjuk sebagai ' . $sebagai,
+        fbMailTemplate('Penunjukan Penanganan', $body,
+            fbAppUrl() . '/admin/ticket.php?id=' . $t['id'], 'Buka Tiket', $warna));
+}
+
 function fbNotifyAppreciation(int $ticketId): void {
     $t = fbLoadFull($ticketId);
     if (!$t || $t['is_test'] || empty($t['appreciated_user_id'])) return;
