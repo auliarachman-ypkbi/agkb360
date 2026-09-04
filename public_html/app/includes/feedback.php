@@ -655,12 +655,18 @@ function fbCanSeeSafeguarding(?array $u = null): bool {
 }
 
 /**
- * Tiket Kanal Yayasan yang diberikan kepada seseorang satu per satu.
+ * Tiket yang diberikan kepada seseorang satu per satu, dengan
+ * menjadikannya pemantau secara sengaja.
  *
- * Keanggotaan unit memberi kesepuluh tiket sekaligus, dan itu terlalu
- * kasar untuk keputusan seperti "Dewi Amri boleh membuka KY-2026-0010"
- * yang diambil di rapat internal. Jalur ini menyediakan takaran yang
- * lebih halus: satu tiket, satu orang.
+ * Keanggotaan unit memberi seluruh tiket unit itu sekaligus, dan itu
+ * terlalu kasar untuk keputusan seperti "Dewi Amri boleh membuka
+ * KY-2026-0010" yang diambil di rapat internal. Jalur ini menyediakan
+ * takaran yang lebih halus: satu tiket, satu orang.
+ *
+ * Menjadikan seseorang pemantau setara dengan menjadikannya
+ * penanggung jawab — keduanya perbuatan sengaja oleh orang yang
+ * berwenang, dan keduanya memberi hak yang sama: membuka dan
+ * menjawab.
  *
  * Dua penjaga supaya tidak berubah jadi pintu belakang:
  *
@@ -668,15 +674,16 @@ function fbCanSeeSafeguarding(?array $u = null): bool {
  *      Anggota unit yang ditambahkan otomatis saat tiket dibuat
  *      ber-`added_by` NULL, jadi tidak ikut memberi akses kepada
  *      siapa pun di luar aturan unit.
- *   2. Pemberinya harus orang yang sendiri boleh membaca KY —
- *      superadmin atau anggota unit. Orang tidak bisa membagikan
- *      apa yang ia sendiri tidak boleh lihat.
+ *   2. Untuk jalur Kanal Yayasan, pemberinya harus orang yang sendiri
+ *      boleh membacanya — superadmin atau anggota unit. Orang tidak
+ *      bisa membagikan apa yang ia sendiri tidak boleh lihat. Jalur
+ *      lain tidak perlu syarat ini karena aksesnya memang sudah luas.
  *
  * Pemberian semacam ini muncul tersendiri di tools/cek-akses-ky.php,
  * lengkap dengan siapa yang memberi, supaya tidak menumpuk tanpa ada
  * yang menengok.
  */
-function fbTiketKyDiberikan(int $userId): array {
+function fbTiketDiberikan(int $userId): array {
     if ($userId <= 0) return [];
 
     static $ingatan = [];
@@ -692,10 +699,37 @@ function fbTiketKyDiberikan(int $userId): array {
                                    AND g.type = 'penanganan'
                                    AND g.name = 'Kanal Yayasan'
           WHERE w.user_id = ?
-            AND t.track   = 'safeguarding'
-            AND (p.role = 'superadmin' OR g.id IS NOT NULL)", [$userId]);
+            AND (t.track <> 'safeguarding'
+                 OR p.role = 'superadmin'
+                 OR g.id IS NOT NULL)", [$userId]);
 
     return $ingatan[$userId] = array_map('intval', array_column($rows, 'ticket_id'));
+}
+
+/**
+ * Tiket Kanal Yayasan yang terjangkau seseorang di luar keanggotaan
+ * unit — entah karena dijadikan pemantau, entah karena dijadikan
+ * penanggung jawab. Dipakai inbox untuk membuka jalur safeguarding
+ * baris demi baris tanpa membuka seluruhnya.
+ */
+function fbTiketKyTerjangkau(int $userId): array {
+    if ($userId <= 0) return [];
+
+    $rows = Database::fetchAll(
+        "SELECT id FROM feedback_tickets
+          WHERE track = 'safeguarding' AND assignee_id = ?", [$userId]);
+    $hasil = array_map('intval', array_column($rows, 'id'));
+
+    $diberi = fbTiketDiberikan($userId);
+    if ($diberi) {
+        $ph  = implode(',', array_fill(0, count($diberi), '?'));
+        $row2 = Database::fetchAll(
+            "SELECT id FROM feedback_tickets
+              WHERE track = 'safeguarding' AND id IN ($ph)", $diberi);
+        $hasil = array_merge($hasil, array_map('intval', array_column($row2, 'id')));
+    }
+
+    return array_values(array_unique($hasil));
 }
 
 function fbCanManage(?array $u = null): bool {
@@ -753,21 +787,21 @@ function fbCanView(array $t, array $u): bool {
 
     if ((int)$t['sender_id'] === (int)$u['id'])   return true;
 
-    // Diberi tiket KY ini satu per satu — lihat fbTiketKyDiberikan().
-    // Harus diperiksa sebelum cabang assignee/unit di bawah, bukan
-    // sesudahnya: cabang-cabang itu melakukan return false lebih dulu
-    // untuk siapa pun yang gagal fbCanSeeSafeguarding(), sehingga kalau
-    // pemeriksaan ini diletakkan setelahnya ia tak pernah tercapai —
-    // PIC manual (hasil rapat mingguan) yang sekaligus diberi tiket ini
-    // per-tiket akan tetap ditolak oleh cabang assignee di bawah,
-    // walau pemberian per-tiketnya sendiri sudah benar.
-    if ($t['track'] === 'safeguarding'
-        && in_array((int)$t['id'], fbTiketKyDiberikan((int)$u['id']), true)) return true;
+    // Dua perbuatan sengaja memberi hak yang sama atas satu tiket:
+    // dijadikan pemantau, atau dijadikan penanggung jawab. Keduanya
+    // dilakukan orang berwenang, keduanya berarti boleh membuka dan
+    // menjawab, dan keduanya diperiksa lebih dulu daripada aturan
+    // jalur di bawah — sebab justru aturan jalur itulah yang
+    // dikecualikan untuk tiket yang bersangkutan.
+    if (in_array((int)$t['id'], fbTiketDiberikan((int)$u['id']), true)) return true;
 
-    if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) {
-        if ($t['track'] === 'safeguarding' && !fbCanSeeSafeguarding($u)) return false;
-        return true;
-    }
+    // Menugaskan seseorang tanpa memberinya akses menghasilkan tiket
+    // yang tampak tertangani padahal pemegangnya hanya mendapat 403.
+    // Penugasan otomatis tidak bisa menyelundup lewat sini:
+    // fbResolveAssignee() menolak memilih orang yang tak boleh
+    // membaca, sehingga penanggung jawab KY di luar unit pasti hasil
+    // penunjukan manusia.
+    if ((int)($t['assignee_id'] ?? 0) === (int)$u['id']) return true;
     // Anggota unit penanganan boleh melihat antrean unitnya
     $unit = fbTicketUnit($t);
     if ($unit && fbIsUnitMember((int)$unit['id'], (int)$u['id'])) {

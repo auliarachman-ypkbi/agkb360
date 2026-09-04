@@ -104,11 +104,18 @@ foreach ($kandidat as $u) {
     // boleh menyembunyikan siapa pun, termasuk yang haknya memang jelas.
     $diberi = array_map(
         fn($id) => $nomor[$id] ?? ('id=' . $id),
-        fbTiketKyDiberikan((int)$u['id']));
+        fbTiketDiberikan((int)$u['id']));
 
     $lapor = array_values(array_map(
         fn($t) => $t['ticket_no'],
         array_filter($ky, fn($t) => (int)$t['sender_id'] === (int)$u['id'])));
+
+    // Ditugaskan sebagai penanggung jawab — dasar kelima, setara
+    // dengan pemberian per tiket. Keduanya perbuatan sengaja oleh
+    // orang berwenang, keduanya memberi hak membuka dan menjawab.
+    $tugas = array_values(array_map(
+        fn($t) => $t['ticket_no'],
+        array_filter($ky, fn($t) => (int)($t['assignee_id'] ?? 0) === (int)$u['id'])));
 
     $bisa[] = [
         'u'       => $u,
@@ -118,8 +125,11 @@ foreach ($kandidat as $u) {
         'sah'     => $u['role'] === 'superadmin',
         'diberi'  => $diberi,
         'lapor'   => $lapor,
+        'tugas'   => $tugas,
+        'jangkau' => fbTiketKyTerjangkau((int)$u['id']),
         // Yang terbaca tanpa dasar apa pun. Inilah kebocorannya.
-        'liar'    => array_values(array_diff($lewatTautan, array_merge($diberi, $lapor))),
+        'liar'    => array_values(array_diff($lewatTautan,
+                        array_merge($diberi, $lapor, $tugas))),
     ];
 }
 
@@ -137,7 +147,8 @@ echo '  ' . $kolom('NAMA', 28) . $kolom('ROLE', 12) . $kolom('INBOX', 8)
 
 foreach ($bisa as $b) {
     $bagian = [];
-    if ($b['diberi']) $bagian[] = 'diberi per tiket: ' . implode(', ', $b['diberi']);
+    if ($b['diberi']) $bagian[] = 'pemantau: ' . implode(', ', $b['diberi']);
+    if ($b['tugas'])  $bagian[] = 'penanggung jawab: ' . implode(', ', $b['tugas']);
     if ($b['lapor'])  $bagian[] = 'pelapor: ' . implode(', ', $b['lapor']);
 
     $dasar = $b['anggota'] ? 'anggota unit'
@@ -147,11 +158,12 @@ foreach ($bisa as $b) {
               : 'TANPA DASAR'));
 
     // Cermin dari admin/feedback.php: jalur safeguarding dibuka di
-    // inbox bila fbAllowedTracks() memuatnya ATAU ada pemberian per
-    // tiket. Tanpa cabang kedua, kolom ini melaporkan '—' untuk orang
-    // yang sesungguhnya melihat tiketnya di inbox.
+    // inbox bila fbAllowedTracks() memuatnya ATAU ada tiket yang
+    // terjangkau lewat pemberian/penugasan. Memakai fungsi yang sama
+    // dengan halamannya supaya kolom ini tidak pernah berbeda dari
+    // yang sesungguhnya dilihat orangnya.
     $inbox = $b['inbox'] ? 'semua'
-           : ($b['diberi'] ? count($b['diberi']) . ' tiket' : '-');
+           : ($b['jangkau'] ? count($b['jangkau']) . ' tiket' : '-');
 
     echo '  ' . $kolom(mb_substr($b['u']['name'], 0, 28), 28)
        . $kolom($b['u']['role'], 12)
@@ -176,19 +188,26 @@ foreach ($anggota as $a) {
     if ($u && !in_array('safeguarding', fbAllowedTracks($u), true)) $buta[] = $a['name'];
 }
 
-// Arah ketiga: tiket yang ditugaskan kepada orang yang tidak bisa
-// membukanya. fbResolveAssignee() sekarang mencegahnya terjadi, tetapi
-// penugasan lama dan penugasan manual tidak tersaring fungsi itu —
-// dan kegagalan macam ini tidak berbunyi apa-apa. Tiket tampak
-// tertangani, yang ditunjuk hanya mendapat 403.
-$salahTugas = [];
+// Arah ketiga. Sejak penugasan dengan sendirinya memberi hak membuka,
+// pemeriksaan ini tidak lagi bisa menemukan penanggung jawab yang
+// ditolak sistem — dan justru karena itu ia berubah guna: mendaftar
+// penugasan yang keluar dari unit, supaya terlihat dan ditinjau,
+// bukan supaya dilarang. Yang masih benar-benar rusak hanya penugasan
+// ke akun yang sudah tidak ada atau tidak aktif.
+$luarUnit = [];
+$rusak    = [];
 foreach ($ky as $t) {
     if (empty($t['assignee_id'])) continue;
-    $a = Database::fetchOne("SELECT id, name, role FROM users WHERE id=?", [$t['assignee_id']]);
+    $a = Database::fetchOne("SELECT id, name, role, is_active FROM users WHERE id=?",
+        [$t['assignee_id']]);
+
     if (!$a) {
-        $salahTugas[] = $t['ticket_no'] . ' → akun id=' . $t['assignee_id'] . ' tidak ditemukan';
-    } elseif (!fbCanView($t, $a)) {
-        $salahTugas[] = $t['ticket_no'] . ' → ' . $a['name'] . ' (' . $a['role'] . ')';
+        $rusak[] = $t['ticket_no'] . ' → akun id=' . $t['assignee_id'] . ' tidak ditemukan';
+    } elseif (!$a['is_active']) {
+        $rusak[] = $t['ticket_no'] . ' → ' . $a['name'] . ' (akun nonaktif)';
+    } elseif (!in_array((int)$a['id'], array_map('intval', $idAnggota), true)
+              && $a['role'] !== 'superadmin') {
+        $luarUnit[] = $t['ticket_no'] . ' → ' . $a['name'] . ' (' . $a['role'] . ')';
     }
 }
 
@@ -199,7 +218,8 @@ if ($tembus) {
     foreach ($tembus as $n) echo "      · $n\n";
 } else {
     echo "  ✓ Setiap pembaca tiket KY punya dasar: keanggotaan unit,\n"
-       . "    superadmin, atau pemberian per tiket.\n";
+       . "    superadmin, ditunjuk sebagai pemantau atau penanggung\n"
+       . "    jawab, atau pelapornya sendiri.\n";
 }
 
 if ($buta) {
@@ -209,12 +229,19 @@ if ($buta) {
     echo "  ✓ Seluruh anggota unit melihat tiket KY di inbox mereka.\n";
 }
 
-if ($salahTugas) {
-    echo "  ✗ SALAH TUGAS — penanggung jawab yang tidak bisa membuka tiketnya:\n";
-    foreach ($salahTugas as $n) echo "      · $n\n";
+if ($rusak) {
+    echo "  ✗ PENUGASAN RUSAK — akun penanggung jawab tidak ada atau nonaktif:\n";
+    foreach ($rusak as $n) echo "      · $n\n";
 } else {
-    echo "  ✓ Setiap tiket KY yang berpenanggung jawab dipegang orang\n"
-       . "    yang bisa membukanya.\n";
+    echo "  ✓ Setiap penanggung jawab tiket KY adalah akun yang aktif.\n";
+}
+
+// Bukan kesalahan — penugasan ke luar unit memang dibolehkan dan
+// dengan sendirinya memberi akses. Didaftar supaya tidak menumpuk
+// tanpa ada yang menengok, sama seperti pemberian per tiket.
+if ($luarUnit) {
+    echo "  · DITUGASKAN KE LUAR UNIT — sah, tetapi perlu ditinjau berkala:\n";
+    foreach ($luarUnit as $n) echo "      · $n\n";
 }
 
 // ── Jalur samping ───────────────────────────────────────────
@@ -254,7 +281,7 @@ if (!$pengintai) echo "      (tidak ada)\n";
 foreach ($pengintai as $w) {
     $ok = in_array((int)$w['id'], array_map('intval', $idAnggota), true)
        || $w['role'] === 'superadmin';
-    $diberi = fbTiketKyDiberikan((int)$w['id']);
+    $diberi = fbTiketDiberikan((int)$w['id']);
     printf("      %s %-28s %-11s %s\n",
         $ok || $diberi ? '·' : '✗',
         mb_substr($w['name'], 0, 28),

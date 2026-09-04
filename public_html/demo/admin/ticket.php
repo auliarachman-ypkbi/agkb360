@@ -28,7 +28,13 @@ if (fbHasConflict($t, $user)) {
 
 $unit      = fbTicketUnit($t);
 $isMember  = $unit && fbIsUnitMember((int)$unit['id'], (int)$user['id']);
-$canAct    = fbCanManage($user) || (int)($t['assignee_id'] ?? 0) === (int)$user['id'] || $isMember;
+// Pemantau yang ditambahkan sengaja oleh orang berwenang boleh
+// menjawab, bukan sekadar menonton — sama seperti penanggung jawab.
+// Pemantau yang masuk otomatis dari keanggotaan unit tidak termasuk;
+// fbTiketDiberikan() hanya menghitung baris yang ada added_by-nya.
+$diberi    = in_array((int)$t['id'], fbTiketDiberikan((int)$user['id']), true);
+$canAct    = fbCanManage($user) || (int)($t['assignee_id'] ?? 0) === (int)$user['id']
+          || $isMember || $diberi;
 $canClaim  = empty($t['assignee_id']) && ($isMember || fbCanManage($user));
 $isClosed  = in_array($t['status'], ['ditutup'], true);
 

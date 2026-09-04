@@ -28,7 +28,7 @@ $tracks = fbAllowedTracks($user);
 // Sengaja tidak dimasukkan ke fbAllowedTracks(): fungsi itu juga
 // dipakai dasbor untuk menghitung angka agregat, dan angka yang
 // mencakup tiket KY yang bukan haknya adalah kebocoran tersendiri.
-$kyKhusus = fbCanSeeSafeguarding($user) ? [] : fbTiketKyDiberikan((int)$user['id']);
+$kyKhusus = fbCanSeeSafeguarding($user) ? [] : fbTiketKyTerjangkau((int)$user['id']);
 if ($kyKhusus && $tracks) $tracks[] = 'safeguarding';
 
 if (!$tracks) { http_response_code(403); include BASE_PATH . '/includes/403.php'; exit; }
