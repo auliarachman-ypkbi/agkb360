@@ -317,3 +317,61 @@ function jsonResponse(array $data, int $statusCode = 200): void {
     echo json_encode($data);
     exit;
 }
+
+/**
+ * Peringkat skor 1–4 beserta warnanya.
+ *
+ * Definisi aslinya ada di config/config.php, dan di situlah masalahnya:
+ * config.php sengaja di-gitignore karena memuat kredensial, sehingga
+ * TIDAK pernah ikut ter-deploy oleh `git pull`. Setiap fungsi baru yang
+ * ditambahkan ke sana hanya hidup di mesin tempat ia ditulis.
+ *
+ * Akibatnya terlihat pada 29 September 2026: halaman Analisis per Orang
+ * di /demo mati dengan "Call to undefined function getScoreLevel()",
+ * sementara /app baik-baik saja — config /app kebetulan pernah
+ * diperbarui tangan, config /demo tidak.
+ *
+ * Salinan ini dijaga function_exists() supaya server yang config-nya
+ * sudah memuat definisi sendiri tetap memakai miliknya, tanpa galat
+ * "cannot redeclare". config.php dimuat lebih dulu daripada berkas ini,
+ * jadi yang di config selalu menang.
+ *
+ * Berkas ini ikut git, sehingga `git pull` sudah cukup dan tidak ada
+ * config yang perlu disunting tangan di server.
+ */
+if (!function_exists('getScoreLevel')) {
+    function getScoreLevel(float $score): array {
+        if ($score >= 4.00) return [
+            'label_id' => 'Sempurna',    'label_en' => 'Perfect',
+            'color'    => '#015c36',     'bg'       => '#e7f6ef',
+        ];
+        if ($score >= 3.75) return [
+            'label_id' => 'Luar Biasa',  'label_en' => 'Outstanding',
+            'color'    => '#027a48',     'bg'       => '#e7f6ef',
+        ];
+        if ($score >= 3.25) return [
+            'label_id' => 'Sangat Baik', 'label_en' => 'Very Good',
+            'color'    => '#2201b2',     'bg'       => '#eeebfc',
+        ];
+        if ($score >= 2.75) return [
+            'label_id' => 'Baik',        'label_en' => 'Good',
+            'color'    => '#2201b2',     'bg'       => '#eeebfc',
+        ];
+        if ($score >= 2.25) return [
+            'label_id' => 'Cukup Baik',  'label_en' => 'Fair',
+            'color'    => '#a85a01',     'bg'       => '#fff8ef',
+        ];
+        if ($score >= 1.75) return [
+            'label_id' => 'Cukup',       'label_en' => 'Sufficient',
+            'color'    => '#b83a01',     'bg'       => '#fff8ef',
+        ];
+        if ($score >= 1.25) return [
+            'label_id' => 'Kurang',      'label_en' => 'Below Standard',
+            'color'    => '#b42318',     'bg'       => '#fdeceb',
+        ];
+        return [
+            'label_id' => 'Sangat Kurang', 'label_en' => 'Insufficient',
+            'color'    => '#8c1610',       'bg'       => '#fdeceb',
+        ];
+    }
+}
