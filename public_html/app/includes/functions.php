@@ -3,10 +3,34 @@
 // AGKB 360° — Platform Evaluasi Kinerja · functions.php
 // ============================================================
 // CATATAN:
-// - getScoreLevel() ada di config.php
+// - getScoreLevel() ada di bawah, dengan cadangan bila config.php
+//   pada instalasi ini belum memuatnya
 // - startSession(), login(), logout(), isLoggedIn(),
 //   requireLogin(), requireRole(), currentUser(),
 //   canAccessAdmin(), csrfToken(), verifyCsrf() ada di auth.php
+
+// ── NILAI BAWAAN KONSTANTA TAMPILAN ──────────────────────────
+//
+// Ketiganya semestinya ditetapkan di config/config.php. Masalahnya,
+// config.php di-gitignore karena memuat kredensial, sehingga tidak
+// pernah ikut ter-deploy — dan config yang dibuat lebih dulu bisa
+// tertinggal tanpa ada yang menyadarinya.
+//
+// Itu benar-benar terjadi: pada 29 September 2026, config /demo di
+// server tidak memuat APP_VERSION maupun APP_SCHOOL, sehingga halaman
+// Pengaturan dan endpoint api/data.php mati dengan galat fatal —
+// sementara /app baik-baik saja karena config-nya lebih baru.
+//
+// Nilai-nilai ini bukan rahasia, jadi tidak ada ruginya diberi
+// cadangan di berkas yang ikut git. Config tetap menang bila
+// mendefinisikannya, sebab config.php dimuat lebih dulu.
+foreach ([
+    'APP_NAME'    => 'AGKB 360°',
+    'APP_VERSION' => '1.0.0',
+    'APP_SCHOOL'  => 'SMA Kemala Taruna Bhayangkara',
+] as $nama => $bawaan) {
+    if (!defined($nama)) define($nama, $bawaan);
+}
 
 // ── BASIC HELPERS ─────────────────────────────────────────────
 /**
@@ -133,7 +157,8 @@ function avatarInitials(string $name): string {
 }
 
 // ── SCORE HELPERS ─────────────────────────────────────────────
-// getScoreLevel() ada di config.php
+// getScoreLevel() didefinisikan di akhir berkas ini, dijaga
+// function_exists() supaya config.php yang sudah memuatnya tetap menang.
 
 function getScoreColor(float $score): string {
     return getScoreLevel($score)['color'];
